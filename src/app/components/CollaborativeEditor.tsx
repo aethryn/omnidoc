@@ -21,10 +21,12 @@ export default function CollaborativeEditor({
 
   // Create Yjs doc and provider only once
   const ydoc = useMemo(() => new Y.Doc(), [])
-  const wsProvider = useMemo(() => 
-    new WebsocketProvider('ws://localhost:4000', documentId, ydoc), 
-    [documentId, ydoc]
-  )
+  const wsProvider = useMemo(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''
+    return new WebsocketProvider('ws://localhost:4000', documentId, ydoc, {
+      params: { token }
+    })
+  }, [documentId, ydoc])
 
   // Create editor after provider is ready
   const editor = useEditor({

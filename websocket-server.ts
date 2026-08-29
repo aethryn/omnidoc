@@ -7,6 +7,7 @@ import * as decoding from "lib0/decoding";
 import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import http from "http";
+import jwt from "jsonwebtoken";
 import { PrismaClient } from "@/generated/prisma";
 
 //server config w/ env variables
@@ -30,6 +31,13 @@ const connections = new Map<
 const messageSync = 0;
 const messageAwareness = 1;
 
+// Helper to extract cookie token
+function getCookieToken(cookieHeader?: string): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 //basic http server
 const server = http.createServer((request, response) => {
   response.writeHead(200, {
@@ -43,20 +51,45 @@ const wss = new WebSocketServer({ server });
 
 //handle new ws connections
 wss.on("connection", async (ws: WebSocket, req: http.IncomingMessage) => {
-  //extract the document ID from the url query params
-  const url = new URL(req.url || "/", `http://${req.headers.host}`);
-  // const documentId = url.searchParams.get('document') || 'default'
+  //extract URL params and path
+  const host = req.headers.host || `localhost:${PORT}`;
+  const url = new URL(req.url || "/", `http://${host}`);
 
-  const roomCode = url.searchParams.get("room");
-  const userId = url.searchParams.get("userId");
+  // Support room from query param or pathname (y-websocket default: /roomName)
+  const roomCode = url.searchParams.get("room") || url.pathname.replace(/^\//, "").trim();
 
-  if (!roomCode || !userId) {
-    console.log("Missing parameters: ", { roomCode, userId });
-    ws.close(1000, "RoomCode and userId are required");
+  // Extract auth token from query param, Authorization header, or Cookie header
+  const token =
+    url.searchParams.get("token") ||
+    req.headers["authorization"]?.replace("Bearer ", "") ||
+    getCookieToken(req.headers.cookie);
+
+  if (!roomCode || !token) {
+    console.log("Missing connection parameters:", { roomCode: !!roomCode, token: !!token });
+    ws.close(1008, "Room and authentication token are required");
     return;
   }
 
-  //validate roomCode and userId
+  // Verify JWT token and extract authenticated userId
+  let userId: string;
+  try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not defined");
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+    if (!decoded || !decoded.userId) {
+      console.log("Invalid token payload:", decoded);
+      ws.close(1008, "Invalid authentication token");
+      return;
+    }
+    userId = decoded.userId;
+  } catch (error: any) {
+    console.log("WebSocket token verification failed:", error.message);
+    ws.close(1008, "Authentication failed or token expired");
+    return;
+  }
+
+  // Validate room authorization in database
   let room;
   try {
     room = await prisma.room.findFirst({
@@ -86,17 +119,17 @@ wss.on("connection", async (ws: WebSocket, req: http.IncomingMessage) => {
     });
 
     if (!room) {
-      console.log("Room not found : ", { roomCode, userId });
-      ws.close(1000, "Room not found or user not authorized");
+      console.log("Room access denied:", { roomCode, userId });
+      ws.close(1008, "Room not found or user not authorized");
       return;
     }
 
     console.log(
-      `[${new Date().toISOString()}] User ${userId} connected to room ${roomCode}`
+      `[${new Date().toISOString()}] User ${userId} authenticated & connected to room ${roomCode}`
     );
   } catch (error) {
     console.error("Error connecting to room: ", error);
-    ws.close(1000, "Internal Server Error");
+    ws.close(1011, "Internal Server Error");
     return;
   }
 

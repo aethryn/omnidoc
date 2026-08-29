@@ -283,7 +283,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\Lenovo\\Desktop\\WebDev\\omnidoc\\src\\generated\\prisma",
+      "value": "/home/bloop/GitHub/omnidoc/src/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -292,7 +292,7 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "debian-openssl-3.0.x",
         "native": true
       },
       {
@@ -301,12 +301,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\Lenovo\\Desktop\\WebDev\\omnidoc\\prisma\\schema.prisma",
+    "sourceFilePath": "/home/bloop/GitHub/omnidoc/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": "../../../.env",
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "6.16.2",
@@ -315,7 +314,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
+  "postinstall": true,
   "inlineDatasources": {
     "db": {
       "url": {
