@@ -1,5 +1,5 @@
 import { PrismaClient } from "@/generated/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { getCurrentUserIdFromRequest, createAuthErrorResponse, verifyDocumentAccess } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 
@@ -23,17 +23,14 @@ export async function POST(request: NextRequest){
         const userId = authResult.userId;
         console.log('Authenticated userId:', userId);
 
-        //validate document if provided
+        //validate and authorize document if provided
         if (documentId) {
-            console.log('Searching for document:', documentId);
-            const document = await prisma.document.findUnique({
-                where: { id: documentId }
-            });
-            console.log('Found document:', document);
-            if (!document) {
-                console.log('Document not found in database');
+            console.log('Validating document authorization:', documentId);
+            const { authorized } = await verifyDocumentAccess(prisma, documentId, userId, ['admin', 'editor']);
+            if (!authorized) {
+                console.log('Document not found or access denied for user:', userId);
                 return NextResponse.json(
-                    { error: 'Document not found' },
+                    { error: 'Document not found or access denied' },
                     { status: 404 }
                 );
             }
