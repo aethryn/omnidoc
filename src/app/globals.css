@@ -60,13 +60,18 @@
   
   body {
     @apply text-black;
-    background: #f7f5ef;
+    background: #F5F3EE;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   
   /* Prevent horizontal scroll on mobile */
   html, body {
     overflow-x: hidden;
+  }
+  
+  /* Smooth scroll for anchor links */
+  html {
+    scroll-behavior: smooth;
   }
   
   /* Better touch targets for mobile */
