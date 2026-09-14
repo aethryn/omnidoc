@@ -17,7 +17,9 @@ model User {
   avatar    String   @default("vibrent_2.png")
   name      String
   email     String   @unique
-  password  String
+  // Authentication is managed by Supabase Auth. This field remains nullable
+  // so a fresh Google-only database never stores credentials here.
+  password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -81,10 +83,11 @@ model RoomUser {
 }
 
 model Document {
-  id      String @id @default(uuid())
-  title   String
-  content String @db.Text // JSON content from Tiptap editor
-  userId  String // Owner of the document
+  id       String @id @default(uuid())
+  title    String
+  content  String @db.Text // JSON content from Tiptap editor
+  yjsState Bytes? // Persisted Yjs state for collaborative editing
+  userId   String // Owner of the document
 
   // Document metadata
   isPublic Boolean  @default(false)
@@ -154,7 +157,7 @@ model DocumentCollaborators {
   id          String    @id @default(uuid())
   documentId  String
   userId      String
-  role        String    @default("editor") // "viewer", "editor", "admin"
+  role        String    @default("editor") // "viewer" or "editor"
   permissions String[] // Array of specific permissions
   invitedAt   DateTime  @default(now())
   acceptedAt  DateTime?
@@ -195,6 +198,7 @@ model DocumentShare {
   useCount    Int       @default(0)
   createdAt   DateTime  @default(now())
   createdBy   String // User ID who created the share
+  isActive    Boolean   @default(true)
 
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 

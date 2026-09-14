@@ -127,7 +127,7 @@ export default function Hero() {
                   Export to multiple formats
                 </h3>
                 <p className="text-gray-600 text-sm md:text-base">
-                  PDF, DOCX, Markdown, HTML & more
+                  PDF and HTML exports
                 </p>
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function Hero() {
                 Lightning fast
               </h3>
               <p className="text-gray-600 text-sm md:text-base">
-                80% faster than other tools
+                Fast by design
               </p>
             </div>
 
@@ -148,7 +148,7 @@ export default function Hero() {
                 Beautiful results
               </h3>
               <p className="text-gray-600 text-sm md:text-base">
-                Create stunning documents
+                Make beautiful documents
               </p>
             </div>
 

@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { PrismaClient } from "@/generated/prisma";
+import * as Y from "yjs";
 
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest){
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);
@@ -17,7 +18,12 @@ export async function GET(request: NextRequest){
         const userId = authResult.userId;
 
         const documents = await prisma.document.findMany({
-            where: {userId},
+            where: {
+                OR: [
+                    { userId },
+                    { collaborators: { some: { userId, acceptedAt: { not: null } } } },
+                ],
+            },
             orderBy: {
                 updatedAt: "desc",
             },
@@ -54,7 +60,7 @@ export async function POST(request: NextRequest){
 
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);
@@ -64,10 +70,12 @@ export async function POST(request: NextRequest){
 
         const { title = "Untitled", content = "", isPublic = false, tags = [] } = await request.json();
 
-        const document = await prisma.document.create({
+        const ydoc = new Y.Doc();
+        const document = await (prisma.document as any).create({
             data: {
                 title,
                 content,
+                yjsState: Buffer.from(Y.encodeStateAsUpdate(ydoc)),
                 userId,
                 isPublic,
                 tags

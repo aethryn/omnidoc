@@ -42,7 +42,7 @@ export default function DocumentList({ documents, isLoading, onRefresh }: Docume
   const [selectedDoc, setSelectedDoc] = useState<{id: string, title: string} | null>(null);
 
   const handleDocumentClick = (documentId: string) => {
-    router.push(`/document?document=${documentId}`);
+    router.push(`/document/${documentId}`);
   };
 
   const handleRename = async(documentId: string, currentTitle: string) => {
@@ -55,7 +55,7 @@ export default function DocumentList({ documents, isLoading, onRefresh }: Docume
   }
 
   const handleEdit = (documentId: string) => {
-    router.push(`/document?document=${documentId}`);
+    router.push(`/document/${documentId}`);
     setOpenDropdownIndex(null);
   };
 

@@ -1,121 +1,72 @@
-'use client'
+"use client";
 
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
-import * as Y from 'yjs'
-import { WebsocketProvider } from 'y-websocket'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Placeholder from "@tiptap/extension-placeholder";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import "../document/editor-styles.css";
+import { EditorBubbleMenu } from "../document/EditorBubbleMenu";
 
-interface CollaborativeEditorProps {
-  documentId: string
-  username?: string
+export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
+interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; onStatusChange?: (status: CollaborationStatus) => void; }
+
+function decodeState(value: string) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-export default function CollaborativeEditor({ 
-  documentId, 
-  username = `User-${Math.floor(Math.random() * 10000)}`
-}: CollaborativeEditorProps) {
-  const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting')
+export default function CollaborativeEditor({ documentId, initialState, readOnly, onStatusChange }: Props) {
+  const ydoc = useMemo(() => new Y.Doc(), [documentId]);
+  const [provider, setProvider] = useState<WebsocketProvider | null>(null);
 
-  // Create Yjs doc and provider only once
-  const ydoc = useMemo(() => new Y.Doc(), [])
-  const wsProvider = useMemo(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''
-    return new WebsocketProvider('ws://localhost:4000', documentId, ydoc, {
-      params: { token }
-    })
-  }, [documentId, ydoc])
+  useEffect(() => {
+    if (initialState) { try { Y.applyUpdate(ydoc, decodeState(initialState)); } catch { /* local persistence can recover */ } }
+    const persistence = new IndexeddbPersistence(`omnidoc:${documentId}`, ydoc);
+    persistence.on("synced", () => onStatusChange?.("local"));
+    return () => { persistence.destroy(); };
+  }, [documentId, initialState, onStatusChange, ydoc]);
 
-  // Create editor after provider is ready
+  useEffect(() => {
+    let disposed = false;
+    createClient().auth.getSession().then(({ data }) => {
+      if (disposed || !data.session) return;
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+      if (!wsUrl) { onStatusChange?.("offline"); return; }
+      const nextProvider = new WebsocketProvider(wsUrl, documentId, ydoc, { params: { token: data.session.access_token }, connect: true });
+      nextProvider.on("status", ({ status }) => onStatusChange?.(status === "connected" ? "connecting" : status === "disconnected" ? "offline" : "connecting"));
+      nextProvider.on("sync", (synced) => onStatusChange?.(synced ? "synced" : "connecting"));
+      setProvider(nextProvider);
+    });
+    return () => { disposed = true; setProvider((current) => { current?.destroy(); return null; }); };
+  }, [documentId, onStatusChange, ydoc]);
+
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        history: false,
-      }),
-      Collaboration.configure({
-        document: ydoc,
-      }),
-      // Only add cursor extension after provider is ready
-      ...(wsProvider ? [
-        CollaborationCursor.configure({
-          provider: wsProvider,
-          user: {
-            name: username,
-            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`
-          }
-        })
-      ] : [])
+      StarterKit.configure({ history: false }),
+      Underline,
+      Link.configure({ openOnClick: false }),
+      Image,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Highlight.configure({ multicolor: true }),
+      Placeholder.configure({ placeholder: "Start writing…" }),
+      Collaboration.configure({ document: ydoc, field: "default" }),
+      ...(provider ? [CollaborationCursor.configure({ provider, user: { name: "Collaborator", color: "#2563eb" } })] : []),
     ],
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none'
-      }
-    }
-  })
+    editable: !readOnly,
+    editorProps: { attributes: { class: "notion-editor focus:outline-none px-8 py-6 min-h-[500px]" } },
+  }, [provider, readOnly, ydoc]);
 
-  // Handle WebSocket status
-  useEffect(() => {
-    const handleStatus = ({ status }: { status: any }) => {
-      console.log('WebSocket status:', status)
-      setStatus(status)
-    }
-
-    wsProvider.on('status', handleStatus)
-    
-    // Log when sync happens
-    wsProvider.on('sync', (isSynced: boolean) => {
-      console.log('Sync status:', isSynced)
-    })
-
-    return () => {
-      wsProvider.off('status', handleStatus)
-      wsProvider.destroy()
-    }
-  }, [wsProvider])
-
-  // Update cursor information when provider changes
-  useEffect(() => {
-    if (editor && wsProvider) {
-      editor.chain().focus().setContent('<p>Start typing...</p>').run()
-    }
-  }, [editor, wsProvider])
-
-  const getStatusColor = useCallback(() => {
-    switch (status) {
-      case 'connected':
-        return 'bg-green-500'
-      case 'disconnected':
-        return 'bg-red-500'
-      default:
-        return 'bg-yellow-500'
-    }
-  }, [status])
-
-  if (!editor) {
-    return <div>Loading editor...</div>
-  }
-
-  return (
-    <div className="relative max-w-4xl mx-auto">
-      <div className="absolute top-2 right-2 flex items-center gap-2 text-sm">
-        <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
-        <span className="text-gray-600">
-          {status} - {username}
-        </span>
-      </div>
-
-      <div className="min-h-[500px] border rounded-lg shadow-sm bg-white p-8">
-        <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto">
-          <EditorContent editor={editor} />
-        </div>
-      </div>
-
-      <div className="mt-2 text-sm text-gray-500 flex justify-between">
-        <span>Document: {documentId}</span>
-        <span>Connected as: {username}</span>
-      </div>
-    </div>
-  )
+  if (!editor) return <div className="flex min-h-[500px] items-center justify-center text-sm text-slate-400">Preparing your document…</div>;
+  return <><EditorBubbleMenu editor={editor} documentId={documentId} /><EditorContent editor={editor} /></>;
 }
