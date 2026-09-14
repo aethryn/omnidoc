@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import sharp, { type Metadata } from "sharp";
 
 const MAX_SIZE = 5 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -17,11 +18,28 @@ export async function POST(request: NextRequest) {
   if (!ALLOWED.has(file.type) || file.size > MAX_SIZE) return NextResponse.json({ error: "Use a JPEG, PNG, WebP, or GIF image up to 5 MB" }, { status: 400 });
   const document = await prisma.document.findFirst({ where: { id: documentId, OR: [{ userId: auth.userId }, { collaborators: { some: { userId: auth.userId, role: { in: ["editor", "admin"] }, acceptedAt: { not: null } } } }] }, select: { id: true } });
   if (!document) return NextResponse.json({ error: "Document access denied" }, { status: 403 });
-  const extension = file.type.split("/")[1].replace("jpeg", "jpg");
+  const input = Buffer.from(await file.arrayBuffer());
+  let metadata: Metadata;
+  try { metadata = await sharp(input, { animated: true, limitInputPixels: 24_000_000 }).metadata(); }
+  catch { return NextResponse.json({ error: "The selected image is malformed or too large to process" }, { status: 400 }); }
+  const expected = new Map([["image/jpeg", "jpeg"], ["image/png", "png"], ["image/webp", "webp"], ["image/gif", "gif"]]);
+  if (metadata.format !== expected.get(file.type) || !metadata.width || !metadata.height) return NextResponse.json({ error: "The file contents do not match its image format" }, { status: 400 });
+  if (metadata.width * metadata.height > 24_000_000) return NextResponse.json({ error: "Image dimensions are too large" }, { status: 400 });
+  const animatedGif = metadata.format === "gif" && (metadata.pages || 1) > 1;
+  const output = animatedGif ? input : await sharp(input).rotate().resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true }).webp({ quality: 86 }).toBuffer();
+  const outputMetadata = animatedGif ? metadata : await sharp(output).metadata();
+  const outputMime = animatedGif ? "image/gif" : "image/webp";
+  const extension = animatedGif ? "gif" : "webp";
   const storagePath = `${documentId}/${randomUUID()}.${extension}`;
   const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { error } = await supabase.storage.from("document-images").upload(storagePath, await file.arrayBuffer(), { contentType: file.type, upsert: false });
+  const { error } = await supabase.storage.from("document-images").upload(storagePath, output, { contentType: outputMime, upsert: false });
   if (error) return NextResponse.json({ error: "Image upload failed" }, { status: 500 });
-  const record = await prisma.documentImage.create({ data: { documentId, fileName: storagePath, originalName: file.name.slice(0, 255), fileUrl: `/api/images/${storagePath}`, fileSize: file.size, mimeType: file.type } });
-  return NextResponse.json(record, { status: 201 });
+  try {
+    const record = await prisma.documentImage.create({ data: { documentId, fileName: storagePath, originalName: file.name.slice(0, 255), fileUrl: `/api/images/${storagePath}`, fileSize: output.byteLength, mimeType: outputMime, width: outputMetadata.width, height: outputMetadata.height } });
+    return NextResponse.json(record, { status: 201 });
+  } catch (databaseError) {
+    await supabase.storage.from("document-images").remove([storagePath]);
+    console.error("Image record creation failed", databaseError);
+    return NextResponse.json({ error: "Image upload could not be completed" }, { status: 500 });
+  }
 }
