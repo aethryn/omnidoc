@@ -90,7 +90,10 @@ model Document {
   userId String  // Owner of the document
   
   // Document metadata
-  isPublic Boolean @default(false)
+  status DocumentStatus @default(WORKING_DRAFT)
+  previewText String @default("") @db.VarChar(360)
+  previewImageUrl String?
+  wordCount Int @default(0)
   tags String[] // Array of tags for categorization
   
   // Document settings
@@ -110,13 +113,37 @@ model Document {
   comments DocumentComment[]
   shares DocumentShare[]     // Added missing relation
   activities DocumentActivity[]  // Added missing relation
+  publication DocumentPublication?
   
   @@index([userId])
-  @@index([isPublic])
+  @@index([status])
   @@index([tags])
   @@index([createdAt])
   @@index([updatedAt])
   Room Room[]
+}
+
+enum DocumentStatus {
+  WORKING_DRAFT
+  COMPLETE
+}
+
+model DocumentPublication {
+  id String @id @default(cuid())
+  documentId String @unique
+  slug String
+  title String
+  content String @db.Text
+  excerpt String @default("") @db.VarChar(360)
+  revisionHash String
+  isActive Boolean @default(true)
+  publishedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@index([publishedAt])
 }
 
 model DocumentImage {

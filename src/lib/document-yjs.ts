@@ -1,13 +1,13 @@
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
+import { OmnidocImage } from "@/lib/omnidoc-image-extension";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import { TiptapTransformer } from "@hocuspocus/transformer";
 import type * as Y from "yjs";
 
-const extensions = [StarterKit, Underline, Link, Image, TextAlign.configure({types:["heading","paragraph"]}), Highlight.configure({multicolor:true})];
+const extensions = [StarterKit, Underline, Link, OmnidocImage, TextAlign.configure({types:["heading","paragraph"]}), Highlight.configure({multicolor:true})];
 const empty: Record<string, unknown> = { type:"doc", content:[{type:"paragraph"}] };
 
 export function contentToYDoc(content:string):Y.Doc{

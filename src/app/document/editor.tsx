@@ -6,15 +6,16 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import { EditorBubbleMenu } from "./EditorBubbleMenu";
 import { GhostSuggestionExtension, ghostSuggestionKey } from "./ghost-suggestion-extension";
 import type { EditorHandle, EditorSuggestion, FormatCommand } from "./editor-types";
 import "./editor-styles.css";
+import { InteractiveImage } from "./InteractiveImage";
+import { uploadAndInsertImage } from "./image-upload";
 
-export interface LocalEditorProps { initialContent?: string; onContentChange?: (json: string) => void; documentId?: string; readOnly?: boolean; }
+export interface LocalEditorProps { initialContent?: string; onContentChange?: (json: string) => void; documentId?: string; ensureDocumentId?: () => Promise<string | null>; readOnly?: boolean; }
 
 function parseContent(value?: string) {
   if (!value) return { type: "doc", content: [{ type: "paragraph" }] };
@@ -31,14 +32,30 @@ function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: F
   if (command === "bullet-list") chain.toggleBulletList().run();
 }
 
-const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ initialContent, onContentChange, documentId, readOnly }, ref) {
+const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ initialContent, onContentChange, documentId, ensureDocumentId, readOnly }, ref) {
   const content = useMemo(() => parseContent(initialContent), [initialContent]);
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, Underline, Link.configure({ openOnClick:false }), Image, TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start with a thought…" }), GhostSuggestionExtension],
+    extensions: [StarterKit, Underline, Link.configure({ openOnClick:false }), InteractiveImage, TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start with a thought…" }), GhostSuggestionExtension],
     content,
     editable: !readOnly,
-    editorProps: { attributes: { class:"notion-editor focus:outline-none min-h-[520px]" } },
+    editorProps: {
+      attributes: { class:"notion-editor focus:outline-none min-h-[520px]" },
+      handlePaste(view, event) {
+        const file = Array.from(event.clipboardData?.files || []).find((item) => item.type.startsWith("image/"));
+        if (!file || readOnly) return false;
+        void uploadAndInsertImage(file, ensureDocumentId || (() => Promise.resolve(documentId || null)), (image) => view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({ src:image.fileUrl, alt:image.originalName || "", width:100, align:"center" }))));
+        return true;
+      },
+      handleDrop(view, event) {
+        const file = Array.from(event.dataTransfer?.files || []).find((item) => item.type.startsWith("image/"));
+        if (!file || readOnly) return false;
+        event.preventDefault();
+        const position = view.posAtCoords({ left:event.clientX, top:event.clientY })?.pos;
+        void uploadAndInsertImage(file, ensureDocumentId || (() => Promise.resolve(documentId || null)), (image) => { const node=view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName || "",width:100,align:"center"}); view.dispatch(position == null ? view.state.tr.replaceSelectionWith(node) : view.state.tr.insert(position,node)); });
+        return true;
+      },
+    },
     onUpdate: ({ editor: instance }) => onContentChange?.(JSON.stringify(instance.getJSON())),
   });
 
@@ -64,7 +81,7 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
   }), [content, editor, readOnly]);
 
   if (!editor) return <div className="min-h-[520px]" />;
-  return <div className="w-full max-w-5xl mx-auto light"><div className="rounded-xl !bg-white overflow-hidden" style={{ colorScheme:"light" }}>{!readOnly && <EditorBubbleMenu editor={editor} documentId={documentId} />}<EditorContent editor={editor} className="!bg-white" /></div></div>;
+  return <div className="w-full max-w-5xl mx-auto light"><div className="rounded-xl !bg-white overflow-hidden" style={{ colorScheme:"light" }}>{!readOnly && <EditorBubbleMenu editor={editor} documentId={documentId} ensureDocumentId={ensureDocumentId} />}<EditorContent editor={editor} className="!bg-white" /></div></div>;
 });
 
 export default Editor;

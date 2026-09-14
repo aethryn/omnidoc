@@ -10,6 +10,7 @@ import * as awarenessProtocol from "y-protocols/awareness";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
+import { deriveDocumentPreview } from "@/lib/document-content";
 
 const PORT = Number(process.env.PORT || process.env.WEBSOCKET_PORT || 4000);
 const HOST = process.env.WEBSOCKET_HOST || "0.0.0.0";
@@ -40,11 +41,13 @@ const wss = new WebSocketServer({ server, maxPayload: 5 * 1024 * 1024 });
 async function persist(documentId: string) {
   const room = active.get(documentId);
   if (!room) return;
+  const content = yDocToContent(room.doc);
   await prisma.document.update({
     where: { id: documentId },
     data: {
       yjsState: Buffer.from(Y.encodeStateAsUpdate(room.doc)),
-      content: yDocToContent(room.doc),
+      content,
+      ...deriveDocumentPreview(content),
       lastEditedAt: new Date(),
     },
   });

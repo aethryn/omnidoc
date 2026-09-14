@@ -14,9 +14,10 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
   const [user, document] = await Promise.all([
     prisma.user.findUnique({ where:{ id:userId }, select:{ id:true,name:true,avatar:true } }),
     prisma.document.findFirst({
-      where:{ id, OR:[{userId},{isPublic:true},{collaborators:{some:{userId,acceptedAt:{not:null}}}}] },
+      where:{ id, OR:[{userId},{collaborators:{some:{userId,acceptedAt:{not:null}}}}] },
       select:{
-        id:true,title:true,content:true,yjsState:true,userId:true,updatedAt:true,
+        id:true,title:true,content:true,yjsState:true,userId:true,status:true,updatedAt:true,lastEditedAt:true,
+        publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true,revisionHash:true}},
         user:{select:{id:true,name:true,avatar:true}},
         collaborators:{where:{acceptedAt:{not:null}},select:{role:true,user:{select:{id:true,name:true,avatar:true}}}},
       },
@@ -25,7 +26,8 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
   if (!user || !document) notFound();
   const role = document.userId === userId ? "owner" : document.collaborators.find((item) => item.user.id === userId)?.role ?? "viewer";
   const initialDocument: InitialDocument = {
-    id:document.id,title:document.title,content:document.content,role,updatedAt:document.updatedAt.toISOString(),
+    id:document.id,title:document.title,content:document.content,role,status:document.status,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
+    publication:document.publication?{...document.publication,publishedAt:document.publication.publishedAt.toISOString(),updatedAt:document.publication.updatedAt.toISOString()}:null,
     yjsState:document.yjsState ? Buffer.from(document.yjsState).toString("base64") : null,
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item)=>({...item.user,role:item.role}))],
   };

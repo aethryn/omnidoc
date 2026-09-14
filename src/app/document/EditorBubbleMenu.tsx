@@ -23,13 +23,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { uploadAndInsertImage } from './image-upload'
 
 interface EditorBubbleMenuProps {
   editor: Editor
   documentId?: string
+  ensureDocumentId?: () => Promise<string | null>
 }
 
-export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) {
+export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: EditorBubbleMenuProps) {
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
   const [isOpen, setIsOpen] = useState(false);
 
@@ -245,26 +247,9 @@ export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) 
               const file = (e.target as HTMLInputElement).files?.[0]
               if (!file) return
 
-              try {
-                const formData = new FormData()
-                formData.append('file', file)
-                formData.append('documentId', documentId || '')
-
-                const response = await fetch('/api/images/upload', {
-                  method: 'POST',
-                  body: formData,
-                })
-
-                if (!response.ok) {
-                  throw new Error('Failed to upload image')
-                }
-
-                const data = await response.json()
-                editor.chain().focus().setImage({ src: data.fileUrl }).run()
-              } catch (error) {
-                console.error('Failed to upload image:', error)
-                alert('Failed to upload image')
-              }
+              await uploadAndInsertImage(file, ensureDocumentId || (() => Promise.resolve(documentId || null)), (data) => {
+                editor.chain().focus().setImage({ src: data.fileUrl, alt: data.originalName || "", width: 100, align: "center" } as never).run()
+              })
             }
 
             input.click()
@@ -279,4 +264,3 @@ export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) 
     </BubbleMenu>
   )
 }
-

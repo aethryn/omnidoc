@@ -16,7 +16,8 @@ export default async function DashboardPage() {
       where: { OR: [{ userId }, { collaborators: { some: { userId, acceptedAt: { not: null } } } }] },
       orderBy: { lastEditedAt: "desc" },
       select: {
-        id: true, title: true, userId: true, updatedAt: true, lastEditedAt: true,
+        id: true, title: true, userId: true, status:true, previewText:true, previewImageUrl:true, wordCount:true, updatedAt: true, lastEditedAt: true,
+        publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true}},
         collaborators: { where: { acceptedAt: { not: null } }, select: { role: true, user: { select: { id: true, name: true, avatar: true } } } },
       },
     }),
@@ -27,5 +28,5 @@ export default async function DashboardPage() {
     console.info(JSON.stringify({ event: "dashboard.load", durationMs: Math.round(performance.now() - startedAt), documentCount: documents.length }));
   }
 
-  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={user} documents={documents.map((doc) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), owned: doc.userId === userId }))} />;
+  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={user} documents={documents.map((doc) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), publication:doc.publication?{...doc.publication,publishedAt:doc.publication.publishedAt.toISOString(),updatedAt:doc.publication.updatedAt.toISOString()}:null, owned: doc.userId === userId }))} />;
 }

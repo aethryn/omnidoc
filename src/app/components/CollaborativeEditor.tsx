@@ -7,7 +7,6 @@ import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -19,9 +18,11 @@ import { EditorBubbleMenu } from "../document/EditorBubbleMenu";
 import { GhostSuggestionExtension, ghostSuggestionKey } from "../document/ghost-suggestion-extension";
 import type { EditorHandle, EditorSuggestion, FormatCommand, PresenceUser } from "../document/editor-types";
 import "../document/editor-styles.css";
+import { InteractiveImage } from "../document/InteractiveImage";
+import { uploadAndInsertImage } from "../document/image-upload";
 
 export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
-interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onPresenceChange?: (users: PresenceUser[]) => void; }
+interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; }
 
 function decodeState(value: string) { const binary = atob(value); return Uint8Array.from(binary, (char) => char.charCodeAt(0)); }
 function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: FormatCommand) {
@@ -34,7 +35,7 @@ function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: F
   if (command === "bullet-list") chain.toggleBulletList().run();
 }
 
-const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, readOnly, user, onStatusChange, onPresenceChange }, ref) {
+const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, readOnly, user, onStatusChange, onPresenceChange, onContentChange }, ref) {
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
 
@@ -69,10 +70,15 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
 
   const editor = useEditor({
     immediatelyRender:false,
-    extensions:[StarterKit.configure({ history:false }), Underline, Link.configure({ openOnClick:false }), Image, TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start writing…" }), GhostSuggestionExtension, Collaboration.configure({ document:ydoc, field:"default" }), ...(provider ? [CollaborationCursor.configure({ provider, user })] : [])],
+    extensions:[StarterKit.configure({ history:false }), Underline, Link.configure({ openOnClick:false }), InteractiveImage, TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start writing…" }), GhostSuggestionExtension, Collaboration.configure({ document:ydoc, field:"default" }), ...(provider ? [CollaborationCursor.configure({ provider, user })] : [])],
     editable:!readOnly,
-    editorProps:{ attributes:{ class:"notion-editor focus:outline-none min-h-[520px]" } },
-  }, [provider, readOnly, user, ydoc]);
+    onUpdate:({editor:instance})=>onContentChange?.(JSON.stringify(instance.getJSON())),
+    editorProps:{
+      attributes:{ class:"notion-editor focus:outline-none min-h-[520px]" },
+      handlePaste(view,event){const file=Array.from(event.clipboardData?.files||[]).find((item)=>item.type.startsWith("image/"));if(!file||readOnly)return false;void uploadAndInsertImage(file,()=>Promise.resolve(documentId),(image)=>view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"}))));return true;},
+      handleDrop(view,event){const file=Array.from(event.dataTransfer?.files||[]).find((item)=>item.type.startsWith("image/"));if(!file||readOnly)return false;event.preventDefault();const position=view.posAtCoords({left:event.clientX,top:event.clientY})?.pos;void uploadAndInsertImage(file,()=>Promise.resolve(documentId),(image)=>{const node=view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"});view.dispatch(position==null?view.state.tr.replaceSelectionWith(node):view.state.tr.insert(position,node));});return true;},
+    },
+  }, [provider, readOnly, user, ydoc, onContentChange]);
 
   useImperativeHandle(ref, () => ({
     getDocumentJSON:() => editor ? JSON.stringify(editor.getJSON()) : JSON.stringify({ type:"doc", content:[] }),
@@ -85,7 +91,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   }),[editor,readOnly]);
 
   if(!editor)return <div className="min-h-[520px]" />;
-  return <>{!readOnly&&<EditorBubbleMenu editor={editor} documentId={documentId}/>}<EditorContent editor={editor}/></>;
+  return <>{!readOnly&&<EditorBubbleMenu editor={editor} documentId={documentId} ensureDocumentId={()=>Promise.resolve(documentId)}/>}<EditorContent editor={editor}/></>;
 });
 
 export default CollaborativeEditor;

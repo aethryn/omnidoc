@@ -4,6 +4,7 @@ import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth
 import { prisma } from "@/lib/prisma";
 import * as Y from "yjs";
 import { contentToYDoc } from "@/lib/document-yjs";
+import { deriveDocumentPreview } from "@/lib/document-content";
 
 export async function GET(request: NextRequest){
     try {
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest){
                 updatedAt: true,
                 lastEditedAt: true,
                 userId: true,
+                status: true,
+                previewText: true,
+                previewImageUrl: true,
+                wordCount: true,
+                publication: { select: { id: true, slug: true, isActive: true, publishedAt: true, updatedAt: true } },
                 collaborators: { where: { acceptedAt: { not: null } }, select: { id: true, role: true, user: { select: { id: true, name: true, avatar: true } } } }
             }
         });
@@ -59,7 +65,8 @@ export async function POST(request: NextRequest){
         
         const userId = authResult.userId;
 
-        const { title = "Untitled", content = JSON.stringify({type:"doc",content:[{type:"paragraph"}]}), isPublic = false, tags = [] } = await request.json();
+        const { title = "Untitled", content = JSON.stringify({type:"doc",content:[{type:"paragraph"}]}), tags = [] } = await request.json();
+        const preview = deriveDocumentPreview(content);
 
         const ydoc = contentToYDoc(content);
         const document = await prisma.document.create({
@@ -68,10 +75,10 @@ export async function POST(request: NextRequest){
                 content,
                 yjsState: Buffer.from(Y.encodeStateAsUpdate(ydoc)),
                 userId,
-                isPublic,
-                tags
+                tags,
+                ...preview,
             },
-            select: { id: true, title: true, updatedAt: true, lastEditedAt: true, yjsState:true }
+            select: { id: true, title: true, status: true, updatedAt: true, lastEditedAt: true, yjsState:true }
         });
 
         return NextResponse.json({...document,yjsState:document.yjsState?Buffer.from(document.yjsState).toString("base64"):null});
