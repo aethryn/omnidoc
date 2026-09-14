@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: "Omnitype - Collaborative Editor",
-  description: "A modern collaborative text editor with real-time collaboration",
+  title: "Omnidoc — Write together",
+  description: "A calm, real-time collaborative document editor.",
 };
 
 export default function RootLayout({
@@ -26,7 +19,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body 
-        className={`${poppins.className} antialiased min-h-screen`}
+        className="antialiased min-h-screen"
         style={{
           background: `
             linear-gradient(
@@ -40,7 +33,7 @@ export default function RootLayout({
           backgroundAttachment: 'fixed'
         }}
       >
-        <ThemeProvider defaultTheme="dark">
+        <ThemeProvider defaultTheme="light">
           {children}
         </ThemeProvider>
       </body>

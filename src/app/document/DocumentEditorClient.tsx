@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FloppyDiskBackIcon, PlusCircleIcon } from "@phosphor-icons/react";
 import { SpotlightButton } from "@/components/ui/spotlight-button";
 import Editor from "./editor";
+import CollaborativeEditor, { type CollaborationStatus } from "../components/CollaborativeEditor";
 import { DocumentActions } from "./DocumentActions";
 import { useSearchParams, useRouter } from "next/navigation";
 import "./print-styles.css";
@@ -11,10 +12,10 @@ import "./print-styles.css";
 const AUTOSAVE_INTERVAL = 3000;
 const LOCAL_STORAGE_KEY_UNSAVED = "unsaved-document-draft";
 
-export default function DocumentEditorClient() {
+export default function DocumentEditorClient({ initialDocumentId }: { initialDocumentId?: string } = {}) {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const documentId = searchParams.get("document");
+    const documentId = initialDocumentId || searchParams.get("document");
   
     const [content, setContent] = useState<string>("");
     const [documentName, setDocumentName] = useState<string>("Untitled Document");
@@ -23,6 +24,13 @@ export default function DocumentEditorClient() {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isLoading, setIsLoading] = useState(!!documentId);
+    const [yjsState, setYjsState] = useState<string | null>(null);
+    const [collaborationStatus, setCollaborationStatus] = useState<CollaborationStatus>("connecting");
+    const [documentRole, setDocumentRole] = useState<string>("owner");
+    const [shareOpen, setShareOpen] = useState(false);
+    const [shareRole, setShareRole] = useState<"viewer" | "editor">("editor");
+    const [shareUrl, setShareUrl] = useState("");
+    const [shareLoading, setShareLoading] = useState(false);
   
     // Check online status
     useEffect(() => {
@@ -64,6 +72,8 @@ export default function DocumentEditorClient() {
           const document = await response.json();
           setContent(document.content || "");
           setDocumentName(document.title || "Untitled Document");
+          setYjsState(document.yjsState || null);
+          setDocumentRole(document.role || "owner");
           setLastSaved(new Date(document.updatedAt));
           console.log("Loaded document from database (JSON format)");
         } catch (error) {
@@ -233,6 +243,21 @@ export default function DocumentEditorClient() {
       //open print dialog
       window.print();
     }
+
+    const handleExportHtml = () => {
+      const html = document.querySelector(".tiptap")?.innerHTML || "";
+      const fullHtml = `<!doctype html><html><head><meta charset="utf-8"><title>${documentName}</title></head><body>${html}</body></html>`;
+      const url = URL.createObjectURL(new Blob([fullHtml], { type: "text/html" }));
+      const link = document.createElement("a"); link.href = url; link.download = `${documentName.replace(/[^a-z0-9-_]+/gi, "-") || "document"}.html`; link.click(); URL.revokeObjectURL(url);
+    };
+
+    const createShareLink = async () => {
+      if (!documentId) return;
+      setShareLoading(true);
+      const response = await fetch(`/api/documents/${documentId}/share`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: shareRole }) });
+      if (response.ok) setShareUrl((await response.json()).url);
+      setShareLoading(false);
+    };
   
     // Format last saved time
     const formatLastSaved = () => {
@@ -292,8 +317,9 @@ export default function DocumentEditorClient() {
                 showDelete={!documentId}
                 documentTitle={documentName}
                 onExportPdf={handleExportPdf}
+                onExportHtml={handleExportHtml}
               />
-              <SpotlightButton
+              {!documentId && <SpotlightButton
                 innerColor="rgb(70,70,70)"
                 outerColor="rgb(20,20,20)"
                 hoverInnerColor="rgb(90,90,90)"
@@ -308,7 +334,7 @@ export default function DocumentEditorClient() {
                   : documentId
                   ? "Save"
                   : "Save to Database"}
-              </SpotlightButton>
+              </SpotlightButton>}
   
               <SpotlightButton
                 innerColor="rgb(200,220,255)"
@@ -316,24 +342,42 @@ export default function DocumentEditorClient() {
                 hoverInnerColor="rgb(180,200,255)"
                 hoverOuterColor="rgb(80,130,255)"
                 className="text-xs flex gap-1 text-gray-100"
+                onClick={() => { setShareOpen(true); setShareUrl(""); }}
+                disabled={!documentId || documentRole === "viewer"}
               >
                 <PlusCircleIcon size={16} />
                 Invite
               </SpotlightButton>
             </div>
           </div>
+
+          {shareOpen && documentId && (
+            <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/30 px-4" role="dialog" aria-modal="true" aria-label="Share document">
+              <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div className="flex items-start justify-between"><div><h2 className="text-lg font-semibold text-slate-900">Share document</h2><p className="mt-1 text-sm text-slate-500">Anyone with this link must sign in with Google.</p></div><button onClick={() => setShareOpen(false)} className="text-xl text-slate-400" aria-label="Close">×</button></div>
+                <label className="mt-6 block text-sm font-medium text-slate-700">Access</label>
+                <select value={shareRole} onChange={(event) => setShareRole(event.target.value as "viewer" | "editor")} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"><option value="editor">Can edit</option><option value="viewer">Can view</option></select>
+                {shareUrl ? <div className="mt-4 flex gap-2"><input readOnly value={shareUrl} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs" /><button onClick={() => navigator.clipboard?.writeText(shareUrl)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white">Copy</button></div> : <button onClick={createShareLink} disabled={shareLoading} className="mt-5 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white disabled:opacity-50">{shareLoading ? "Creating link…" : "Create share link"}</button>}
+              </div>
+            </div>
+          )}
   
           {/* actual editor */}
           <div className="mt-4 printable-content">
             <h1 style={{ marginBottom: "20px", display: "none" }} className="document-title-print">
               {documentName}
             </h1>
-            <Editor
-              key={documentId || "new"}
-              initialContent={content}
-              onContentChange={handleContentChange}
-              documentId={documentId || undefined}
-            />
+            {documentId ? (
+              <div className="rounded-xl bg-white">
+                <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-3 text-xs text-slate-500">
+                  <span className={`h-2 w-2 rounded-full ${collaborationStatus === "synced" ? "bg-emerald-500" : collaborationStatus === "offline" ? "bg-amber-500" : "bg-blue-500 animate-pulse"}`} />
+                  {collaborationStatus === "synced" ? "Live and saved" : collaborationStatus === "offline" ? "Offline — changes saved locally" : "Connecting to collaboration…"}
+                </div>
+                <CollaborativeEditor documentId={documentId} initialState={yjsState} readOnly={documentRole === "viewer"} onStatusChange={setCollaborationStatus} />
+              </div>
+            ) : (
+              <Editor key="new" initialContent={content} onContentChange={handleContentChange} />
+            )}
           </div>
         </div>
       </div>

@@ -2193,7 +2193,7 @@ export namespace Prisma {
     avatar: string
     name: string
     email: string
-    password: string
+    password: string | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -2290,7 +2290,7 @@ export namespace Prisma {
       avatar: string
       name: string
       email: string
-      password: string
+      password: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -5569,6 +5569,7 @@ export namespace Prisma {
     id: string | null
     title: string | null
     content: string | null
+    yjsState: Uint8Array | null
     userId: string | null
     isPublic: boolean | null
     allowComments: boolean | null
@@ -5582,6 +5583,7 @@ export namespace Prisma {
     id: string | null
     title: string | null
     content: string | null
+    yjsState: Uint8Array | null
     userId: string | null
     isPublic: boolean | null
     allowComments: boolean | null
@@ -5595,6 +5597,7 @@ export namespace Prisma {
     id: number
     title: number
     content: number
+    yjsState: number
     userId: number
     isPublic: number
     tags: number
@@ -5611,6 +5614,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     allowComments?: true
@@ -5624,6 +5628,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     allowComments?: true
@@ -5637,6 +5642,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     tags?: true
@@ -5724,6 +5730,7 @@ export namespace Prisma {
     id: string
     title: string
     content: string
+    yjsState: Uint8Array | null
     userId: string
     isPublic: boolean
     tags: string[]
@@ -5755,6 +5762,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5778,6 +5786,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5793,6 +5802,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5808,6 +5818,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5818,7 +5829,7 @@ export namespace Prisma {
     lastEditedAt?: boolean
   }
 
-  export type DocumentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "content" | "userId" | "isPublic" | "tags" | "allowComments" | "allowSuggestions" | "createdAt" | "updatedAt" | "lastEditedAt", ExtArgs["result"]["document"]>
+  export type DocumentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "content" | "yjsState" | "userId" | "isPublic" | "tags" | "allowComments" | "allowSuggestions" | "createdAt" | "updatedAt" | "lastEditedAt", ExtArgs["result"]["document"]>
   export type DocumentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     images?: boolean | Document$imagesArgs<ExtArgs>
@@ -5853,6 +5864,7 @@ export namespace Prisma {
       id: string
       title: string
       content: string
+      yjsState: Uint8Array | null
       userId: string
       isPublic: boolean
       tags: string[]
@@ -6295,6 +6307,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Document", 'String'>
     readonly title: FieldRef<"Document", 'String'>
     readonly content: FieldRef<"Document", 'String'>
+    readonly yjsState: FieldRef<"Document", 'Bytes'>
     readonly userId: FieldRef<"Document", 'String'>
     readonly isPublic: FieldRef<"Document", 'Boolean'>
     readonly tags: FieldRef<"Document", 'String[]'>
@@ -11426,6 +11439,7 @@ export namespace Prisma {
     useCount: number | null
     createdAt: Date | null
     createdBy: string | null
+    isActive: boolean | null
   }
 
   export type DocumentShareMaxAggregateOutputType = {
@@ -11437,6 +11451,7 @@ export namespace Prisma {
     useCount: number | null
     createdAt: Date | null
     createdBy: string | null
+    isActive: boolean | null
   }
 
   export type DocumentShareCountAggregateOutputType = {
@@ -11449,6 +11464,7 @@ export namespace Prisma {
     useCount: number
     createdAt: number
     createdBy: number
+    isActive: number
     _all: number
   }
 
@@ -11472,6 +11488,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
   }
 
   export type DocumentShareMaxAggregateInputType = {
@@ -11483,6 +11500,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
   }
 
   export type DocumentShareCountAggregateInputType = {
@@ -11495,6 +11513,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
     _all?: true
   }
 
@@ -11594,6 +11613,7 @@ export namespace Prisma {
     useCount: number
     createdAt: Date
     createdBy: string
+    isActive: boolean
     _count: DocumentShareCountAggregateOutputType | null
     _avg: DocumentShareAvgAggregateOutputType | null
     _sum: DocumentShareSumAggregateOutputType | null
@@ -11625,6 +11645,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11638,6 +11659,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11651,6 +11673,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11664,9 +11687,10 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
   }
 
-  export type DocumentShareOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "shareToken" | "permissions" | "expiresAt" | "maxUses" | "useCount" | "createdAt" | "createdBy", ExtArgs["result"]["documentShare"]>
+  export type DocumentShareOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "shareToken" | "permissions" | "expiresAt" | "maxUses" | "useCount" | "createdAt" | "createdBy" | "isActive", ExtArgs["result"]["documentShare"]>
   export type DocumentShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }
@@ -11692,6 +11716,7 @@ export namespace Prisma {
       useCount: number
       createdAt: Date
       createdBy: string
+      isActive: boolean
     }, ExtArgs["result"]["documentShare"]>
     composites: {}
   }
@@ -12125,6 +12150,7 @@ export namespace Prisma {
     readonly useCount: FieldRef<"DocumentShare", 'Int'>
     readonly createdAt: FieldRef<"DocumentShare", 'DateTime'>
     readonly createdBy: FieldRef<"DocumentShare", 'String'>
+    readonly isActive: FieldRef<"DocumentShare", 'Boolean'>
   }
     
 
@@ -15888,6 +15914,7 @@ export namespace Prisma {
     id: 'id',
     title: 'title',
     content: 'content',
+    yjsState: 'yjsState',
     userId: 'userId',
     isPublic: 'isPublic',
     tags: 'tags',
@@ -15966,7 +15993,8 @@ export namespace Prisma {
     maxUses: 'maxUses',
     useCount: 'useCount',
     createdAt: 'createdAt',
-    createdBy: 'createdBy'
+    createdBy: 'createdBy',
+    isActive: 'isActive'
   };
 
   export type DocumentShareScalarFieldEnum = (typeof DocumentShareScalarFieldEnum)[keyof typeof DocumentShareScalarFieldEnum]
@@ -16098,6 +16126,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Bytes'
+   */
+  export type BytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes'>
+    
+
+
+  /**
+   * Reference to a field of type 'Bytes[]'
+   */
+  export type ListBytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -16150,7 +16192,7 @@ export namespace Prisma {
     avatar?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
-    password?: StringFilter<"User"> | string
+    password?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     documents?: DocumentListRelationFilter
@@ -16166,7 +16208,7 @@ export namespace Prisma {
     avatar?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    password?: SortOrder
+    password?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     documents?: DocumentOrderByRelationAggregateInput
@@ -16185,7 +16227,7 @@ export namespace Prisma {
     NOT?: UserWhereInput | UserWhereInput[]
     avatar?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
-    password?: StringFilter<"User"> | string
+    password?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     documents?: DocumentListRelationFilter
@@ -16201,7 +16243,7 @@ export namespace Prisma {
     avatar?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    password?: SortOrder
+    password?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -16217,7 +16259,7 @@ export namespace Prisma {
     avatar?: StringWithAggregatesFilter<"User"> | string
     name?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
-    password?: StringWithAggregatesFilter<"User"> | string
+    password?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -16389,6 +16431,7 @@ export namespace Prisma {
     id?: StringFilter<"Document"> | string
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16411,6 +16454,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrderInput | SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -16436,6 +16480,7 @@ export namespace Prisma {
     NOT?: DocumentWhereInput | DocumentWhereInput[]
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16458,6 +16503,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrderInput | SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -16478,6 +16524,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Document"> | string
     title?: StringWithAggregatesFilter<"Document"> | string
     content?: StringWithAggregatesFilter<"Document"> | string
+    yjsState?: BytesNullableWithAggregatesFilter<"Document"> | Uint8Array | null
     userId?: StringWithAggregatesFilter<"Document"> | string
     isPublic?: BoolWithAggregatesFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16794,6 +16841,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
   }
 
@@ -16807,6 +16855,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
     document?: DocumentOrderByWithRelationInput
   }
 
@@ -16823,6 +16872,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
   }, "id" | "shareToken">
 
@@ -16836,6 +16886,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
     _count?: DocumentShareCountOrderByAggregateInput
     _avg?: DocumentShareAvgOrderByAggregateInput
     _max?: DocumentShareMaxOrderByAggregateInput
@@ -16856,6 +16907,7 @@ export namespace Prisma {
     useCount?: IntWithAggregatesFilter<"DocumentShare"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DocumentShare"> | Date | string
     createdBy?: StringWithAggregatesFilter<"DocumentShare"> | string
+    isActive?: BoolWithAggregatesFilter<"DocumentShare"> | boolean
   }
 
   export type DocumentTemplateWhereInput = {
@@ -17082,7 +17134,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -17098,7 +17150,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -17114,7 +17166,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -17130,7 +17182,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -17146,7 +17198,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17156,7 +17208,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17166,7 +17218,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17343,6 +17395,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -17364,6 +17417,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -17385,6 +17439,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -17406,6 +17461,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -17427,6 +17483,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -17441,6 +17498,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -17454,6 +17512,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -17775,6 +17834,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
     document: DocumentCreateNestedOneWithoutSharesInput
   }
 
@@ -17788,6 +17848,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUpdateInput = {
@@ -17799,6 +17860,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
     document?: DocumentUpdateOneRequiredWithoutSharesNestedInput
   }
 
@@ -17812,6 +17874,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareCreateManyInput = {
@@ -17824,6 +17887,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUpdateManyMutationInput = {
@@ -17835,6 +17899,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateManyInput = {
@@ -17847,6 +17912,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentTemplateCreateInput = {
@@ -18107,6 +18173,21 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18151,6 +18232,11 @@ export namespace Prisma {
     every?: RoomWhereInput
     some?: RoomWhereInput
     none?: RoomWhereInput
+  }
+
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
   }
 
   export type DocumentOrderByRelationAggregateInput = {
@@ -18221,6 +18307,24 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18238,21 +18342,6 @@ export namespace Prisma {
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -18282,11 +18371,6 @@ export namespace Prisma {
   export type DocumentNullableScalarRelationFilter = {
     is?: DocumentWhereInput | null
     isNot?: DocumentWhereInput | null
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type RoomCountOrderByAggregateInput = {
@@ -18340,24 +18424,6 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -18409,6 +18475,13 @@ export namespace Prisma {
     lastActive?: SortOrder
   }
 
+  export type BytesNullableFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableFilter<$PrismaModel> | Uint8Array | null
+  }
+
   export type DocumentImageListRelationFilter = {
     every?: DocumentImageWhereInput
     some?: DocumentImageWhereInput
@@ -18453,6 +18526,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -18467,6 +18541,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     allowComments?: SortOrder
@@ -18480,6 +18555,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     allowComments?: SortOrder
@@ -18487,6 +18563,16 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     lastEditedAt?: SortOrder
+  }
+
+  export type BytesNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableWithAggregatesFilter<$PrismaModel> | Uint8Array | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBytesNullableFilter<$PrismaModel>
+    _max?: NestedBytesNullableFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -18721,6 +18807,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareAvgOrderByAggregateInput = {
@@ -18737,6 +18824,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareMinOrderByAggregateInput = {
@@ -18748,6 +18836,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareSumOrderByAggregateInput = {
@@ -19003,6 +19092,10 @@ export namespace Prisma {
     set?: string
   }
 
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -19201,10 +19294,6 @@ export namespace Prisma {
     set?: boolean
   }
 
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
   }
@@ -19394,6 +19483,10 @@ export namespace Prisma {
     connectOrCreate?: RoomCreateOrConnectWithoutDocumentInput | RoomCreateOrConnectWithoutDocumentInput[]
     createMany?: RoomCreateManyDocumentInputEnvelope
     connect?: RoomWhereUniqueInput | RoomWhereUniqueInput[]
+  }
+
+  export type NullableBytesFieldUpdateOperationsInput = {
+    set?: Uint8Array | null
   }
 
   export type DocumentUpdatetagsInput = {
@@ -19779,6 +19872,20 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -19818,58 +19925,6 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
-  }
-
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -19898,6 +19953,44 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -19910,6 +20003,23 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBytesNullableFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableFilter<$PrismaModel> | Uint8Array | null
+  }
+
+  export type NestedBytesNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableWithAggregatesFilter<$PrismaModel> | Uint8Array | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBytesNullableFilter<$PrismaModel>
+    _max?: NestedBytesNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -19993,6 +20103,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20013,6 +20124,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20215,6 +20327,7 @@ export namespace Prisma {
     id?: StringFilter<"Document"> | string
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -20386,7 +20499,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -20401,7 +20514,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -20420,6 +20533,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20440,6 +20554,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -20503,7 +20618,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -20518,7 +20633,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -20543,6 +20658,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -20563,6 +20679,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -20635,7 +20752,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -20650,7 +20767,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -20722,7 +20839,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -20737,7 +20854,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -20752,7 +20869,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
@@ -20767,7 +20884,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
@@ -20911,6 +21028,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUncheckedCreateWithoutDocumentInput = {
@@ -20922,6 +21040,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareCreateOrConnectWithoutDocumentInput = {
@@ -21018,7 +21137,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
@@ -21033,7 +21152,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
@@ -21165,6 +21284,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
   }
 
   export type DocumentActivityUpsertWithWhereUniqueWithoutDocumentInput = {
@@ -21216,6 +21336,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21236,6 +21357,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21272,6 +21394,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21292,6 +21415,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21312,6 +21436,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21332,6 +21457,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21368,6 +21494,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21388,6 +21515,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21408,6 +21536,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21428,6 +21557,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21454,7 +21584,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -21469,7 +21599,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -21499,6 +21629,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21519,6 +21650,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21551,7 +21683,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -21566,7 +21698,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -21580,6 +21712,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21600,6 +21733,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21626,7 +21760,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -21641,7 +21775,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -21671,6 +21805,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21691,6 +21826,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21723,7 +21859,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -21738,7 +21874,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -21752,6 +21888,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21772,6 +21909,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21808,6 +21946,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21828,6 +21967,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21849,7 +21989,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
@@ -21864,7 +22004,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
@@ -21895,7 +22035,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
@@ -21910,7 +22050,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
@@ -21924,6 +22064,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21944,6 +22085,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21980,6 +22122,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22000,6 +22143,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -22020,6 +22164,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -22074,6 +22219,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22094,6 +22240,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22114,6 +22261,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22329,6 +22477,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentActivityCreateManyDocumentInput = {
@@ -22483,6 +22632,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateWithoutDocumentInput = {
@@ -22494,6 +22644,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateManyWithoutDocumentInput = {
@@ -22505,6 +22656,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentActivityUpdateWithoutDocumentInput = {

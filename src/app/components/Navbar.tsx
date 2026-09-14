@@ -33,7 +33,7 @@ export default function Navbar() {
       <div className="flex items-center gap-2">
         
         <span className="text-2xl flex text-[rgb(84, 84, 84)]">
-            Omnidocs
+            Omnidoc<span className="text-blue-600">.</span>
         </span>
       </div>
 

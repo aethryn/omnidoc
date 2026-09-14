@@ -158,6 +158,7 @@ exports.Prisma.DocumentScalarFieldEnum = {
   id: 'id',
   title: 'title',
   content: 'content',
+  yjsState: 'yjsState',
   userId: 'userId',
   isPublic: 'isPublic',
   tags: 'tags',
@@ -221,7 +222,8 @@ exports.Prisma.DocumentShareScalarFieldEnum = {
   maxUses: 'maxUses',
   useCount: 'useCount',
   createdAt: 'createdAt',
-  createdBy: 'createdBy'
+  createdBy: 'createdBy',
+  isActive: 'isActive'
 };
 
 exports.Prisma.DocumentTemplateScalarFieldEnum = {

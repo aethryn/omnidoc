@@ -12,7 +12,7 @@ export async function GET(
     const { id: documentId } = await params;
     console.log("Params documentId: ", documentId);
 
-    const authResult = getCurrentUserIdFromRequest(request);
+    const authResult = await getCurrentUserIdFromRequest(request);
     
     if (!authResult.userId) {
       return createAuthErrorResponse(authResult);
@@ -23,7 +23,7 @@ export async function GET(
     console.log("Document ID: ", documentId);
 
     //check if the document exists and the usr has access to it.
-    const document = await prisma.document.findUnique({
+    const document = await prisma.document.findFirst({
       where: {
         id: documentId,
         OR: [
@@ -82,7 +82,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(document);
+    const role = document.userId === userId ? "owner" : document.collaborators.find((member) => member.userId === userId)?.role || "viewer";
+    return NextResponse.json({
+      ...document,
+      role,
+      yjsState: (document as any).yjsState ? Buffer.from((document as any).yjsState).toString("base64") : null,
+    });
   } catch (error) {
     console.error("Error fetching document: ", error);
     return NextResponse.json(
@@ -100,7 +105,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = getCurrentUserIdFromRequest(request);
+    const authResult = await getCurrentUserIdFromRequest(request);
     
     if (!authResult.userId) {
       return createAuthErrorResponse(authResult);
@@ -220,7 +225,7 @@ export async function PATCH(
 
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);
@@ -290,7 +295,7 @@ export async function DELETE(
 ) {
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);

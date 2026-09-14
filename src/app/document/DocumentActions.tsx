@@ -20,6 +20,7 @@ interface DocumentActionsProps {
   showDelete?: boolean;
   documentTitle: string;
   onExportPdf: () => void;
+  onExportHtml?: () => void;
 }
 
 export function DocumentActions({
@@ -29,6 +30,7 @@ export function DocumentActions({
   showDelete = true,
   documentTitle,
   onExportPdf,
+  onExportHtml,
 }: DocumentActionsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const menuIconRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,7 @@ export function DocumentActions({
       icon: <FilePdfIcon size={20} />,
       onClick: handleExportPdf,
     },
+    ...(onExportHtml ? [{ label: "Export to HTML", icon: <FilePdfIcon size={20} />, onClick: onExportHtml }] : []),
     {
       label: "Rename",
       icon: <PencilIcon size={20} />,

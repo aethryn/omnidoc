@@ -4,6 +4,6 @@ import { Suspense } from "react";
 
 export default function SignUpPage() {
   return (
-  <Suspense><AuthForm mode="signup" /></Suspense>
+  <Suspense><AuthForm /></Suspense>
   );
 }
