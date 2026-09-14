@@ -78,15 +78,23 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     return creationRef.current;
   },[activeId,content,documentName,router]);
 
-  const contentChanged=useCallback((json:string)=>{setContent(json);setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);localStorage.setItem(LOCAL_DRAFT,json);void ensureSaved(json);},[ensureSaved,publication?.isActive]);
+  const contentChanged=useCallback((json:string)=>{setContent(json);setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);if(!activeId){localStorage.setItem(LOCAL_DRAFT,json);void ensureSaved(json);}},[activeId,ensureSaved,publication?.isActive]);
 
   async function save(documentId?:string){
-    const id=documentId||await ensureSaved();if(!id||!isOnline)return false;setIsSaving(true);const json=editorRef.current?.getDocumentJSON()||content;
+    const id=documentId||await ensureSaved();if(!id||!isOnline)return false;
+    // The websocket server owns persistence for an existing collaborative
+    // document. A REST PUT here would save a stale JSON snapshot and leave the
+    // database's yjsState out of sync with its content column.
+    if(initialDocument?.id||activeId){setDirty(false);setLastSaved(new Date().toISOString());return collaborationStatus!=="error";}
+    setIsSaving(true);const json=editorRef.current?.getDocumentJSON()||content;
     const response=await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName,content:json})});
     if(response.ok){setDirty(false);setLastSaved(new Date().toISOString());localStorage.removeItem(`document-${id}-backup`);}else localStorage.setItem(`document-${id}-backup`,json);setIsSaving(false);return response.ok;
   }
 
-  useEffect(()=>{if(!dirty||!activeId)return;const timer=window.setTimeout(()=>void save(),3000);return()=>window.clearTimeout(timer);},[dirty,activeId]);
+  // Collaborative documents are persisted by the websocket room. Sending the
+  // whole JSON document through this legacy REST autosave would race the Yjs
+  // state and overwrite a collaborator's latest changes.
+  useEffect(()=>{if(!dirty||activeId)return;const timer=window.setTimeout(()=>void save(),3000);return()=>window.clearTimeout(timer);},[dirty,activeId]);
 
   async function rename(){if(readOnly)return;const next=documentName.trim()||"Untitled document";setDocumentName(next);if(publication?.isActive)setHasUnpublishedChanges(true);const id=await ensureSaved();if(id)await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:next})});}
   function format(command:FormatCommand){editorRef.current?.runFormat(command);}
