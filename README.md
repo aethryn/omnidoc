@@ -1,190 +1,35 @@
-# Real-time Document Collaboration with CRDT
+# Omnidoc
 
-## Flow Overview
+Omnidoc is a calm, real-time collaborative document editor built with Next.js, Tiptap, Yjs, Prisma, and Supabase.
 
-1. **Document Creation**
-   - User creates a document
-   - Document is stored in PostgreSQL
-   - Each document has a unique ID
+## Local development
 
-2. **Collaboration Methods**
-   - **Share Link**: Direct document access via URL
-   - **Room**: Real-time collaboration space
-     - Generated unique room code
-     - Multiple users can join
-     - Syncs document changes in real-time
+Next.js 16 requires Node.js 20.9 or newer.
 
-## How CRDT Works (Using Yjs)
+1. Create a Supabase project and enable Google under **Authentication → Providers**.
+2. Create a private Storage bucket named `document-images`.
+3. Copy `.env.example` to `.env.local`, fill in the Supabase values, and generate `AI_CREDENTIALS_ENCRYPTION_KEY` with `openssl rand -base64 32`.
+4. Run `npm install`, `npm run prisma:generate`, and `npm run prisma:migrate`.
+5. Start both services with `npm run dev:all`.
 
-### 1. Basic Concept
-CRDT (Conflict-free Replicated Data Type) allows multiple users to edit the same document simultaneously without conflicts.
+The Next.js app runs on port 3000 and the collaboration server on port 4000.
 
-```typescript
-// Each client has a local Yjs document
-const ydoc = new Y.Doc()
-const ytext = ydoc.getText('content')  // Shared text content
+## Deployment
 
-// When user types "Hello"
-ytext.insert(0, 'Hello')
+Deploy the collaboration service first by connecting this repository to a Render Blueprint. The included `render.yaml` creates `omnidoc-collaboration` in Singapore. Add the requested Supabase and database variables, deploy it, and copy its public `onrender.com` URL.
 
-// This change is automatically:
-// 1. Applied locally
-// 2. Synced with other clients
-// 3. Merged without conflicts
-```
+Import the same GitHub repository into Vercel as a Next.js project. Add every variable from `.env.example` to the Production environment. Set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the final HTTPS Vercel or custom-domain URL, and set `NEXT_PUBLIC_WS_URL` to the Render URL with `wss://`. The included `vercel.json` keeps server functions in Singapore, close to the configured Supabase database.
 
-### 2. Our Implementation
+In Supabase Authentication URL Configuration, set the Site URL to the production site and add `https://your-domain/auth/callback` to the redirect allow list. Keep `http://localhost:3000/**` as an additional development redirect if local sign-in is still needed. Then redeploy Vercel so the final public URLs are embedded in the client bundle.
 
-#### WebSocket Server (websocket-server.ts)
-```typescript
-// Store active documents
-const documents = new Map<string, Y.Doc>()
-const connections = new Map<string, Set<WebSocket>>()
+Run `npm run prisma:migrate` before the first production launch and after future schema migrations. Vercel automatically redeploys the production branch after each push; Render does the same for the collaboration service.
 
-// When client connects
-wss.on('connection', (ws, req) => {
-    const roomCode = url.searchParams.get('room')
-    
-    // Create/get document for this room
-    if (!documents.has(roomCode)) {
-        const doc = new Y.Doc()
-        documents.set(roomCode, doc)
-        
-        // Handle document updates
-        doc.on('update', (update, origin) => {
-            // Broadcast changes to all clients
-            connections.get(roomCode)?.forEach(client => {
-                if (client !== origin) {
-                    client.send(update)
-                }
-            })
-        })
-    }
-})
-```
+Supabase is the source of truth for Google authentication, Postgres, and private image storage. Provider credentials are encrypted with AES-256-GCM using the server-only `AI_CREDENTIALS_ENCRYPTION_KEY`. Never rotate that key without re-encrypting saved credentials.
 
-#### Client Side
-```typescript
-// Connect to room
-const ws = new WebSocket(`ws://localhost:4000?room=${roomCode}`)
-const ydoc = new Y.Doc()
+Render’s free service can sleep when idle, so Omnidoc keeps a local IndexedDB copy and reconnects automatically when the service wakes. Use an always-on instance when immediate collaboration presence is required. Keep the Next.js deployment region close to the Supabase database region.
 
-// Sync document changes
-ws.on('message', (update) => {
-    Y.applyUpdate(ydoc, update)
-})
+Required production variables are documented in `.env.example`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
 
-// Handle local changes
-ydoc.on('update', (update) => {
-    ws.send(update)
-})
-```
+## Scope
 
-### 3. CRDT Magic Explained
-
-#### How Conflicts are Resolved
-1. **Unique Identifiers**: Each change has a unique ID
-```typescript
-// Internal Yjs structure (simplified)
-type Change = {
-    id: string      // e.g., "user1-123"
-    clock: number   // Lamport timestamp
-    content: string // Actual change
-}
-```
-
-2. **Concurrent Changes**: Both changes are preserved
-```
-User A: "Hello|" (cursor at end)
-User B: "Hello|" (cursor at end)
-
-User A types "World"
-User B types "Everyone"
-
-Final Result: "HelloWorldEveryone"
-// Both changes are integrated based on their unique positions
-```
-
-3. **Order Preservation**: Changes are ordered using Lamport timestamps
-```typescript
-// Each operation gets a timestamp
-type Operation = {
-    client: string   // Client identifier
-    clock: number    // Logical time
-    changes: Change[]
-}
-```
-
-## Room vs Direct Share
-
-### Room-based Collaboration
-- Real-time sync via WebSocket
-- Multiple users can join via code
-- Active presence awareness
-- Temporary collaboration space
-
-### Direct Share
-- Document-level access
-- Permanent access (until revoked)
-- Asynchronous collaboration
-- Access via URL
-
-## Best Practices
-
-1. **Error Handling**
-```typescript
-ws.on('error', (error) => {
-    console.error('WebSocket error:', error)
-    // Implement reconnection logic
-})
-```
-
-2. **State Recovery**
-```typescript
-// After reconnection
-const state = Y.encodeStateVector(ydoc)
-ws.send(state)  // Request missing updates
-```
-
-3. **Presence Awareness**
-```typescript
-// Track active users
-const awareness = new Y.Awareness(ydoc)
-awareness.setLocalState({ user, cursor })
-```
-
-## Security Considerations
-
-1. **Room Access**
-   - Validate user permissions
-   - Expire inactive rooms
-   - Rate limit room creation
-
-2. **Data Integrity**
-   - Validate changes server-side
-   - Backup document states
-   - Handle malicious clients
-
-## Performance Tips
-
-1. **Debounce Updates**
-```typescript
-let timeout
-editor.on('change', () => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => {
-        // Send changes after 100ms of no typing
-        sendChanges()
-    }, 100)
-})
-```
-
-2. **Batch Processing**
-```typescript
-// Group multiple changes
-const transaction = ydoc.transact(() => {
-    ytext.insert(0, 'Hello')
-    ytext.insert(5, 'World')
-})
-```
-
+The product includes Google sign-in, server-rendered document loading, local draft recovery, Tiptap/Yjs collaboration, live presence, bounded viewer/editor invite links, working-draft and complete states, snapshot publishing, rich image handling, Markdown/PDF/DOCX/HTML export, and preview-before-accept AI editing through Gemini or xAI. Billing, templates, comments, and advanced history remain outside this release.

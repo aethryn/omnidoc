@@ -1,14 +1,14 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import DocumentEditorClient from "./DocumentEditorClient";
 
-export default function DocumentPage() {
-  return (
-    <Suspense fallback={
-      <div className="bg-white shadow-sm min-h-250 mt-14 rounded-xl max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-        <p className="text-gray-500">Loading document...</p>
-      </div>
-    }>
-      <DocumentEditorClient />
-    </Suspense>
-  );
+export default async function NewDocumentPage() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) redirect("/signin?redirect=/document");
+  const user = await prisma.user.findUnique({ where:{ id:userId }, select:{ id:true,name:true,avatar:true } });
+  if (!user) redirect("/signin?redirect=/document");
+  return <DocumentEditorClient currentUser={{ ...user, color:"#7c4dcc", role:"owner" }} />;
 }

@@ -158,6 +158,7 @@ exports.Prisma.DocumentScalarFieldEnum = {
   id: 'id',
   title: 'title',
   content: 'content',
+  yjsState: 'yjsState',
   userId: 'userId',
   isPublic: 'isPublic',
   tags: 'tags',
@@ -221,7 +222,8 @@ exports.Prisma.DocumentShareScalarFieldEnum = {
   maxUses: 'maxUses',
   useCount: 'useCount',
   createdAt: 'createdAt',
-  createdBy: 'createdBy'
+  createdBy: 'createdBy',
+  isActive: 'isActive'
 };
 
 exports.Prisma.DocumentTemplateScalarFieldEnum = {
@@ -245,6 +247,20 @@ exports.Prisma.UserSettingsScalarFieldEnum = {
   autoSaveInterval: 'autoSaveInterval',
   showLineNumbers: 'showLineNumbers',
   wordWrap: 'wordWrap',
+  activeAiProvider: 'activeAiProvider',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AIProviderCredentialScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  encryptedKey: 'encryptedKey',
+  iv: 'iv',
+  authTag: 'authTag',
+  keyHint: 'keyHint',
+  model: 'model',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -298,6 +314,7 @@ exports.Prisma.ModelName = {
   DocumentShare: 'DocumentShare',
   DocumentTemplate: 'DocumentTemplate',
   UserSettings: 'UserSettings',
+  AIProviderCredential: 'AIProviderCredential',
   DocumentActivity: 'DocumentActivity'
 };
 

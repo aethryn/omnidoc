@@ -69,6 +69,11 @@ export type DocumentTemplate = $Result.DefaultSelection<Prisma.$DocumentTemplate
  */
 export type UserSettings = $Result.DefaultSelection<Prisma.$UserSettingsPayload>
 /**
+ * Model AIProviderCredential
+ * 
+ */
+export type AIProviderCredential = $Result.DefaultSelection<Prisma.$AIProviderCredentialPayload>
+/**
  * Model DocumentActivity
  * 
  */
@@ -301,6 +306,16 @@ export class PrismaClient<
     * ```
     */
   get userSettings(): Prisma.UserSettingsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.aIProviderCredential`: Exposes CRUD operations for the **AIProviderCredential** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AIProviderCredentials
+    * const aIProviderCredentials = await prisma.aIProviderCredential.findMany()
+    * ```
+    */
+  get aIProviderCredential(): Prisma.AIProviderCredentialDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.documentActivity`: Exposes CRUD operations for the **DocumentActivity** model.
@@ -762,6 +777,7 @@ export namespace Prisma {
     DocumentShare: 'DocumentShare',
     DocumentTemplate: 'DocumentTemplate',
     UserSettings: 'UserSettings',
+    AIProviderCredential: 'AIProviderCredential',
     DocumentActivity: 'DocumentActivity'
   };
 
@@ -781,7 +797,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "room" | "roomUser" | "document" | "documentImage" | "documentVersion" | "documentCollaborators" | "documentComment" | "documentShare" | "documentTemplate" | "userSettings" | "documentActivity"
+      modelProps: "user" | "room" | "roomUser" | "document" | "documentImage" | "documentVersion" | "documentCollaborators" | "documentComment" | "documentShare" | "documentTemplate" | "userSettings" | "aIProviderCredential" | "documentActivity"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1599,6 +1615,80 @@ export namespace Prisma {
           }
         }
       }
+      AIProviderCredential: {
+        payload: Prisma.$AIProviderCredentialPayload<ExtArgs>
+        fields: Prisma.AIProviderCredentialFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AIProviderCredentialFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AIProviderCredentialFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          findFirst: {
+            args: Prisma.AIProviderCredentialFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AIProviderCredentialFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          findMany: {
+            args: Prisma.AIProviderCredentialFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>[]
+          }
+          create: {
+            args: Prisma.AIProviderCredentialCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          createMany: {
+            args: Prisma.AIProviderCredentialCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AIProviderCredentialCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>[]
+          }
+          delete: {
+            args: Prisma.AIProviderCredentialDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          update: {
+            args: Prisma.AIProviderCredentialUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          deleteMany: {
+            args: Prisma.AIProviderCredentialDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AIProviderCredentialUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AIProviderCredentialUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>[]
+          }
+          upsert: {
+            args: Prisma.AIProviderCredentialUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AIProviderCredentialPayload>
+          }
+          aggregate: {
+            args: Prisma.AIProviderCredentialAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAIProviderCredential>
+          }
+          groupBy: {
+            args: Prisma.AIProviderCredentialGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AIProviderCredentialGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AIProviderCredentialCountArgs<ExtArgs>
+            result: $Utils.Optional<AIProviderCredentialCountAggregateOutputType> | number
+          }
+        }
+      }
       DocumentActivity: {
         payload: Prisma.$DocumentActivityPayload<ExtArgs>
         fields: Prisma.DocumentActivityFieldRefs
@@ -1780,6 +1870,7 @@ export namespace Prisma {
     documentShare?: DocumentShareOmit
     documentTemplate?: DocumentTemplateOmit
     userSettings?: UserSettingsOmit
+    aIProviderCredential?: AIProviderCredentialOmit
     documentActivity?: DocumentActivityOmit
   }
 
@@ -1864,6 +1955,7 @@ export namespace Prisma {
     documents: number
     collaborations: number
     comments: number
+    aiCredentials: number
     rooms: number
     createdRooms: number
   }
@@ -1872,6 +1964,7 @@ export namespace Prisma {
     documents?: boolean | UserCountOutputTypeCountDocumentsArgs
     collaborations?: boolean | UserCountOutputTypeCountCollaborationsArgs
     comments?: boolean | UserCountOutputTypeCountCommentsArgs
+    aiCredentials?: boolean | UserCountOutputTypeCountAiCredentialsArgs
     rooms?: boolean | UserCountOutputTypeCountRoomsArgs
     createdRooms?: boolean | UserCountOutputTypeCountCreatedRoomsArgs
   }
@@ -1906,6 +1999,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DocumentCommentWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAiCredentialsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AIProviderCredentialWhereInput
   }
 
   /**
@@ -2193,7 +2293,7 @@ export namespace Prisma {
     avatar: string
     name: string
     email: string
-    password: string
+    password: string | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -2227,6 +2327,7 @@ export namespace Prisma {
     collaborations?: boolean | User$collaborationsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
     settings?: boolean | User$settingsArgs<ExtArgs>
+    aiCredentials?: boolean | User$aiCredentialsArgs<ExtArgs>
     rooms?: boolean | User$roomsArgs<ExtArgs>
     createdRooms?: boolean | User$createdRoomsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -2268,6 +2369,7 @@ export namespace Prisma {
     collaborations?: boolean | User$collaborationsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
     settings?: boolean | User$settingsArgs<ExtArgs>
+    aiCredentials?: boolean | User$aiCredentialsArgs<ExtArgs>
     rooms?: boolean | User$roomsArgs<ExtArgs>
     createdRooms?: boolean | User$createdRoomsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -2282,6 +2384,7 @@ export namespace Prisma {
       collaborations: Prisma.$DocumentCollaboratorsPayload<ExtArgs>[]
       comments: Prisma.$DocumentCommentPayload<ExtArgs>[]
       settings: Prisma.$UserSettingsPayload<ExtArgs> | null
+      aiCredentials: Prisma.$AIProviderCredentialPayload<ExtArgs>[]
       rooms: Prisma.$RoomUserPayload<ExtArgs>[]
       createdRooms: Prisma.$RoomPayload<ExtArgs>[]
     }
@@ -2290,7 +2393,7 @@ export namespace Prisma {
       avatar: string
       name: string
       email: string
-      password: string
+      password: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -2691,6 +2794,7 @@ export namespace Prisma {
     collaborations<T extends User$collaborationsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DocumentCollaboratorsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     comments<T extends User$commentsArgs<ExtArgs> = {}>(args?: Subset<T, User$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DocumentCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     settings<T extends User$settingsArgs<ExtArgs> = {}>(args?: Subset<T, User$settingsArgs<ExtArgs>>): Prisma__UserSettingsClient<$Result.GetResult<Prisma.$UserSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    aiCredentials<T extends User$aiCredentialsArgs<ExtArgs> = {}>(args?: Subset<T, User$aiCredentialsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     rooms<T extends User$roomsArgs<ExtArgs> = {}>(args?: Subset<T, User$roomsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RoomUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     createdRooms<T extends User$createdRoomsArgs<ExtArgs> = {}>(args?: Subset<T, User$createdRoomsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RoomPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -3205,6 +3309,30 @@ export namespace Prisma {
      */
     include?: UserSettingsInclude<ExtArgs> | null
     where?: UserSettingsWhereInput
+  }
+
+  /**
+   * User.aiCredentials
+   */
+  export type User$aiCredentialsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    where?: AIProviderCredentialWhereInput
+    orderBy?: AIProviderCredentialOrderByWithRelationInput | AIProviderCredentialOrderByWithRelationInput[]
+    cursor?: AIProviderCredentialWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AIProviderCredentialScalarFieldEnum | AIProviderCredentialScalarFieldEnum[]
   }
 
   /**
@@ -5569,6 +5697,7 @@ export namespace Prisma {
     id: string | null
     title: string | null
     content: string | null
+    yjsState: Uint8Array | null
     userId: string | null
     isPublic: boolean | null
     allowComments: boolean | null
@@ -5582,6 +5711,7 @@ export namespace Prisma {
     id: string | null
     title: string | null
     content: string | null
+    yjsState: Uint8Array | null
     userId: string | null
     isPublic: boolean | null
     allowComments: boolean | null
@@ -5595,6 +5725,7 @@ export namespace Prisma {
     id: number
     title: number
     content: number
+    yjsState: number
     userId: number
     isPublic: number
     tags: number
@@ -5611,6 +5742,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     allowComments?: true
@@ -5624,6 +5756,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     allowComments?: true
@@ -5637,6 +5770,7 @@ export namespace Prisma {
     id?: true
     title?: true
     content?: true
+    yjsState?: true
     userId?: true
     isPublic?: true
     tags?: true
@@ -5724,6 +5858,7 @@ export namespace Prisma {
     id: string
     title: string
     content: string
+    yjsState: Uint8Array | null
     userId: string
     isPublic: boolean
     tags: string[]
@@ -5755,6 +5890,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5778,6 +5914,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5793,6 +5930,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5808,6 +5946,7 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     content?: boolean
+    yjsState?: boolean
     userId?: boolean
     isPublic?: boolean
     tags?: boolean
@@ -5818,7 +5957,7 @@ export namespace Prisma {
     lastEditedAt?: boolean
   }
 
-  export type DocumentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "content" | "userId" | "isPublic" | "tags" | "allowComments" | "allowSuggestions" | "createdAt" | "updatedAt" | "lastEditedAt", ExtArgs["result"]["document"]>
+  export type DocumentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "content" | "yjsState" | "userId" | "isPublic" | "tags" | "allowComments" | "allowSuggestions" | "createdAt" | "updatedAt" | "lastEditedAt", ExtArgs["result"]["document"]>
   export type DocumentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     images?: boolean | Document$imagesArgs<ExtArgs>
@@ -5853,6 +5992,7 @@ export namespace Prisma {
       id: string
       title: string
       content: string
+      yjsState: Uint8Array | null
       userId: string
       isPublic: boolean
       tags: string[]
@@ -6295,6 +6435,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Document", 'String'>
     readonly title: FieldRef<"Document", 'String'>
     readonly content: FieldRef<"Document", 'String'>
+    readonly yjsState: FieldRef<"Document", 'Bytes'>
     readonly userId: FieldRef<"Document", 'String'>
     readonly isPublic: FieldRef<"Document", 'Boolean'>
     readonly tags: FieldRef<"Document", 'String[]'>
@@ -11426,6 +11567,7 @@ export namespace Prisma {
     useCount: number | null
     createdAt: Date | null
     createdBy: string | null
+    isActive: boolean | null
   }
 
   export type DocumentShareMaxAggregateOutputType = {
@@ -11437,6 +11579,7 @@ export namespace Prisma {
     useCount: number | null
     createdAt: Date | null
     createdBy: string | null
+    isActive: boolean | null
   }
 
   export type DocumentShareCountAggregateOutputType = {
@@ -11449,6 +11592,7 @@ export namespace Prisma {
     useCount: number
     createdAt: number
     createdBy: number
+    isActive: number
     _all: number
   }
 
@@ -11472,6 +11616,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
   }
 
   export type DocumentShareMaxAggregateInputType = {
@@ -11483,6 +11628,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
   }
 
   export type DocumentShareCountAggregateInputType = {
@@ -11495,6 +11641,7 @@ export namespace Prisma {
     useCount?: true
     createdAt?: true
     createdBy?: true
+    isActive?: true
     _all?: true
   }
 
@@ -11594,6 +11741,7 @@ export namespace Prisma {
     useCount: number
     createdAt: Date
     createdBy: string
+    isActive: boolean
     _count: DocumentShareCountAggregateOutputType | null
     _avg: DocumentShareAvgAggregateOutputType | null
     _sum: DocumentShareSumAggregateOutputType | null
@@ -11625,6 +11773,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11638,6 +11787,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11651,6 +11801,7 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentShare"]>
 
@@ -11664,9 +11815,10 @@ export namespace Prisma {
     useCount?: boolean
     createdAt?: boolean
     createdBy?: boolean
+    isActive?: boolean
   }
 
-  export type DocumentShareOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "shareToken" | "permissions" | "expiresAt" | "maxUses" | "useCount" | "createdAt" | "createdBy", ExtArgs["result"]["documentShare"]>
+  export type DocumentShareOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "shareToken" | "permissions" | "expiresAt" | "maxUses" | "useCount" | "createdAt" | "createdBy" | "isActive", ExtArgs["result"]["documentShare"]>
   export type DocumentShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }
@@ -11692,6 +11844,7 @@ export namespace Prisma {
       useCount: number
       createdAt: Date
       createdBy: string
+      isActive: boolean
     }, ExtArgs["result"]["documentShare"]>
     composites: {}
   }
@@ -12125,6 +12278,7 @@ export namespace Prisma {
     readonly useCount: FieldRef<"DocumentShare", 'Int'>
     readonly createdAt: FieldRef<"DocumentShare", 'DateTime'>
     readonly createdBy: FieldRef<"DocumentShare", 'String'>
+    readonly isActive: FieldRef<"DocumentShare", 'Boolean'>
   }
     
 
@@ -13617,6 +13771,7 @@ export namespace Prisma {
     autoSaveInterval: number | null
     showLineNumbers: boolean | null
     wordWrap: boolean | null
+    activeAiProvider: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13630,6 +13785,7 @@ export namespace Prisma {
     autoSaveInterval: number | null
     showLineNumbers: boolean | null
     wordWrap: boolean | null
+    activeAiProvider: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13643,6 +13799,7 @@ export namespace Prisma {
     autoSaveInterval: number
     showLineNumbers: number
     wordWrap: number
+    activeAiProvider: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -13668,6 +13825,7 @@ export namespace Prisma {
     autoSaveInterval?: true
     showLineNumbers?: true
     wordWrap?: true
+    activeAiProvider?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13681,6 +13839,7 @@ export namespace Prisma {
     autoSaveInterval?: true
     showLineNumbers?: true
     wordWrap?: true
+    activeAiProvider?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13694,6 +13853,7 @@ export namespace Prisma {
     autoSaveInterval?: true
     showLineNumbers?: true
     wordWrap?: true
+    activeAiProvider?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -13794,6 +13954,7 @@ export namespace Prisma {
     autoSaveInterval: number
     showLineNumbers: boolean
     wordWrap: boolean
+    activeAiProvider: string | null
     createdAt: Date
     updatedAt: Date
     _count: UserSettingsCountAggregateOutputType | null
@@ -13826,6 +13987,7 @@ export namespace Prisma {
     autoSaveInterval?: boolean
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -13840,6 +14002,7 @@ export namespace Prisma {
     autoSaveInterval?: boolean
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -13854,6 +14017,7 @@ export namespace Prisma {
     autoSaveInterval?: boolean
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -13868,11 +14032,12 @@ export namespace Prisma {
     autoSaveInterval?: boolean
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserSettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "editorTheme" | "fontSize" | "autoSave" | "autoSaveInterval" | "showLineNumbers" | "wordWrap" | "createdAt" | "updatedAt", ExtArgs["result"]["userSettings"]>
+  export type UserSettingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "editorTheme" | "fontSize" | "autoSave" | "autoSaveInterval" | "showLineNumbers" | "wordWrap" | "activeAiProvider" | "createdAt" | "updatedAt", ExtArgs["result"]["userSettings"]>
   export type UserSettingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -13897,6 +14062,7 @@ export namespace Prisma {
       autoSaveInterval: number
       showLineNumbers: boolean
       wordWrap: boolean
+      activeAiProvider: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["userSettings"]>
@@ -14331,6 +14497,7 @@ export namespace Prisma {
     readonly autoSaveInterval: FieldRef<"UserSettings", 'Int'>
     readonly showLineNumbers: FieldRef<"UserSettings", 'Boolean'>
     readonly wordWrap: FieldRef<"UserSettings", 'Boolean'>
+    readonly activeAiProvider: FieldRef<"UserSettings", 'String'>
     readonly createdAt: FieldRef<"UserSettings", 'DateTime'>
     readonly updatedAt: FieldRef<"UserSettings", 'DateTime'>
   }
@@ -14744,6 +14911,1129 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: UserSettingsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AIProviderCredential
+   */
+
+  export type AggregateAIProviderCredential = {
+    _count: AIProviderCredentialCountAggregateOutputType | null
+    _min: AIProviderCredentialMinAggregateOutputType | null
+    _max: AIProviderCredentialMaxAggregateOutputType | null
+  }
+
+  export type AIProviderCredentialMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    provider: string | null
+    encryptedKey: Uint8Array | null
+    iv: Uint8Array | null
+    authTag: Uint8Array | null
+    keyHint: string | null
+    model: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AIProviderCredentialMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    provider: string | null
+    encryptedKey: Uint8Array | null
+    iv: Uint8Array | null
+    authTag: Uint8Array | null
+    keyHint: string | null
+    model: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AIProviderCredentialCountAggregateOutputType = {
+    id: number
+    userId: number
+    provider: number
+    encryptedKey: number
+    iv: number
+    authTag: number
+    keyHint: number
+    model: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AIProviderCredentialMinAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    encryptedKey?: true
+    iv?: true
+    authTag?: true
+    keyHint?: true
+    model?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AIProviderCredentialMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    encryptedKey?: true
+    iv?: true
+    authTag?: true
+    keyHint?: true
+    model?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AIProviderCredentialCountAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    encryptedKey?: true
+    iv?: true
+    authTag?: true
+    keyHint?: true
+    model?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AIProviderCredentialAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AIProviderCredential to aggregate.
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AIProviderCredentials to fetch.
+     */
+    orderBy?: AIProviderCredentialOrderByWithRelationInput | AIProviderCredentialOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AIProviderCredentialWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AIProviderCredentials from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AIProviderCredentials.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AIProviderCredentials
+    **/
+    _count?: true | AIProviderCredentialCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AIProviderCredentialMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AIProviderCredentialMaxAggregateInputType
+  }
+
+  export type GetAIProviderCredentialAggregateType<T extends AIProviderCredentialAggregateArgs> = {
+        [P in keyof T & keyof AggregateAIProviderCredential]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAIProviderCredential[P]>
+      : GetScalarType<T[P], AggregateAIProviderCredential[P]>
+  }
+
+
+
+
+  export type AIProviderCredentialGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AIProviderCredentialWhereInput
+    orderBy?: AIProviderCredentialOrderByWithAggregationInput | AIProviderCredentialOrderByWithAggregationInput[]
+    by: AIProviderCredentialScalarFieldEnum[] | AIProviderCredentialScalarFieldEnum
+    having?: AIProviderCredentialScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AIProviderCredentialCountAggregateInputType | true
+    _min?: AIProviderCredentialMinAggregateInputType
+    _max?: AIProviderCredentialMaxAggregateInputType
+  }
+
+  export type AIProviderCredentialGroupByOutputType = {
+    id: string
+    userId: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt: Date
+    updatedAt: Date
+    _count: AIProviderCredentialCountAggregateOutputType | null
+    _min: AIProviderCredentialMinAggregateOutputType | null
+    _max: AIProviderCredentialMaxAggregateOutputType | null
+  }
+
+  type GetAIProviderCredentialGroupByPayload<T extends AIProviderCredentialGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AIProviderCredentialGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AIProviderCredentialGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AIProviderCredentialGroupByOutputType[P]>
+            : GetScalarType<T[P], AIProviderCredentialGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AIProviderCredentialSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    encryptedKey?: boolean
+    iv?: boolean
+    authTag?: boolean
+    keyHint?: boolean
+    model?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aIProviderCredential"]>
+
+  export type AIProviderCredentialSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    encryptedKey?: boolean
+    iv?: boolean
+    authTag?: boolean
+    keyHint?: boolean
+    model?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aIProviderCredential"]>
+
+  export type AIProviderCredentialSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    encryptedKey?: boolean
+    iv?: boolean
+    authTag?: boolean
+    keyHint?: boolean
+    model?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aIProviderCredential"]>
+
+  export type AIProviderCredentialSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    encryptedKey?: boolean
+    iv?: boolean
+    authTag?: boolean
+    keyHint?: boolean
+    model?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AIProviderCredentialOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "provider" | "encryptedKey" | "iv" | "authTag" | "keyHint" | "model" | "createdAt" | "updatedAt", ExtArgs["result"]["aIProviderCredential"]>
+  export type AIProviderCredentialInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AIProviderCredentialIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AIProviderCredentialIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $AIProviderCredentialPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AIProviderCredential"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      provider: string
+      encryptedKey: Uint8Array
+      iv: Uint8Array
+      authTag: Uint8Array
+      keyHint: string
+      model: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aIProviderCredential"]>
+    composites: {}
+  }
+
+  type AIProviderCredentialGetPayload<S extends boolean | null | undefined | AIProviderCredentialDefaultArgs> = $Result.GetResult<Prisma.$AIProviderCredentialPayload, S>
+
+  type AIProviderCredentialCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AIProviderCredentialFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AIProviderCredentialCountAggregateInputType | true
+    }
+
+  export interface AIProviderCredentialDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AIProviderCredential'], meta: { name: 'AIProviderCredential' } }
+    /**
+     * Find zero or one AIProviderCredential that matches the filter.
+     * @param {AIProviderCredentialFindUniqueArgs} args - Arguments to find a AIProviderCredential
+     * @example
+     * // Get one AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AIProviderCredentialFindUniqueArgs>(args: SelectSubset<T, AIProviderCredentialFindUniqueArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AIProviderCredential that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AIProviderCredentialFindUniqueOrThrowArgs} args - Arguments to find a AIProviderCredential
+     * @example
+     * // Get one AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AIProviderCredentialFindUniqueOrThrowArgs>(args: SelectSubset<T, AIProviderCredentialFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AIProviderCredential that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialFindFirstArgs} args - Arguments to find a AIProviderCredential
+     * @example
+     * // Get one AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AIProviderCredentialFindFirstArgs>(args?: SelectSubset<T, AIProviderCredentialFindFirstArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AIProviderCredential that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialFindFirstOrThrowArgs} args - Arguments to find a AIProviderCredential
+     * @example
+     * // Get one AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AIProviderCredentialFindFirstOrThrowArgs>(args?: SelectSubset<T, AIProviderCredentialFindFirstOrThrowArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AIProviderCredentials that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AIProviderCredentials
+     * const aIProviderCredentials = await prisma.aIProviderCredential.findMany()
+     * 
+     * // Get first 10 AIProviderCredentials
+     * const aIProviderCredentials = await prisma.aIProviderCredential.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aIProviderCredentialWithIdOnly = await prisma.aIProviderCredential.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AIProviderCredentialFindManyArgs>(args?: SelectSubset<T, AIProviderCredentialFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AIProviderCredential.
+     * @param {AIProviderCredentialCreateArgs} args - Arguments to create a AIProviderCredential.
+     * @example
+     * // Create one AIProviderCredential
+     * const AIProviderCredential = await prisma.aIProviderCredential.create({
+     *   data: {
+     *     // ... data to create a AIProviderCredential
+     *   }
+     * })
+     * 
+     */
+    create<T extends AIProviderCredentialCreateArgs>(args: SelectSubset<T, AIProviderCredentialCreateArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AIProviderCredentials.
+     * @param {AIProviderCredentialCreateManyArgs} args - Arguments to create many AIProviderCredentials.
+     * @example
+     * // Create many AIProviderCredentials
+     * const aIProviderCredential = await prisma.aIProviderCredential.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AIProviderCredentialCreateManyArgs>(args?: SelectSubset<T, AIProviderCredentialCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AIProviderCredentials and returns the data saved in the database.
+     * @param {AIProviderCredentialCreateManyAndReturnArgs} args - Arguments to create many AIProviderCredentials.
+     * @example
+     * // Create many AIProviderCredentials
+     * const aIProviderCredential = await prisma.aIProviderCredential.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AIProviderCredentials and only return the `id`
+     * const aIProviderCredentialWithIdOnly = await prisma.aIProviderCredential.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AIProviderCredentialCreateManyAndReturnArgs>(args?: SelectSubset<T, AIProviderCredentialCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AIProviderCredential.
+     * @param {AIProviderCredentialDeleteArgs} args - Arguments to delete one AIProviderCredential.
+     * @example
+     * // Delete one AIProviderCredential
+     * const AIProviderCredential = await prisma.aIProviderCredential.delete({
+     *   where: {
+     *     // ... filter to delete one AIProviderCredential
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AIProviderCredentialDeleteArgs>(args: SelectSubset<T, AIProviderCredentialDeleteArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AIProviderCredential.
+     * @param {AIProviderCredentialUpdateArgs} args - Arguments to update one AIProviderCredential.
+     * @example
+     * // Update one AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AIProviderCredentialUpdateArgs>(args: SelectSubset<T, AIProviderCredentialUpdateArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AIProviderCredentials.
+     * @param {AIProviderCredentialDeleteManyArgs} args - Arguments to filter AIProviderCredentials to delete.
+     * @example
+     * // Delete a few AIProviderCredentials
+     * const { count } = await prisma.aIProviderCredential.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AIProviderCredentialDeleteManyArgs>(args?: SelectSubset<T, AIProviderCredentialDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AIProviderCredentials.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AIProviderCredentials
+     * const aIProviderCredential = await prisma.aIProviderCredential.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AIProviderCredentialUpdateManyArgs>(args: SelectSubset<T, AIProviderCredentialUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AIProviderCredentials and returns the data updated in the database.
+     * @param {AIProviderCredentialUpdateManyAndReturnArgs} args - Arguments to update many AIProviderCredentials.
+     * @example
+     * // Update many AIProviderCredentials
+     * const aIProviderCredential = await prisma.aIProviderCredential.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AIProviderCredentials and only return the `id`
+     * const aIProviderCredentialWithIdOnly = await prisma.aIProviderCredential.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AIProviderCredentialUpdateManyAndReturnArgs>(args: SelectSubset<T, AIProviderCredentialUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AIProviderCredential.
+     * @param {AIProviderCredentialUpsertArgs} args - Arguments to update or create a AIProviderCredential.
+     * @example
+     * // Update or create a AIProviderCredential
+     * const aIProviderCredential = await prisma.aIProviderCredential.upsert({
+     *   create: {
+     *     // ... data to create a AIProviderCredential
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AIProviderCredential we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AIProviderCredentialUpsertArgs>(args: SelectSubset<T, AIProviderCredentialUpsertArgs<ExtArgs>>): Prisma__AIProviderCredentialClient<$Result.GetResult<Prisma.$AIProviderCredentialPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AIProviderCredentials.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialCountArgs} args - Arguments to filter AIProviderCredentials to count.
+     * @example
+     * // Count the number of AIProviderCredentials
+     * const count = await prisma.aIProviderCredential.count({
+     *   where: {
+     *     // ... the filter for the AIProviderCredentials we want to count
+     *   }
+     * })
+    **/
+    count<T extends AIProviderCredentialCountArgs>(
+      args?: Subset<T, AIProviderCredentialCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AIProviderCredentialCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AIProviderCredential.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AIProviderCredentialAggregateArgs>(args: Subset<T, AIProviderCredentialAggregateArgs>): Prisma.PrismaPromise<GetAIProviderCredentialAggregateType<T>>
+
+    /**
+     * Group by AIProviderCredential.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AIProviderCredentialGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AIProviderCredentialGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AIProviderCredentialGroupByArgs['orderBy'] }
+        : { orderBy?: AIProviderCredentialGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AIProviderCredentialGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAIProviderCredentialGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AIProviderCredential model
+   */
+  readonly fields: AIProviderCredentialFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AIProviderCredential.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AIProviderCredentialClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AIProviderCredential model
+   */
+  interface AIProviderCredentialFieldRefs {
+    readonly id: FieldRef<"AIProviderCredential", 'String'>
+    readonly userId: FieldRef<"AIProviderCredential", 'String'>
+    readonly provider: FieldRef<"AIProviderCredential", 'String'>
+    readonly encryptedKey: FieldRef<"AIProviderCredential", 'Bytes'>
+    readonly iv: FieldRef<"AIProviderCredential", 'Bytes'>
+    readonly authTag: FieldRef<"AIProviderCredential", 'Bytes'>
+    readonly keyHint: FieldRef<"AIProviderCredential", 'String'>
+    readonly model: FieldRef<"AIProviderCredential", 'String'>
+    readonly createdAt: FieldRef<"AIProviderCredential", 'DateTime'>
+    readonly updatedAt: FieldRef<"AIProviderCredential", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AIProviderCredential findUnique
+   */
+  export type AIProviderCredentialFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter, which AIProviderCredential to fetch.
+     */
+    where: AIProviderCredentialWhereUniqueInput
+  }
+
+  /**
+   * AIProviderCredential findUniqueOrThrow
+   */
+  export type AIProviderCredentialFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter, which AIProviderCredential to fetch.
+     */
+    where: AIProviderCredentialWhereUniqueInput
+  }
+
+  /**
+   * AIProviderCredential findFirst
+   */
+  export type AIProviderCredentialFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter, which AIProviderCredential to fetch.
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AIProviderCredentials to fetch.
+     */
+    orderBy?: AIProviderCredentialOrderByWithRelationInput | AIProviderCredentialOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AIProviderCredentials.
+     */
+    cursor?: AIProviderCredentialWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AIProviderCredentials from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AIProviderCredentials.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AIProviderCredentials.
+     */
+    distinct?: AIProviderCredentialScalarFieldEnum | AIProviderCredentialScalarFieldEnum[]
+  }
+
+  /**
+   * AIProviderCredential findFirstOrThrow
+   */
+  export type AIProviderCredentialFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter, which AIProviderCredential to fetch.
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AIProviderCredentials to fetch.
+     */
+    orderBy?: AIProviderCredentialOrderByWithRelationInput | AIProviderCredentialOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AIProviderCredentials.
+     */
+    cursor?: AIProviderCredentialWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AIProviderCredentials from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AIProviderCredentials.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AIProviderCredentials.
+     */
+    distinct?: AIProviderCredentialScalarFieldEnum | AIProviderCredentialScalarFieldEnum[]
+  }
+
+  /**
+   * AIProviderCredential findMany
+   */
+  export type AIProviderCredentialFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter, which AIProviderCredentials to fetch.
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AIProviderCredentials to fetch.
+     */
+    orderBy?: AIProviderCredentialOrderByWithRelationInput | AIProviderCredentialOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AIProviderCredentials.
+     */
+    cursor?: AIProviderCredentialWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AIProviderCredentials from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AIProviderCredentials.
+     */
+    skip?: number
+    distinct?: AIProviderCredentialScalarFieldEnum | AIProviderCredentialScalarFieldEnum[]
+  }
+
+  /**
+   * AIProviderCredential create
+   */
+  export type AIProviderCredentialCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AIProviderCredential.
+     */
+    data: XOR<AIProviderCredentialCreateInput, AIProviderCredentialUncheckedCreateInput>
+  }
+
+  /**
+   * AIProviderCredential createMany
+   */
+  export type AIProviderCredentialCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AIProviderCredentials.
+     */
+    data: AIProviderCredentialCreateManyInput | AIProviderCredentialCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AIProviderCredential createManyAndReturn
+   */
+  export type AIProviderCredentialCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * The data used to create many AIProviderCredentials.
+     */
+    data: AIProviderCredentialCreateManyInput | AIProviderCredentialCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AIProviderCredential update
+   */
+  export type AIProviderCredentialUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AIProviderCredential.
+     */
+    data: XOR<AIProviderCredentialUpdateInput, AIProviderCredentialUncheckedUpdateInput>
+    /**
+     * Choose, which AIProviderCredential to update.
+     */
+    where: AIProviderCredentialWhereUniqueInput
+  }
+
+  /**
+   * AIProviderCredential updateMany
+   */
+  export type AIProviderCredentialUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AIProviderCredentials.
+     */
+    data: XOR<AIProviderCredentialUpdateManyMutationInput, AIProviderCredentialUncheckedUpdateManyInput>
+    /**
+     * Filter which AIProviderCredentials to update
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * Limit how many AIProviderCredentials to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AIProviderCredential updateManyAndReturn
+   */
+  export type AIProviderCredentialUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * The data used to update AIProviderCredentials.
+     */
+    data: XOR<AIProviderCredentialUpdateManyMutationInput, AIProviderCredentialUncheckedUpdateManyInput>
+    /**
+     * Filter which AIProviderCredentials to update
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * Limit how many AIProviderCredentials to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AIProviderCredential upsert
+   */
+  export type AIProviderCredentialUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AIProviderCredential to update in case it exists.
+     */
+    where: AIProviderCredentialWhereUniqueInput
+    /**
+     * In case the AIProviderCredential found by the `where` argument doesn't exist, create a new AIProviderCredential with this data.
+     */
+    create: XOR<AIProviderCredentialCreateInput, AIProviderCredentialUncheckedCreateInput>
+    /**
+     * In case the AIProviderCredential was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AIProviderCredentialUpdateInput, AIProviderCredentialUncheckedUpdateInput>
+  }
+
+  /**
+   * AIProviderCredential delete
+   */
+  export type AIProviderCredentialDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
+    /**
+     * Filter which AIProviderCredential to delete.
+     */
+    where: AIProviderCredentialWhereUniqueInput
+  }
+
+  /**
+   * AIProviderCredential deleteMany
+   */
+  export type AIProviderCredentialDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AIProviderCredentials to delete
+     */
+    where?: AIProviderCredentialWhereInput
+    /**
+     * Limit how many AIProviderCredentials to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AIProviderCredential without action
+   */
+  export type AIProviderCredentialDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AIProviderCredential
+     */
+    select?: AIProviderCredentialSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AIProviderCredential
+     */
+    omit?: AIProviderCredentialOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AIProviderCredentialInclude<ExtArgs> | null
   }
 
 
@@ -15888,6 +17178,7 @@ export namespace Prisma {
     id: 'id',
     title: 'title',
     content: 'content',
+    yjsState: 'yjsState',
     userId: 'userId',
     isPublic: 'isPublic',
     tags: 'tags',
@@ -15966,7 +17257,8 @@ export namespace Prisma {
     maxUses: 'maxUses',
     useCount: 'useCount',
     createdAt: 'createdAt',
-    createdBy: 'createdBy'
+    createdBy: 'createdBy',
+    isActive: 'isActive'
   };
 
   export type DocumentShareScalarFieldEnum = (typeof DocumentShareScalarFieldEnum)[keyof typeof DocumentShareScalarFieldEnum]
@@ -15996,11 +17288,28 @@ export namespace Prisma {
     autoSaveInterval: 'autoSaveInterval',
     showLineNumbers: 'showLineNumbers',
     wordWrap: 'wordWrap',
+    activeAiProvider: 'activeAiProvider',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type UserSettingsScalarFieldEnum = (typeof UserSettingsScalarFieldEnum)[keyof typeof UserSettingsScalarFieldEnum]
+
+
+  export const AIProviderCredentialScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    provider: 'provider',
+    encryptedKey: 'encryptedKey',
+    iv: 'iv',
+    authTag: 'authTag',
+    keyHint: 'keyHint',
+    model: 'model',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AIProviderCredentialScalarFieldEnum = (typeof AIProviderCredentialScalarFieldEnum)[keyof typeof AIProviderCredentialScalarFieldEnum]
 
 
   export const DocumentActivityScalarFieldEnum: {
@@ -16098,6 +17407,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Bytes'
+   */
+  export type BytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes'>
+    
+
+
+  /**
+   * Reference to a field of type 'Bytes[]'
+   */
+  export type ListBytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -16150,13 +17473,14 @@ export namespace Prisma {
     avatar?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
-    password?: StringFilter<"User"> | string
+    password?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     documents?: DocumentListRelationFilter
     collaborations?: DocumentCollaboratorsListRelationFilter
     comments?: DocumentCommentListRelationFilter
     settings?: XOR<UserSettingsNullableScalarRelationFilter, UserSettingsWhereInput> | null
+    aiCredentials?: AIProviderCredentialListRelationFilter
     rooms?: RoomUserListRelationFilter
     createdRooms?: RoomListRelationFilter
   }
@@ -16166,13 +17490,14 @@ export namespace Prisma {
     avatar?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    password?: SortOrder
+    password?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     documents?: DocumentOrderByRelationAggregateInput
     collaborations?: DocumentCollaboratorsOrderByRelationAggregateInput
     comments?: DocumentCommentOrderByRelationAggregateInput
     settings?: UserSettingsOrderByWithRelationInput
+    aiCredentials?: AIProviderCredentialOrderByRelationAggregateInput
     rooms?: RoomUserOrderByRelationAggregateInput
     createdRooms?: RoomOrderByRelationAggregateInput
   }
@@ -16185,13 +17510,14 @@ export namespace Prisma {
     NOT?: UserWhereInput | UserWhereInput[]
     avatar?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
-    password?: StringFilter<"User"> | string
+    password?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     documents?: DocumentListRelationFilter
     collaborations?: DocumentCollaboratorsListRelationFilter
     comments?: DocumentCommentListRelationFilter
     settings?: XOR<UserSettingsNullableScalarRelationFilter, UserSettingsWhereInput> | null
+    aiCredentials?: AIProviderCredentialListRelationFilter
     rooms?: RoomUserListRelationFilter
     createdRooms?: RoomListRelationFilter
   }, "id" | "email">
@@ -16201,7 +17527,7 @@ export namespace Prisma {
     avatar?: SortOrder
     name?: SortOrder
     email?: SortOrder
-    password?: SortOrder
+    password?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -16217,7 +17543,7 @@ export namespace Prisma {
     avatar?: StringWithAggregatesFilter<"User"> | string
     name?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
-    password?: StringWithAggregatesFilter<"User"> | string
+    password?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -16389,6 +17715,7 @@ export namespace Prisma {
     id?: StringFilter<"Document"> | string
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16411,6 +17738,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrderInput | SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -16436,6 +17764,7 @@ export namespace Prisma {
     NOT?: DocumentWhereInput | DocumentWhereInput[]
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16458,6 +17787,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrderInput | SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -16478,6 +17808,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Document"> | string
     title?: StringWithAggregatesFilter<"Document"> | string
     content?: StringWithAggregatesFilter<"Document"> | string
+    yjsState?: BytesNullableWithAggregatesFilter<"Document"> | Uint8Array | null
     userId?: StringWithAggregatesFilter<"Document"> | string
     isPublic?: BoolWithAggregatesFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -16794,6 +18125,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
   }
 
@@ -16807,6 +18139,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
     document?: DocumentOrderByWithRelationInput
   }
 
@@ -16823,6 +18156,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
   }, "id" | "shareToken">
 
@@ -16836,6 +18170,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
     _count?: DocumentShareCountOrderByAggregateInput
     _avg?: DocumentShareAvgOrderByAggregateInput
     _max?: DocumentShareMaxOrderByAggregateInput
@@ -16856,6 +18191,7 @@ export namespace Prisma {
     useCount?: IntWithAggregatesFilter<"DocumentShare"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DocumentShare"> | Date | string
     createdBy?: StringWithAggregatesFilter<"DocumentShare"> | string
+    isActive?: BoolWithAggregatesFilter<"DocumentShare"> | boolean
   }
 
   export type DocumentTemplateWhereInput = {
@@ -16942,6 +18278,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFilter<"UserSettings"> | number
     showLineNumbers?: BoolFilter<"UserSettings"> | boolean
     wordWrap?: BoolFilter<"UserSettings"> | boolean
+    activeAiProvider?: StringNullableFilter<"UserSettings"> | string | null
     createdAt?: DateTimeFilter<"UserSettings"> | Date | string
     updatedAt?: DateTimeFilter<"UserSettings"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -16956,6 +18293,7 @@ export namespace Prisma {
     autoSaveInterval?: SortOrder
     showLineNumbers?: SortOrder
     wordWrap?: SortOrder
+    activeAiProvider?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
@@ -16973,6 +18311,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFilter<"UserSettings"> | number
     showLineNumbers?: BoolFilter<"UserSettings"> | boolean
     wordWrap?: BoolFilter<"UserSettings"> | boolean
+    activeAiProvider?: StringNullableFilter<"UserSettings"> | string | null
     createdAt?: DateTimeFilter<"UserSettings"> | Date | string
     updatedAt?: DateTimeFilter<"UserSettings"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -16987,6 +18326,7 @@ export namespace Prisma {
     autoSaveInterval?: SortOrder
     showLineNumbers?: SortOrder
     wordWrap?: SortOrder
+    activeAiProvider?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserSettingsCountOrderByAggregateInput
@@ -17008,8 +18348,90 @@ export namespace Prisma {
     autoSaveInterval?: IntWithAggregatesFilter<"UserSettings"> | number
     showLineNumbers?: BoolWithAggregatesFilter<"UserSettings"> | boolean
     wordWrap?: BoolWithAggregatesFilter<"UserSettings"> | boolean
+    activeAiProvider?: StringNullableWithAggregatesFilter<"UserSettings"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"UserSettings"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserSettings"> | Date | string
+  }
+
+  export type AIProviderCredentialWhereInput = {
+    AND?: AIProviderCredentialWhereInput | AIProviderCredentialWhereInput[]
+    OR?: AIProviderCredentialWhereInput[]
+    NOT?: AIProviderCredentialWhereInput | AIProviderCredentialWhereInput[]
+    id?: StringFilter<"AIProviderCredential"> | string
+    userId?: StringFilter<"AIProviderCredential"> | string
+    provider?: StringFilter<"AIProviderCredential"> | string
+    encryptedKey?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    iv?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    authTag?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    keyHint?: StringFilter<"AIProviderCredential"> | string
+    model?: StringFilter<"AIProviderCredential"> | string
+    createdAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
+    updatedAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type AIProviderCredentialOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    encryptedKey?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    keyHint?: SortOrder
+    model?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type AIProviderCredentialWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_provider?: AIProviderCredentialUserIdProviderCompoundUniqueInput
+    AND?: AIProviderCredentialWhereInput | AIProviderCredentialWhereInput[]
+    OR?: AIProviderCredentialWhereInput[]
+    NOT?: AIProviderCredentialWhereInput | AIProviderCredentialWhereInput[]
+    userId?: StringFilter<"AIProviderCredential"> | string
+    provider?: StringFilter<"AIProviderCredential"> | string
+    encryptedKey?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    iv?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    authTag?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    keyHint?: StringFilter<"AIProviderCredential"> | string
+    model?: StringFilter<"AIProviderCredential"> | string
+    createdAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
+    updatedAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "userId_provider">
+
+  export type AIProviderCredentialOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    encryptedKey?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    keyHint?: SortOrder
+    model?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AIProviderCredentialCountOrderByAggregateInput
+    _max?: AIProviderCredentialMaxOrderByAggregateInput
+    _min?: AIProviderCredentialMinOrderByAggregateInput
+  }
+
+  export type AIProviderCredentialScalarWhereWithAggregatesInput = {
+    AND?: AIProviderCredentialScalarWhereWithAggregatesInput | AIProviderCredentialScalarWhereWithAggregatesInput[]
+    OR?: AIProviderCredentialScalarWhereWithAggregatesInput[]
+    NOT?: AIProviderCredentialScalarWhereWithAggregatesInput | AIProviderCredentialScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AIProviderCredential"> | string
+    userId?: StringWithAggregatesFilter<"AIProviderCredential"> | string
+    provider?: StringWithAggregatesFilter<"AIProviderCredential"> | string
+    encryptedKey?: BytesWithAggregatesFilter<"AIProviderCredential"> | Uint8Array
+    iv?: BytesWithAggregatesFilter<"AIProviderCredential"> | Uint8Array
+    authTag?: BytesWithAggregatesFilter<"AIProviderCredential"> | Uint8Array
+    keyHint?: StringWithAggregatesFilter<"AIProviderCredential"> | string
+    model?: StringWithAggregatesFilter<"AIProviderCredential"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AIProviderCredential"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AIProviderCredential"> | Date | string
   }
 
   export type DocumentActivityWhereInput = {
@@ -17082,13 +18504,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
@@ -17098,13 +18521,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
@@ -17114,13 +18538,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
@@ -17130,13 +18555,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
@@ -17146,7 +18572,7 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17156,7 +18582,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17166,7 +18592,7 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17343,6 +18769,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -17364,6 +18791,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -17385,6 +18813,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -17406,6 +18835,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -17427,6 +18857,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -17441,6 +18872,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -17454,6 +18886,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -17775,6 +19208,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
     document: DocumentCreateNestedOneWithoutSharesInput
   }
 
@@ -17788,6 +19222,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUpdateInput = {
@@ -17799,6 +19234,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
     document?: DocumentUpdateOneRequiredWithoutSharesNestedInput
   }
 
@@ -17812,6 +19248,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareCreateManyInput = {
@@ -17824,6 +19261,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUpdateManyMutationInput = {
@@ -17835,6 +19273,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateManyInput = {
@@ -17847,6 +19286,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentTemplateCreateInput = {
@@ -17941,6 +19381,7 @@ export namespace Prisma {
     autoSaveInterval?: number
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutSettingsInput
@@ -17955,6 +19396,7 @@ export namespace Prisma {
     autoSaveInterval?: number
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17967,6 +19409,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutSettingsNestedInput
@@ -17981,6 +19424,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17994,6 +19438,7 @@ export namespace Prisma {
     autoSaveInterval?: number
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -18006,6 +19451,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18019,6 +19465,97 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialCreateInput = {
+    id?: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutAiCredentialsInput
+  }
+
+  export type AIProviderCredentialUncheckedCreateInput = {
+    id?: string
+    userId: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AIProviderCredentialUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutAiCredentialsNestedInput
+  }
+
+  export type AIProviderCredentialUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialCreateManyInput = {
+    id?: string
+    userId: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AIProviderCredentialUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18107,6 +19644,21 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18141,6 +19693,12 @@ export namespace Prisma {
     isNot?: UserSettingsWhereInput | null
   }
 
+  export type AIProviderCredentialListRelationFilter = {
+    every?: AIProviderCredentialWhereInput
+    some?: AIProviderCredentialWhereInput
+    none?: AIProviderCredentialWhereInput
+  }
+
   export type RoomUserListRelationFilter = {
     every?: RoomUserWhereInput
     some?: RoomUserWhereInput
@@ -18153,6 +19711,11 @@ export namespace Prisma {
     none?: RoomWhereInput
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type DocumentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -18162,6 +19725,10 @@ export namespace Prisma {
   }
 
   export type DocumentCommentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AIProviderCredentialOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -18221,6 +19788,24 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18238,21 +19823,6 @@ export namespace Prisma {
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -18282,11 +19852,6 @@ export namespace Prisma {
   export type DocumentNullableScalarRelationFilter = {
     is?: DocumentWhereInput | null
     isNot?: DocumentWhereInput | null
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type RoomCountOrderByAggregateInput = {
@@ -18340,24 +19905,6 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -18409,6 +19956,13 @@ export namespace Prisma {
     lastActive?: SortOrder
   }
 
+  export type BytesNullableFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableFilter<$PrismaModel> | Uint8Array | null
+  }
+
   export type DocumentImageListRelationFilter = {
     every?: DocumentImageWhereInput
     some?: DocumentImageWhereInput
@@ -18453,6 +20007,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     tags?: SortOrder
@@ -18467,6 +20022,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     allowComments?: SortOrder
@@ -18480,6 +20036,7 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    yjsState?: SortOrder
     userId?: SortOrder
     isPublic?: SortOrder
     allowComments?: SortOrder
@@ -18487,6 +20044,16 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     lastEditedAt?: SortOrder
+  }
+
+  export type BytesNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableWithAggregatesFilter<$PrismaModel> | Uint8Array | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBytesNullableFilter<$PrismaModel>
+    _max?: NestedBytesNullableFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -18721,6 +20288,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareAvgOrderByAggregateInput = {
@@ -18737,6 +20305,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareMinOrderByAggregateInput = {
@@ -18748,6 +20317,7 @@ export namespace Prisma {
     useCount?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
+    isActive?: SortOrder
   }
 
   export type DocumentShareSumOrderByAggregateInput = {
@@ -18800,6 +20370,7 @@ export namespace Prisma {
     autoSaveInterval?: SortOrder
     showLineNumbers?: SortOrder
     wordWrap?: SortOrder
+    activeAiProvider?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -18818,6 +20389,7 @@ export namespace Prisma {
     autoSaveInterval?: SortOrder
     showLineNumbers?: SortOrder
     wordWrap?: SortOrder
+    activeAiProvider?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -18831,6 +20403,7 @@ export namespace Prisma {
     autoSaveInterval?: SortOrder
     showLineNumbers?: SortOrder
     wordWrap?: SortOrder
+    activeAiProvider?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -18838,6 +20411,67 @@ export namespace Prisma {
   export type UserSettingsSumOrderByAggregateInput = {
     fontSize?: SortOrder
     autoSaveInterval?: SortOrder
+  }
+
+  export type BytesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel>
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesFilter<$PrismaModel> | Uint8Array
+  }
+
+  export type AIProviderCredentialUserIdProviderCompoundUniqueInput = {
+    userId: string
+    provider: string
+  }
+
+  export type AIProviderCredentialCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    encryptedKey?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    keyHint?: SortOrder
+    model?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AIProviderCredentialMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    encryptedKey?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    keyHint?: SortOrder
+    model?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AIProviderCredentialMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    encryptedKey?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    keyHint?: SortOrder
+    model?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type BytesWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel>
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesWithAggregatesFilter<$PrismaModel> | Uint8Array
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBytesFilter<$PrismaModel>
+    _max?: NestedBytesFilter<$PrismaModel>
   }
   export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -18944,6 +20578,13 @@ export namespace Prisma {
     connect?: UserSettingsWhereUniqueInput
   }
 
+  export type AIProviderCredentialCreateNestedManyWithoutUserInput = {
+    create?: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput> | AIProviderCredentialCreateWithoutUserInput[] | AIProviderCredentialUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AIProviderCredentialCreateOrConnectWithoutUserInput | AIProviderCredentialCreateOrConnectWithoutUserInput[]
+    createMany?: AIProviderCredentialCreateManyUserInputEnvelope
+    connect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+  }
+
   export type RoomUserCreateNestedManyWithoutUserInput = {
     create?: XOR<RoomUserCreateWithoutUserInput, RoomUserUncheckedCreateWithoutUserInput> | RoomUserCreateWithoutUserInput[] | RoomUserUncheckedCreateWithoutUserInput[]
     connectOrCreate?: RoomUserCreateOrConnectWithoutUserInput | RoomUserCreateOrConnectWithoutUserInput[]
@@ -18985,6 +20626,13 @@ export namespace Prisma {
     connect?: UserSettingsWhereUniqueInput
   }
 
+  export type AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput> | AIProviderCredentialCreateWithoutUserInput[] | AIProviderCredentialUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AIProviderCredentialCreateOrConnectWithoutUserInput | AIProviderCredentialCreateOrConnectWithoutUserInput[]
+    createMany?: AIProviderCredentialCreateManyUserInputEnvelope
+    connect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+  }
+
   export type RoomUserUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<RoomUserCreateWithoutUserInput, RoomUserUncheckedCreateWithoutUserInput> | RoomUserCreateWithoutUserInput[] | RoomUserUncheckedCreateWithoutUserInput[]
     connectOrCreate?: RoomUserCreateOrConnectWithoutUserInput | RoomUserCreateOrConnectWithoutUserInput[]
@@ -19001,6 +20649,10 @@ export namespace Prisma {
 
   export type StringFieldUpdateOperationsInput = {
     set?: string
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -19057,6 +20709,20 @@ export namespace Prisma {
     delete?: UserSettingsWhereInput | boolean
     connect?: UserSettingsWhereUniqueInput
     update?: XOR<XOR<UserSettingsUpdateToOneWithWhereWithoutUserInput, UserSettingsUpdateWithoutUserInput>, UserSettingsUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AIProviderCredentialUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput> | AIProviderCredentialCreateWithoutUserInput[] | AIProviderCredentialUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AIProviderCredentialCreateOrConnectWithoutUserInput | AIProviderCredentialCreateOrConnectWithoutUserInput[]
+    upsert?: AIProviderCredentialUpsertWithWhereUniqueWithoutUserInput | AIProviderCredentialUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AIProviderCredentialCreateManyUserInputEnvelope
+    set?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    disconnect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    delete?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    connect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    update?: AIProviderCredentialUpdateWithWhereUniqueWithoutUserInput | AIProviderCredentialUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AIProviderCredentialUpdateManyWithWhereWithoutUserInput | AIProviderCredentialUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AIProviderCredentialScalarWhereInput | AIProviderCredentialScalarWhereInput[]
   }
 
   export type RoomUserUpdateManyWithoutUserNestedInput = {
@@ -19139,6 +20805,20 @@ export namespace Prisma {
     update?: XOR<XOR<UserSettingsUpdateToOneWithWhereWithoutUserInput, UserSettingsUpdateWithoutUserInput>, UserSettingsUncheckedUpdateWithoutUserInput>
   }
 
+  export type AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput> | AIProviderCredentialCreateWithoutUserInput[] | AIProviderCredentialUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AIProviderCredentialCreateOrConnectWithoutUserInput | AIProviderCredentialCreateOrConnectWithoutUserInput[]
+    upsert?: AIProviderCredentialUpsertWithWhereUniqueWithoutUserInput | AIProviderCredentialUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AIProviderCredentialCreateManyUserInputEnvelope
+    set?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    disconnect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    delete?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    connect?: AIProviderCredentialWhereUniqueInput | AIProviderCredentialWhereUniqueInput[]
+    update?: AIProviderCredentialUpdateWithWhereUniqueWithoutUserInput | AIProviderCredentialUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AIProviderCredentialUpdateManyWithWhereWithoutUserInput | AIProviderCredentialUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AIProviderCredentialScalarWhereInput | AIProviderCredentialScalarWhereInput[]
+  }
+
   export type RoomUserUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<RoomUserCreateWithoutUserInput, RoomUserUncheckedCreateWithoutUserInput> | RoomUserCreateWithoutUserInput[] | RoomUserUncheckedCreateWithoutUserInput[]
     connectOrCreate?: RoomUserCreateOrConnectWithoutUserInput | RoomUserCreateOrConnectWithoutUserInput[]
@@ -19199,10 +20879,6 @@ export namespace Prisma {
 
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -19394,6 +21070,10 @@ export namespace Prisma {
     connectOrCreate?: RoomCreateOrConnectWithoutDocumentInput | RoomCreateOrConnectWithoutDocumentInput[]
     createMany?: RoomCreateManyDocumentInputEnvelope
     connect?: RoomWhereUniqueInput | RoomWhereUniqueInput[]
+  }
+
+  export type NullableBytesFieldUpdateOperationsInput = {
+    set?: Uint8Array | null
   }
 
   export type DocumentUpdatetagsInput = {
@@ -19751,6 +21431,24 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSettingsInput, UserUpdateWithoutSettingsInput>, UserUncheckedUpdateWithoutSettingsInput>
   }
 
+  export type UserCreateNestedOneWithoutAiCredentialsInput = {
+    create?: XOR<UserCreateWithoutAiCredentialsInput, UserUncheckedCreateWithoutAiCredentialsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAiCredentialsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type BytesFieldUpdateOperationsInput = {
+    set?: Uint8Array
+  }
+
+  export type UserUpdateOneRequiredWithoutAiCredentialsNestedInput = {
+    create?: XOR<UserCreateWithoutAiCredentialsInput, UserUncheckedCreateWithoutAiCredentialsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAiCredentialsInput
+    upsert?: UserUpsertWithoutAiCredentialsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAiCredentialsInput, UserUpdateWithoutAiCredentialsInput>, UserUncheckedUpdateWithoutAiCredentialsInput>
+  }
+
   export type DocumentCreateNestedOneWithoutActivitiesInput = {
     create?: XOR<DocumentCreateWithoutActivitiesInput, DocumentUncheckedCreateWithoutActivitiesInput>
     connectOrCreate?: DocumentCreateOrConnectWithoutActivitiesInput
@@ -19777,6 +21475,20 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -19818,58 +21530,6 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
-  }
-
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -19898,6 +21558,44 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -19910,6 +21608,23 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBytesNullableFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableFilter<$PrismaModel> | Uint8Array | null
+  }
+
+  export type NestedBytesNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel> | null
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel> | null
+    not?: NestedBytesNullableWithAggregatesFilter<$PrismaModel> | Uint8Array | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedBytesNullableFilter<$PrismaModel>
+    _max?: NestedBytesNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -19965,6 +21680,23 @@ export namespace Prisma {
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
+
+  export type NestedBytesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel>
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesFilter<$PrismaModel> | Uint8Array
+  }
+
+  export type NestedBytesWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Uint8Array | BytesFieldRefInput<$PrismaModel>
+    in?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Uint8Array[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesWithAggregatesFilter<$PrismaModel> | Uint8Array
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBytesFilter<$PrismaModel>
+    _max?: NestedBytesFilter<$PrismaModel>
+  }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -19993,6 +21725,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20013,6 +21746,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20105,6 +21839,7 @@ export namespace Prisma {
     autoSaveInterval?: number
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20117,6 +21852,7 @@ export namespace Prisma {
     autoSaveInterval?: number
     showLineNumbers?: boolean
     wordWrap?: boolean
+    activeAiProvider?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20124,6 +21860,40 @@ export namespace Prisma {
   export type UserSettingsCreateOrConnectWithoutUserInput = {
     where: UserSettingsWhereUniqueInput
     create: XOR<UserSettingsCreateWithoutUserInput, UserSettingsUncheckedCreateWithoutUserInput>
+  }
+
+  export type AIProviderCredentialCreateWithoutUserInput = {
+    id?: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AIProviderCredentialUncheckedCreateWithoutUserInput = {
+    id?: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AIProviderCredentialCreateOrConnectWithoutUserInput = {
+    where: AIProviderCredentialWhereUniqueInput
+    create: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput>
+  }
+
+  export type AIProviderCredentialCreateManyUserInputEnvelope = {
+    data: AIProviderCredentialCreateManyUserInput | AIProviderCredentialCreateManyUserInput[]
+    skipDuplicates?: boolean
   }
 
   export type RoomUserCreateWithoutUserInput = {
@@ -20215,6 +21985,7 @@ export namespace Prisma {
     id?: StringFilter<"Document"> | string
     title?: StringFilter<"Document"> | string
     content?: StringFilter<"Document"> | string
+    yjsState?: BytesNullableFilter<"Document"> | Uint8Array | null
     userId?: StringFilter<"Document"> | string
     isPublic?: BoolFilter<"Document"> | boolean
     tags?: StringNullableListFilter<"Document">
@@ -20303,6 +22074,7 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20315,8 +22087,41 @@ export namespace Prisma {
     autoSaveInterval?: IntFieldUpdateOperationsInput | number
     showLineNumbers?: BoolFieldUpdateOperationsInput | boolean
     wordWrap?: BoolFieldUpdateOperationsInput | boolean
+    activeAiProvider?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialUpsertWithWhereUniqueWithoutUserInput = {
+    where: AIProviderCredentialWhereUniqueInput
+    update: XOR<AIProviderCredentialUpdateWithoutUserInput, AIProviderCredentialUncheckedUpdateWithoutUserInput>
+    create: XOR<AIProviderCredentialCreateWithoutUserInput, AIProviderCredentialUncheckedCreateWithoutUserInput>
+  }
+
+  export type AIProviderCredentialUpdateWithWhereUniqueWithoutUserInput = {
+    where: AIProviderCredentialWhereUniqueInput
+    data: XOR<AIProviderCredentialUpdateWithoutUserInput, AIProviderCredentialUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AIProviderCredentialUpdateManyWithWhereWithoutUserInput = {
+    where: AIProviderCredentialScalarWhereInput
+    data: XOR<AIProviderCredentialUpdateManyMutationInput, AIProviderCredentialUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type AIProviderCredentialScalarWhereInput = {
+    AND?: AIProviderCredentialScalarWhereInput | AIProviderCredentialScalarWhereInput[]
+    OR?: AIProviderCredentialScalarWhereInput[]
+    NOT?: AIProviderCredentialScalarWhereInput | AIProviderCredentialScalarWhereInput[]
+    id?: StringFilter<"AIProviderCredential"> | string
+    userId?: StringFilter<"AIProviderCredential"> | string
+    provider?: StringFilter<"AIProviderCredential"> | string
+    encryptedKey?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    iv?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    authTag?: BytesFilter<"AIProviderCredential"> | Uint8Array
+    keyHint?: StringFilter<"AIProviderCredential"> | string
+    model?: StringFilter<"AIProviderCredential"> | string
+    createdAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
+    updatedAt?: DateTimeFilter<"AIProviderCredential"> | Date | string
   }
 
   export type RoomUserUpsertWithWhereUniqueWithoutUserInput = {
@@ -20386,13 +22191,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
   }
 
@@ -20401,13 +22207,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -20420,6 +22227,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -20440,6 +22248,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -20503,13 +22312,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
   }
 
@@ -20518,13 +22328,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
   }
 
@@ -20543,6 +22354,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -20563,6 +22375,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -20635,13 +22448,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
 
@@ -20650,13 +22464,14 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
@@ -20722,13 +22537,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
 
@@ -20737,13 +22553,14 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
@@ -20752,12 +22569,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
@@ -20767,12 +22585,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
@@ -20911,6 +22730,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareUncheckedCreateWithoutDocumentInput = {
@@ -20922,6 +22742,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentShareCreateOrConnectWithoutDocumentInput = {
@@ -21018,12 +22839,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
@@ -21033,12 +22855,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
@@ -21165,6 +22988,7 @@ export namespace Prisma {
     useCount?: IntFilter<"DocumentShare"> | number
     createdAt?: DateTimeFilter<"DocumentShare"> | Date | string
     createdBy?: StringFilter<"DocumentShare"> | string
+    isActive?: BoolFilter<"DocumentShare"> | boolean
   }
 
   export type DocumentActivityUpsertWithWhereUniqueWithoutDocumentInput = {
@@ -21216,6 +23040,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21236,6 +23061,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21272,6 +23098,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21292,6 +23119,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21312,6 +23140,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21332,6 +23161,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21368,6 +23198,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21388,6 +23219,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21408,6 +23240,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21428,6 +23261,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21454,12 +23288,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
@@ -21469,12 +23304,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
@@ -21499,6 +23335,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21519,6 +23356,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21551,12 +23389,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
@@ -21566,12 +23405,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
@@ -21580,6 +23420,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21600,6 +23441,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21626,12 +23468,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     settings?: UserSettingsCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
@@ -21641,12 +23484,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
@@ -21671,6 +23515,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21691,6 +23536,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21723,12 +23569,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
@@ -21738,12 +23585,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
@@ -21752,6 +23600,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21772,6 +23621,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21808,6 +23658,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -21828,6 +23679,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -21849,12 +23701,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
     comments?: DocumentCommentCreateNestedManyWithoutUserInput
+    aiCredentials?: AIProviderCredentialCreateNestedManyWithoutUserInput
     rooms?: RoomUserCreateNestedManyWithoutUserInput
     createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
   }
@@ -21864,12 +23717,13 @@ export namespace Prisma {
     avatar?: string
     name: string
     email: string
-    password: string
+    password?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
     collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
     comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
+    aiCredentials?: AIProviderCredentialUncheckedCreateNestedManyWithoutUserInput
     rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
     createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
   }
@@ -21895,12 +23749,13 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUpdateManyWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
   }
@@ -21910,12 +23765,93 @@ export namespace Prisma {
     avatar?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    password?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
     collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
     comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
+    aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
+    rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
+    createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserCreateWithoutAiCredentialsInput = {
+    id?: string
+    avatar?: string
+    name: string
+    email: string
+    password?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    documents?: DocumentCreateNestedManyWithoutUserInput
+    collaborations?: DocumentCollaboratorsCreateNestedManyWithoutUserInput
+    comments?: DocumentCommentCreateNestedManyWithoutUserInput
+    settings?: UserSettingsCreateNestedOneWithoutUserInput
+    rooms?: RoomUserCreateNestedManyWithoutUserInput
+    createdRooms?: RoomCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutAiCredentialsInput = {
+    id?: string
+    avatar?: string
+    name: string
+    email: string
+    password?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    documents?: DocumentUncheckedCreateNestedManyWithoutUserInput
+    collaborations?: DocumentCollaboratorsUncheckedCreateNestedManyWithoutUserInput
+    comments?: DocumentCommentUncheckedCreateNestedManyWithoutUserInput
+    settings?: UserSettingsUncheckedCreateNestedOneWithoutUserInput
+    rooms?: RoomUserUncheckedCreateNestedManyWithoutUserInput
+    createdRooms?: RoomUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutAiCredentialsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAiCredentialsInput, UserUncheckedCreateWithoutAiCredentialsInput>
+  }
+
+  export type UserUpsertWithoutAiCredentialsInput = {
+    update: XOR<UserUpdateWithoutAiCredentialsInput, UserUncheckedUpdateWithoutAiCredentialsInput>
+    create: XOR<UserCreateWithoutAiCredentialsInput, UserUncheckedCreateWithoutAiCredentialsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAiCredentialsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAiCredentialsInput, UserUncheckedUpdateWithoutAiCredentialsInput>
+  }
+
+  export type UserUpdateWithoutAiCredentialsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    avatar?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    documents?: DocumentUpdateManyWithoutUserNestedInput
+    collaborations?: DocumentCollaboratorsUpdateManyWithoutUserNestedInput
+    comments?: DocumentCommentUpdateManyWithoutUserNestedInput
+    settings?: UserSettingsUpdateOneWithoutUserNestedInput
+    rooms?: RoomUserUpdateManyWithoutUserNestedInput
+    createdRooms?: RoomUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAiCredentialsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    avatar?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    documents?: DocumentUncheckedUpdateManyWithoutUserNestedInput
+    collaborations?: DocumentCollaboratorsUncheckedUpdateManyWithoutUserNestedInput
+    comments?: DocumentCommentUncheckedUpdateManyWithoutUserNestedInput
+    settings?: UserSettingsUncheckedUpdateOneWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
   }
@@ -21924,6 +23860,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -21944,6 +23881,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     userId: string
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
@@ -21980,6 +23918,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22000,6 +23939,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     userId?: StringFieldUpdateOperationsInput | string
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
@@ -22020,6 +23960,7 @@ export namespace Prisma {
     id?: string
     title: string
     content: string
+    yjsState?: Uint8Array | null
     isPublic?: boolean
     tags?: DocumentCreatetagsInput | string[]
     allowComments?: boolean
@@ -22044,6 +23985,18 @@ export namespace Prisma {
     content: string
     lineNumber?: number | null
     isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AIProviderCredentialCreateManyUserInput = {
+    id?: string
+    provider: string
+    encryptedKey: Uint8Array
+    iv: Uint8Array
+    authTag: Uint8Array
+    keyHint: string
+    model: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -22074,6 +24027,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22094,6 +24048,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22114,6 +24069,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    yjsState?: NullableBytesFieldUpdateOperationsInput | Uint8Array | null
     isPublic?: BoolFieldUpdateOperationsInput | boolean
     tags?: DocumentUpdatetagsInput | string[]
     allowComments?: BoolFieldUpdateOperationsInput | boolean
@@ -22176,6 +24132,42 @@ export namespace Prisma {
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AIProviderCredentialUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    encryptedKey?: BytesFieldUpdateOperationsInput | Uint8Array
+    iv?: BytesFieldUpdateOperationsInput | Uint8Array
+    authTag?: BytesFieldUpdateOperationsInput | Uint8Array
+    keyHint?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -22329,6 +24321,7 @@ export namespace Prisma {
     useCount?: number
     createdAt?: Date | string
     createdBy: string
+    isActive?: boolean
   }
 
   export type DocumentActivityCreateManyDocumentInput = {
@@ -22483,6 +24476,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateWithoutDocumentInput = {
@@ -22494,6 +24488,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentShareUncheckedUpdateManyWithoutDocumentInput = {
@@ -22505,6 +24500,7 @@ export namespace Prisma {
     useCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type DocumentActivityUpdateWithoutDocumentInput = {

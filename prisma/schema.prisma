@@ -3,13 +3,13 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -17,7 +17,9 @@ model User {
   avatar String @default("vibrent_2.png")
   name String
   email String @unique
-  password String
+  // Authentication is managed by Supabase Auth. This field remains nullable
+  // so a fresh Google-only database never stores credentials here.
+  password String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -26,6 +28,7 @@ model User {
   collaborations DocumentCollaborators[]
   comments DocumentComment[]  // Added missing relation
   settings UserSettings?     // Added missing relation
+  aiCredentials AIProviderCredential[]
   
   rooms RoomUser[]
   createdRooms Room[] //rooms created by this usr.
@@ -83,10 +86,14 @@ model Document {
   id String @id @default(uuid())
   title String
   content String @db.Text  // JSON content from Tiptap editor
+  yjsState Bytes?          // Persisted Yjs state for collaborative editing
   userId String  // Owner of the document
   
   // Document metadata
-  isPublic Boolean @default(false)
+  status DocumentStatus @default(WORKING_DRAFT)
+  previewText String @default("") @db.VarChar(360)
+  previewImageUrl String?
+  wordCount Int @default(0)
   tags String[] // Array of tags for categorization
   
   // Document settings
@@ -106,13 +113,37 @@ model Document {
   comments DocumentComment[]
   shares DocumentShare[]     // Added missing relation
   activities DocumentActivity[]  // Added missing relation
+  publication DocumentPublication?
   
   @@index([userId])
-  @@index([isPublic])
+  @@index([status])
   @@index([tags])
   @@index([createdAt])
   @@index([updatedAt])
   Room Room[]
+}
+
+enum DocumentStatus {
+  WORKING_DRAFT
+  COMPLETE
+}
+
+model DocumentPublication {
+  id String @id @default(cuid())
+  documentId String @unique
+  slug String
+  title String
+  content String @db.Text
+  excerpt String @default("") @db.VarChar(360)
+  revisionHash String
+  isActive Boolean @default(true)
+  publishedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@index([publishedAt])
 }
 
 model DocumentImage {
@@ -153,7 +184,7 @@ model DocumentCollaborators {
   id String @id @default(uuid())
   documentId String
   userId String
-  role String @default("editor") // "viewer", "editor", "admin"
+  role String @default("editor") // "viewer" or "editor"
   permissions String[] // Array of specific permissions
   invitedAt DateTime @default(now())
   acceptedAt DateTime?
@@ -194,6 +225,7 @@ model DocumentShare {
   useCount Int @default(0)
   createdAt DateTime @default(now())
   createdBy String  // User ID who created the share
+  isActive Boolean @default(true)
   
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   
@@ -227,11 +259,30 @@ model UserSettings {
   autoSaveInterval Int @default(30) // seconds
   showLineNumbers Boolean @default(true)
   wordWrap Boolean @default(true)
+  activeAiProvider String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
+  @@index([userId])
+}
+
+model AIProviderCredential {
+  id String @id @default(uuid())
+  userId String
+  provider String
+  encryptedKey Bytes
+  iv Bytes
+  authTag Bytes
+  keyHint String
+  model String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
   @@index([userId])
 }
 

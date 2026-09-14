@@ -1,53 +1,22 @@
 const axios = require("axios");
 
-const BACKEND_URL = "http://localhost:3000";
+const app = axios.create({ baseURL: process.env.TEST_APP_URL || "http://localhost:3000", maxRedirects: 0, validateStatus: () => true });
 
-describe("Auth Endpoints", () => {
-  let testEmail;
-  const testPassword = "password123";
-
-  // Run before all tests — create a user for signin
-  beforeAll(async () => {
-    testEmail = `test-user${Date.now()}@test.com`;
-    await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-      name: "Test User",
-      email: testEmail,
-      password: testPassword,
-    });
-  });
-
-  test("Sign up with valid data", async () => {
-    const response = await axios.post(`${BACKEND_URL}/api/auth/signup`, {
-      name: `test-user${Date.now()}`,
-      email: `test-user${Date.now()}@test.com`,
-      password: "password123",
-    });
-
-    expect(response.status).toBe(201);
-    expect(response.data).toHaveProperty("user");
-    expect(response.data).toHaveProperty("token");
-  });
-
-  test("Sign in with valid credentials", async () => {
-    const response = await axios.post(`${BACKEND_URL}/api/auth/signin`, {
-      email: testEmail,
-      password: testPassword,
-    });
-
+describe("Google-only authentication", () => {
+  test.each(["/signin", "/signup"])("%s renders the Google OAuth entry point", async (path) => {
+    const response = await app.get(path);
     expect(response.status).toBe(200);
-    expect(response.data).toHaveProperty("user");
-    expect(response.data).toHaveProperty("token");
+    expect(response.data).toContain("with Google");
   });
 
-  test("Sign in with invalid credentials", async () => {
-    try {
-      await axios.post(`${BACKEND_URL}/api/auth/signin`, {
-        email: testEmail,
-        password: "wrongpassword",
-      });
-    } catch (error) {
-      expect(error.response.status).toBe(401);
-      expect(error.response.data).toHaveProperty("error");
-    }
+  test.each(["/api/auth/signup", "/api/auth/signin", "/api/auth/google"])("the retired password/custom OAuth route %s is absent", async (path) => {
+    const response = await app.post(path, {});
+    expect(response.status).toBe(404);
+  });
+
+  test.each(["/dashboard", "/document"])("%s requires a signed-in identity", async (path) => {
+    const response = await app.get(path);
+    expect([302, 307, 308]).toContain(response.status);
+    expect(response.headers.location).toContain("/signin");
   });
 });

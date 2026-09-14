@@ -1,8 +1,8 @@
-import { PrismaClient } from "@/generated/prisma";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { deriveDocumentPreview } from "@/lib/document-content";
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +12,7 @@ export async function GET(
     const { id: documentId } = await params;
     console.log("Params documentId: ", documentId);
 
-    const authResult = getCurrentUserIdFromRequest(request);
+    const authResult = await getCurrentUserIdFromRequest(request);
     
     if (!authResult.userId) {
       return createAuthErrorResponse(authResult);
@@ -23,12 +23,11 @@ export async function GET(
     console.log("Document ID: ", documentId);
 
     //check if the document exists and the usr has access to it.
-    const document = await prisma.document.findUnique({
+    const document = await prisma.document.findFirst({
       where: {
         id: documentId,
         OR: [
           { userId }, //usr owns the doc
-          { isPublic: true }, //doc is public
           {
             collaborators: {
               some: {
@@ -82,15 +81,18 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(document);
+    const role = document.userId === userId ? "owner" : document.collaborators.find((member) => member.userId === userId)?.role || "viewer";
+    return NextResponse.json({
+      ...document,
+      role,
+      yjsState: (document as any).yjsState ? Buffer.from((document as any).yjsState).toString("base64") : null,
+    });
   } catch (error) {
     console.error("Error fetching document: ", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -100,7 +102,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = getCurrentUserIdFromRequest(request);
+    const authResult = await getCurrentUserIdFromRequest(request);
     
     if (!authResult.userId) {
       return createAuthErrorResponse(authResult);
@@ -160,12 +162,14 @@ export async function PUT(
     }
 
     //update the docunment
+    const contentUpdate = typeof updateData.content === "string" ? updateData.content : null;
     const updatedDocument = await prisma.document.update({
       where: {
         id: documentId,
       },
       data: {
-        ...updateData,
+        ...(typeof updateData.title === "string" ? { title: updateData.title.trim().slice(0, 200) || "Untitled document" } : {}),
+        ...(contentUpdate ? { content: contentUpdate, ...deriveDocumentPreview(contentUpdate), lastEditedAt: new Date() } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -207,8 +211,6 @@ export async function PUT(
       { error: "Internal server error" },
       { status: 500 }
     );
-  }finally{
-    await prisma.$disconnect();
   }
 }
 
@@ -220,7 +222,7 @@ export async function PATCH(
 
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);
@@ -229,6 +231,11 @@ export async function PATCH(
         const userId = authResult.userId;
         const { id: documentId } = await params;
         const updateData = await request.json();
+        const contentUpdate = typeof updateData.content === "string" ? updateData.content : null;
+
+        if (!contentUpdate) {
+            return NextResponse.json({ error: "Document content is required" }, { status: 400 });
+        }
 
         //permission check
         const document = await prisma.document.findFirst({
@@ -263,7 +270,8 @@ export async function PATCH(
                 id: documentId,
             },
             data: {
-                content: updateData.content,
+                content: contentUpdate,
+                ...deriveDocumentPreview(contentUpdate),
                 lastEditedAt: new Date(),
             },
         });
@@ -278,8 +286,6 @@ export async function PATCH(
         }, {
             status: 500
         })
-    }finally {
-        await prisma.$disconnect();
     }
 }
 //Delete doc
@@ -290,7 +296,7 @@ export async function DELETE(
 ) {
     try {
         
-        const authResult = getCurrentUserIdFromRequest(request);
+        const authResult = await getCurrentUserIdFromRequest(request);
         
         if (!authResult.userId) {
             return createAuthErrorResponse(authResult);
@@ -304,7 +310,8 @@ export async function DELETE(
             where: {
                 id: documentId,
                 userId,
-            }
+            },
+            select: { id:true, images:{select:{fileName:true}} }
         });
 
         if(!document){
@@ -313,6 +320,12 @@ export async function DELETE(
             }, {
                 status: 404
             })
+        }
+
+        if (document.images.length) {
+          const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+          const { error: storageError } = await supabase.storage.from("document-images").remove(document.images.map((image) => image.fileName));
+          if (storageError) console.error("Failed to remove document images", storageError.message);
         }
 
         //delete the document
@@ -334,7 +347,5 @@ export async function DELETE(
         }, {
             status: 500
         })
-    } finally {
-        await prisma.$disconnect();
     }
 }

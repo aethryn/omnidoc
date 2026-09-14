@@ -1,15 +1,12 @@
-'use client'
+import type { Metadata } from "next";
+import LandingPageClient from "./components/LandingPageClient";
 
-import Navbar from './components/Navbar'; 
-import Hero from './components/Hero'; 
-import Footer from './components/Footer';
+export const metadata: Metadata = {
+  title: "Omnidoc — Write together, thoughtfully",
+  description:
+    "A calm, real-time collaborative document editor with AI assistance. Write, refine, and decide together.",
+};
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
-      <Navbar />
-      <Hero />
-      <Footer />
-    </div>
-  );
+  return <LandingPageClient />;
 }

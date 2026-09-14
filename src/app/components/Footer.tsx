@@ -21,7 +21,7 @@ export default function Footer() {
     return (
       <footer ref={footerRef} className="px-8 py-6 border-t border-gray-100">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-gray-500">
-          <p>© Omnidocs.</p>
+          <p>© Omnidoc.</p>
           <div className="flex gap-6">
             <Link className="flex items-center gap-2" href="https://github.com/utkarsh125/omnidocs">
             <GithubLogoIcon size={20} /> Github

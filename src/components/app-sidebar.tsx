@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from 'next/link'
-import { IconLayoutDashboard, IconFile, IconLogout, IconSparkles } from '@tabler/icons-react'
+import { IconLayoutDashboard, IconLogout } from '@tabler/icons-react'
 import { useRouter, usePathname } from 'next/navigation'
 import axios from "axios"
 import { Button } from "@/components/ui/button"
@@ -19,16 +19,6 @@ const navMainData: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: IconLayoutDashboard,
-  },
-  {
-    title: "Documents",
-    url: "/documents",
-    icon: IconFile,
-  },
-  {
-    title: "Word Assistant",
-    url: "/word-assistant",
-    icon: IconSparkles,
   },
 ]
 
@@ -87,7 +77,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<'aside'>) {
   const handleLogout = async () => {
     try {
       await axios.post('/api/auth/signout', {}, { withCredentials: true })
-      localStorage.removeItem('token')
       router.push('/signin')
     } catch (error) {
       console.error('Logout error:', error)
@@ -98,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<'aside'>) {
     <aside className="w-64 h-screen bg-card border-r border-border flex flex-col transition-colors" {...props}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-border flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-primary">omnitype.</h1>
+        <h1 className="text-2xl font-semibold text-primary">omnidoc.</h1>
       </div>
 
       {/* Navigation */}
