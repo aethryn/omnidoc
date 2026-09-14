@@ -1,232 +1,115 @@
 "use client";
 
-import { LockKeyIcon, UserIcon } from "@phosphor-icons/react";
-import { useState } from "react";
-import { Modal } from "./modal";
-import Image from "next/image";
-import axios from "axios";
-import { SpotlightButton } from "./ui/spotlight-button";
+import { useEffect, useState } from "react";
+import { CheckCircleIcon, KeyIcon, SparkleIcon, TrashIcon, UserIcon } from "@phosphor-icons/react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
-interface SettingsModalProps{
-    isOpen: boolean;
-    onClose: () => void;
-}
+type Provider = "gemini" | "xai";
+type Config = { provider: Provider; configured: true; keyHint: string; model: string; updatedAt: string };
 
-export function SettingsModal(
-    { isOpen, onClose} : SettingsModalProps
-) {
+export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onClose: () => void; user?: { name: string; avatar?: string } }) {
+  const [name, setName] = useState(user?.name ?? "");
+  const [activeProvider, setActiveProvider] = useState<Provider | null>(null);
+  const [configs, setConfigs] = useState<Config[]>([]);
+  const [keys, setKeys] = useState<Record<Provider, string>>({ gemini: "", xai: "" });
+  const [models, setModels] = useState<Record<Provider, string[]>>({ gemini: [], xai: [] });
+  const [selectedModels, setSelectedModels] = useState<Record<Provider, string>>({ gemini: "", xai: "" });
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [encryptionReady, setEncryptionReady] = useState(true);
 
-    const [activeTab, setActiveTab] = useState('profile');
-    const [displayName, setDisplayName] = useState('');
-    const [selectedAvatar, setSelectedAvatar] = useState('vibrent_2.png');
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [passwordError, setPasswordError] = useState('');
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(user?.name ?? "");
+    setMessage(null);
+    fetch("/api/settings/ai", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) throw new Error("Could not load AI settings");
+      return response.json();
+    }).then((data) => {
+      setActiveProvider(data.activeProvider);
+      setEncryptionReady(data.encryptionConfigured !== false);
+      setConfigs(data.providers);
+      setSelectedModels((current) => ({ ...current, ...Object.fromEntries(data.providers.map((item: Config) => [item.provider, item.model])) }));
+    }).catch((error) => setMessage(error.message));
+  }, [isOpen, user?.name]);
 
-    const avatars = [
-        'vibrent_2.png', 'vibrent_6.png', 'vibrent_7.png', 
-        'vibrent_8.png', 'vibrent_9.png', 'vibrent_27.png'
-    ];
+  async function saveProfile() {
+    setBusy("profile"); setMessage(null);
+    const response = await fetch("/api/auth/user-details", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+    setMessage(response.ok ? "Profile updated." : "Could not update your profile.");
+    setBusy(null);
+  }
 
-    const handleSaveProfile = async () => {
-        try {
-            await axios.patch("/api/auth/user-details", 
-                { 
-                    name: displayName,
-                    avatar: selectedAvatar 
-                },
-                { withCredentials: true }
-            );
-            onClose();
-        } catch (error) {
-            console.error("Error updating profile:", error);
-            alert("Failed to update profile");
-        }
-    };
+  async function saveProvider(provider: Provider) {
+    setBusy(provider); setMessage(null);
+    const response = await fetch("/api/settings/ai", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, apiKey: keys[provider], model: selectedModels[provider] }) });
+    const data = await response.json();
+    if (!response.ok) { setMessage(data.error || "Could not validate that key."); setBusy(null); return; }
+    setConfigs((items) => [...items.filter((item) => item.provider !== provider), { provider, configured: true, keyHint: data.keyHint, model: data.model, updatedAt: new Date().toISOString() }]);
+    setModels((current) => ({ ...current, [provider]: data.models ?? [data.model] }));
+    setSelectedModels((current) => ({ ...current, [provider]: data.model }));
+    setKeys((current) => ({ ...current, [provider]: "" }));
+    setActiveProvider(provider);
+    setMessage(`${provider === "gemini" ? "Gemini" : "Grok"} is ready.`);
+    setBusy(null);
+  }
 
-    const handleChangePassword = async () => {
-        if (newPassword !== confirmPassword) {
-            setPasswordError('Passwords do not match');
-            return;
-        }
+  async function removeProvider(provider: Provider) {
+    setBusy(`delete-${provider}`); setMessage(null);
+    const response = await fetch(`/api/settings/ai?provider=${provider}`, { method: "DELETE" });
+    if (response.ok) {
+      setConfigs((items) => items.filter((item) => item.provider !== provider));
+      if (activeProvider === provider) setActiveProvider(null);
+      setMessage("Credential removed.");
+    } else setMessage("Could not remove that credential.");
+    setBusy(null);
+  }
 
-        try {
-            await axios.post("/api/auth/change-password", 
-                { 
-                    currentPassword,
-                    newPassword 
-                },
-                { withCredentials: true }
-            );
-            onClose();
-        } catch (error) {
-            console.error("Error changing password:", error);
-            alert("Failed to change password");
-        }
-    };
-
-    const tabs = [
-        { id: 'profile', label: 'Profile', icon: <UserIcon weight="duotone"/>},
-        { id: 'password', label: 'Password', icon: <LockKeyIcon weight="duotone"/>}
-    ];
-
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Settings">
-            
-            <div className="flex min-h-[500px] max-h-[70vh]">
-                {/* sidebar */}
-                <div className="w-48 border-r pr-4">
-                    <nav className="space-y-1">
-                        {tabs.map((tab) => (
-                            <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                              activeTab === tab.id
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="text-lg">{tab.icon}</span>
-                            <span className="text-sm font-medium">{tab.label}</span>
-                          </button>
-                        ))}
-                    </nav>
-                </div>
-
-                {/* Content  */}
-
-                <div className="flex-1 pl-6 overflow-y-auto">
-
-                    {activeTab === 'profile' && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg text-gray-900">Profile Settings</h3>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Display Name
-                                    </label>
-                                    <input 
-                                    type="text"
-                                    value={displayName}
-                                    onChange={(e) => setDisplayName(e.target.value)}
-                                    placeholder="Display Name"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                                        Avatar
-                                    </label>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {avatars.map((avatar) => (
-                                            <div
-                                                key={avatar}
-                                                onClick={() => setSelectedAvatar(avatar)}
-                                                className={`cursor-pointer p-2 rounded-lg transition-all flex items-center justify-center ${
-                                                    selectedAvatar === avatar
-                                                        ? 'bg-blue-50'
-                                                        : 'hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className={`rounded-full border-2 transition-all ${
-                                                    selectedAvatar === avatar
-                                                        ? 'border-blue-500'
-                                                        : 'border-gray-200'
-                                                }`}>
-                                                    <Image
-                                                        src={`/${avatar}`}
-                                                        width={60}
-                                                        height={60}
-                                                        className="rounded-full"
-                                                        alt="Avatar"
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'password' && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg text-gray-900">Change Password</h3>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Current Password
-                                    </label>
-                                    <input 
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                    placeholder="Enter current password"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        New Password
-                                    </label>
-                                    <input 
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    placeholder="Enter new password"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Confirm New Password
-                                    </label>
-                                    <input 
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => {
-                                        setConfirmPassword(e.target.value);
-                                        if (e.target.value !== newPassword) {
-                                            setPasswordError('Passwords do not match');
-                                        } else {
-                                            setPasswordError('');
-                                        }
-                                    }}
-                                    placeholder="Confirm new password"
-                                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                        passwordError ? 'border-red-300' : 'border-gray-300'
-                                    }`}
-                                    />
-                                    {passwordError && (
-                                        <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#d8d1c5] bg-[#fffdf8] p-0 sm:max-w-[680px]">
+        <DialogHeader className="border-b border-[#e1dbd0] px-7 pb-5 pt-7">
+          <DialogTitle className="font-[var(--font-instrument)] text-3xl font-normal">Workspace settings</DialogTitle>
+          <DialogDescription>Profile details and private AI provider credentials.</DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="profile" className="px-7 pb-7">
+          <TabsList className="mt-5 bg-[#eee9df]">
+            <TabsTrigger value="profile"><UserIcon /> Profile</TabsTrigger>
+            <TabsTrigger value="ai"><SparkleIcon /> AI providers</TabsTrigger>
+          </TabsList>
+          <TabsContent value="profile" className="mt-6 space-y-5">
+            <div className="flex items-center gap-4 rounded-xl border border-[#e1dbd0] bg-white p-4">
+              <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-[#2d2924] text-sm text-white">{user?.avatar?.startsWith("http") ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (name || "O").slice(0, 2).toUpperCase()}</div>
+              <div><p className="text-sm font-semibold">Google profile</p><p className="mt-1 text-xs text-[#837c72]">Your Google avatar is used for collaboration presence.</p></div>
             </div>
-
-            {/* Footer */}
-            <div className="flex justify-end mt-6 pt-4 border-t">
-                <SpotlightButton
-                    onClick={activeTab === 'profile' ? handleSaveProfile : handleChangePassword}
-                    innerColor="rgb(200,220,255)"
-                    outerColor="rgb(100,150,255)"
-                    hoverInnerColor="rgb(180,200,255)"
-                    hoverOuterColor="rgb(80,130,255)"
-                >
-                    {activeTab === 'profile' ? 'Save Profile' : 'Change Password'}
-                </SpotlightButton>
+            <div className="space-y-2"><Label htmlFor="settings-name">Display name</Label><Input id="settings-name" value={name} onChange={(event) => setName(event.target.value)} className="border-[#d8d1c5] bg-white" /></div>
+            <Button onClick={saveProfile} disabled={busy === "profile"} className="text-white bg-[#7140cd] hover:bg-[#6033b7]">{busy === "profile" ? "Saving…" : "Save profile"}</Button>
+          </TabsContent>
+          <TabsContent value="ai" className="mt-6 space-y-4">
+            {!encryptionReady && <div role="alert" className="rounded-xl border border-[#efc3bc] bg-[#fff0ed] p-4 text-xs leading-5 text-[#963b32]">This server cannot store API keys yet. Set <code>AI_CREDENTIALS_ENCRYPTION_KEY</code> to 32 random bytes encoded as base64, then restart Omnidoc.</div>}
+            <div className="rounded-xl border border-[#ded6c9] bg-[#f5f1e8] p-4 text-xs leading-5 text-[#6d665c]">
+              Keys are encrypted with AES-256-GCM and never returned to the browser. Document excerpts are sent only to the provider you select when you request an edit.
             </div>
-
-        </Modal>
-    )
-
-
+            {(["gemini", "xai"] as Provider[]).map((provider) => {
+              const configured = configs.find((item) => item.provider === provider);
+              const label = provider === "gemini" ? "Google Gemini" : "xAI Grok";
+              return <section key={provider} className={`rounded-xl border p-4 ${activeProvider === provider ? "border-[#9165d4] bg-[#faf7ff]" : "border-[#ded8cd] bg-white"}`}>
+                <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><h3 className="text-sm font-semibold">{label}</h3>{configured && <span className="inline-flex items-center gap-1 rounded-full bg-[#e9e0f9] px-2 py-1 text-[10px] text-[#6940ab]"><CheckCircleIcon weight="fill" /> {activeProvider === provider ? "Active" : "Configured"}</span>}</div><p className="mt-1 text-xs text-[#837c72]">{configured ? `Key ending in ${configured.keyHint} · ${configured.model}` : "Use your own provider key."}</p></div>{configured && <button onClick={() => removeProvider(provider)} disabled={busy === `delete-${provider}`} className="rounded-lg p-2 text-[#9b4a43] hover:bg-[#fff0ed]" aria-label={`Remove ${label}`}><TrashIcon /></button>}</div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
+                  <div className="relative"><KeyIcon className="absolute left-3 top-2.5 text-[#8c8378]" /><Input type="password" aria-label={`${label} API key`} value={keys[provider]} onChange={(event) => setKeys((current) => ({ ...current, [provider]: event.target.value }))} placeholder={configured ? "Replace API key" : "Paste API key"} className="border-[#d8d1c5] bg-white pl-9" /></div>
+                  {models[provider].length ? <select aria-label={`${label} model`} value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} className="h-9 rounded-md border border-[#d8d1c5] bg-white px-2 text-xs">{models[provider].map((model) => <option key={model}>{model}</option>)}</select> : <Input value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} placeholder="Model (auto)" className="border-[#d8d1c5] bg-white text-xs" />}
+                  <Button onClick={() => saveProvider(provider)} disabled={!encryptionReady || busy === provider || !keys[provider].trim()} className="bg-[#2d2924] text-white hover:bg-[#4b443b]">{busy === provider ? "Checking…" : configured ? "Update" : "Connect"}</Button>
+                </div>
+              </section>;
+            })}
+            {message && <p role="status" className="text-xs text-[#6940ab]">{message}</p>}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
 }

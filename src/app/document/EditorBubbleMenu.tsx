@@ -2,21 +2,9 @@
 
 import { BubbleMenu, Editor } from '@tiptap/react'
 import { useState, useRef, useEffect } from 'react'
-import gsap from 'gsap'
 import {
-  TextB,
-  TextItalic,
-  TextUnderline,
-  TextStrikethrough,
   Code,
-  Highlighter,
-  LinkSimple,
-  DotsThree,
   Paragraph as ParagraphIcon,
-  TextHOne,
-  TextHTwo,
-  TextHThree,
-  CaretDown,
   Image as ImageIcon,
   TextHOneIcon,
   TextHTwoIcon,
@@ -42,45 +30,8 @@ interface EditorBubbleMenuProps {
 }
 
 export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) {
-  const bubbleRef = useRef<HTMLDivElement>(null)
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
   const [isOpen, setIsOpen] = useState(false);
-
-  // GSAP animation when bubble menu appears
-  useEffect(() => {
-    if (!bubbleRef.current) return
-
-    // Initial state
-    gsap.set(bubbleRef.current, { opacity: 0, scale: 0.8, y: 10 })
-    gsap.set(buttonsRef.current.filter(Boolean), { opacity: 0, y: 5 })
-
-    // Animate in
-    const tl = gsap.timeline()
-    
-    tl.to(bubbleRef.current, {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      duration: 0.2,
-      ease: 'back.out(1.5)',
-    })
-
-    tl.to(
-      buttonsRef.current.filter(Boolean),
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.15,
-        stagger: 0.02,
-        ease: 'power2.out',
-      },
-      '-=0.1'
-    )
-
-    return () => {
-      tl.kill()
-    }
-  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,7 +50,7 @@ export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) 
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [editor]);
 
   const BubbleDivider = () => <div className="w-px h-6 bg-gray-300 mx-1" />
 
@@ -138,7 +89,7 @@ export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) 
       }}
       className="bg-white shadow-xl rounded-xl p-1.5 border border-gray-200 max-w-[95vw]"
     >
-      <div ref={bubbleRef} className="flex items-center gap-0.5 flex-wrap max-w-full">
+      <div className="flex items-center gap-0.5 flex-wrap max-w-full motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95">
         {/* Paragraph */}
         <button
           ref={(el) => { buttonsRef.current[0] = el }}
@@ -328,5 +279,4 @@ export function EditorBubbleMenu({ editor, documentId }: EditorBubbleMenuProps) 
     </BubbleMenu>
   )
 }
-
 

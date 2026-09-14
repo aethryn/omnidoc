@@ -1,8 +1,6 @@
-import { PrismaClient } from "@/generated/prisma";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
@@ -94,8 +92,6 @@ export async function GET(
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -170,7 +166,8 @@ export async function PUT(
         id: documentId,
       },
       data: {
-        ...updateData,
+        ...(typeof updateData.title === "string" ? { title: updateData.title.trim().slice(0, 200) || "Untitled document" } : {}),
+        ...(typeof updateData.content === "string" ? { content: updateData.content } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -212,8 +209,6 @@ export async function PUT(
       { error: "Internal server error" },
       { status: 500 }
     );
-  }finally{
-    await prisma.$disconnect();
   }
 }
 
@@ -283,8 +278,6 @@ export async function PATCH(
         }, {
             status: 500
         })
-    }finally {
-        await prisma.$disconnect();
     }
 }
 //Delete doc
@@ -339,7 +332,5 @@ export async function DELETE(
         }, {
             status: 500
         })
-    } finally {
-        await prisma.$disconnect();
     }
 }

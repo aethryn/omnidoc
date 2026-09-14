@@ -2,15 +2,16 @@
 @import "tw-animate-css";
 
 @theme inline {
-  --font-sans: Geist, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "Fira Code", "Courier New", monospace;
-  --font-serif: "Lora", Georgia, serif;
-  --font-heading: Poppins, Inter, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
+  --font-heading: var(--font-instrument), Georgia, serif;
   --radius: 0.5rem;
 }
 
 :root {
   --radius: 0.5rem;
+  --font-inter: "Helvetica Neue", Helvetica, Arial, sans-serif;
   
   /* Landing page colors */
   --primary-blue: #3B82F6;
@@ -25,8 +26,8 @@
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   
-  --font-sans: Geist, sans-serif;
-  --font-serif: "Lora", Georgia, serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
   --font-mono: "Fira Code", "Courier New", monospace;
 
   /* Tiptap CSS Variables - Light Mode (preserved for document editor) */
@@ -58,8 +59,9 @@
   }
   
   body {
-    @apply bg-white text-black;
-    font-family: var(--font-sans);
+    @apply text-black;
+    background: #f7f5ef;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   
   /* Prevent horizontal scroll on mobile */

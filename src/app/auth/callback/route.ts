@@ -11,10 +11,10 @@ export async function GET(request: Request) {
   if (!code) return NextResponse.redirect(new URL("/signin?error=oauth", url.origin));
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(new URL(`/signin?error=${encodeURIComponent(error.message)}`, url.origin));
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = data.user;
   if (user) {
     await prisma.user.upsert({
       where: { id: user.id },
@@ -24,4 +24,3 @@ export async function GET(request: Request) {
   }
   return NextResponse.redirect(new URL(safeNext, url.origin));
 }
-

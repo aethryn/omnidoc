@@ -1,24 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { ArrowRightIcon, CheckIcon, GoogleLogoIcon, UsersThreeIcon } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
+import { OmnidocLogo } from "@/components/omnidoc-logo";
+import "../auth.css";
 
-export default function AuthForm() {
+export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
+  const isSignup = mode === "signup";
 
-  async function signInWithGoogle() {
+  async function continueWithGoogle() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
     const redirect = searchParams.get("redirect") || "/dashboard";
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}` },
     });
     if (authError) {
       setError(authError.message);
@@ -27,22 +30,42 @@ export default function AuthForm() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] px-6 py-8 text-slate-900">
-      <a href="/" className="text-sm font-medium text-slate-500 transition hover:text-slate-900">← Back to Omnidoc</a>
-      <section className="mx-auto mt-20 max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-10">
-        <div className="mb-8">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Omnidoc</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Write together, effortlessly.</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-500">A calm, real-time workspace for documents that matter.</p>
+    <main className="auth-page">
+      <Link href="/" className="auth-brand"><OmnidocLogo priority className="auth-brand-logo" /> Omnidoc</Link>
+      <section className="auth-shell">
+        <div className="auth-preview" aria-hidden="true">
+          <div className="auth-preview-top"><span>Product narrative</span><span className="auth-saved">Saved</span></div>
+          <div className="auth-paper">
+            <span className="auth-kicker">Draft · September 14</span>
+            <h2>Ideas feel clearer<br />when the page feels calm.</h2>
+            <p>Turn scattered thoughts into a document your whole team can shape together.</p>
+            <p>Write naturally, invite collaborators, and preview AI edits <span className="auth-ghost">before they become part of the page.</span></p>
+            <div className="auth-caret"><i /> <span>Maya is editing</span></div>
+          </div>
+          <div className="auth-presence"><UsersThreeIcon /><span>3 people here</span><b>AR</b><b>MK</b></div>
         </div>
-        {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <button onClick={signInWithGoogle} disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-slate-950 px-4 font-medium text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-bold text-blue-600">G</span>
-          {loading ? "Connecting…" : "Continue with Google"}
-        </button>
-        <p className="mt-6 text-center text-xs leading-5 text-slate-400">By continuing, you agree to use Omnidoc responsibly.</p>
+
+        <div className="auth-card">
+          <span className="auth-eyebrow">{isSignup ? "Start your workspace" : "Welcome back"}</span>
+          <h1>{isSignup ? "Your next great document starts here." : "Pick up where your ideas left off."}</h1>
+          <p>{isSignup ? "A collaborative writing space with thoughtful AI built into the margins." : "Sign in to open your documents, collaborators, and saved suggestions."}</p>
+          <div className="auth-benefits">
+            <span><CheckIcon weight="bold" /> Real-time collaboration</span>
+            <span><CheckIcon weight="bold" /> Your choice of Gemini or Grok</span>
+            <span><CheckIcon weight="bold" /> AI edits stay previews until accepted</span>
+          </div>
+          {error && <div role="alert" className="auth-error">{error}</div>}
+          <button className="auth-google" disabled={loading} onClick={continueWithGoogle}>
+            <GoogleLogoIcon weight="bold" />
+            <span>{loading ? "Opening Google…" : `${isSignup ? "Sign up" : "Sign in"} with Google`}</span>
+            <ArrowRightIcon />
+          </button>
+          <p className="auth-switch">
+            {isSignup ? "Already have a workspace?" : "New to Omnidoc?"}{" "}
+            <Link href={isSignup ? "/signin" : "/signup"}>{isSignup ? "Sign in" : "Create one"}</Link>
+          </p>
+        </div>
       </section>
     </main>
   );
 }
-

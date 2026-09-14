@@ -4,14 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 async function getUser() {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return null;
-  const user = data.user;
-  return prisma.user.upsert({
-    where: { id: user.id },
-    update: { email: user.email || "", name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User", avatar: user.user_metadata?.avatar_url || "vibrent_2.png" },
-    create: { id: user.id, email: user.email || `${user.id}@supabase.local`, name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User", avatar: user.user_metadata?.avatar_url || "vibrent_2.png" },
-  });
+  const { data, error } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (error || !userId) return null;
+  return prisma.user.findUnique({ where: { id: userId } });
 }
 
 export async function GET() {
@@ -27,4 +23,3 @@ export async function PATCH(request: NextRequest) {
   const avatar = typeof body.avatar === "string" ? body.avatar.slice(0, 500) : undefined;
   return NextResponse.json(await prisma.user.update({ where: { id: user.id }, data: { ...(name ? { name } : {}), ...(avatar ? { avatar } : {}) } }));
 }
-
