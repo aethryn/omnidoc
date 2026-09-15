@@ -11,6 +11,7 @@ import { DocumentsFolderIcon, OmnidocLogo } from "@/components/omnidoc-logo";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import "./dashboard.css";
 
 const SettingsModal = dynamic(() => import("@/components/setting-modal").then((module) => module.SettingsModal), { ssr: false });
@@ -35,6 +36,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   const filters: Array<{ id: Filter; label: string }> = [{ id: "all", label: "All" }, { id: "draft", label: "Working drafts" }, { id: "complete", label: "Complete" }, { id: "published", label: "Published" }, { id: "shared", label: "Shared" }];
   return <main className="dash-page">
     <aside className="dash-rail"><Link href="/" className="dash-mark" aria-label="Omnidoc"><OmnidocLogo priority className="dash-logo-image" /></Link><nav><button className="active" aria-label="Documents folder"><DocumentsFolderIcon className="documents-folder-icon" /></button><button onClick={() => setSettingsOpen(true)} aria-label="Settings"><GearSixIcon /></button></nav><button onClick={signOut} aria-label="Sign out"><SignOutIcon /></button></aside>
+    <MobileBottomNav className="dash-mobile-nav" ariaLabel="Dashboard navigation" items={[{id:"documents",label:"Docs",icon:<DocumentsFolderIcon/>,onClick:()=>router.push("/dashboard"),active:true},{id:"new",label:"New",icon:<FilePlusIcon/>,onClick:createDocument},{id:"settings",label:"Settings",icon:<GearSixIcon/>,onClick:()=>setSettingsOpen(true)},{id:"signout",label:"Sign out",icon:<SignOutIcon/>,onClick:()=>void signOut()}]} />
     <div className="dash-content">
       <header className="dash-header"><Link href="/" className="dash-wordmark"><OmnidocLogo className="dash-wordmark-logo" />Omnidoc</Link><div className="dash-user"><span>{user.name}</span><div>{user.avatar?.startsWith("http") ? <img src={user.avatar} alt="" /> : initials(user.name)}</div></div></header>
       <section className="dash-hero"><div><span className="dash-eyebrow">Documents</span><h1>Good {greeting},<br /><i>{user.name.split(" ")[0]}.</i></h1><p>Everything in progress, ready to share, and published lives in one quiet place.</p></div><button className="dash-new" onClick={createDocument} disabled={creating}><FilePlusIcon />{creating ? "Opening…" : "New document"}<ArrowRightIcon /></button></section>

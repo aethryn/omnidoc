@@ -22,6 +22,7 @@ COPY websocket-server.ts ./
 COPY src/lib/prisma.ts ./src/lib/prisma.ts
 COPY src/lib/document-yjs.ts ./src/lib/document-yjs.ts
 COPY src/lib/document-content.ts ./src/lib/document-content.ts
+COPY src/lib/document-version.ts ./src/lib/document-version.ts
 COPY src/lib/omnidoc-image-extension.ts ./src/lib/omnidoc-image-extension.ts
 
 ENV NODE_ENV=production

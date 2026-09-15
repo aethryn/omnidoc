@@ -11,15 +11,21 @@ import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
+import { documentContentHash } from "@/lib/document-version";
 
 const PORT = Number(process.env.PORT || process.env.WEBSOCKET_PORT || 4000);
 const HOST = process.env.WEBSOCKET_HOST || "0.0.0.0";
 const messageSync = 0;
 const messageAwareness = 1;
+const messageApplication = 4;
 const persistDebounceMs = 1500;
-const versionSnapshotIntervalMs = 60_000;
+const versionIdleMs = 120_000;
+const versionSnapshotIntervalMs = 15 * 60_000;
+const orphanRetentionMs = 30 * 24 * 60 * 60 * 1000;
+const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
+type PersistRequest = { connection: Connection; sequence: number; revision: number; checkpoint?: { description?: string; title?: string; source?: string } };
 type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number> };
-type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; snapshotRequested?: boolean; saveTimer?: NodeJS.Timeout; persistPromise?: Promise<void> };
+type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistPromise?: Promise<void> };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
@@ -28,6 +34,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
+const storageAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 const server = http.createServer((request, response) => {
   if (request.url === "/health") {
@@ -41,19 +50,68 @@ const server = http.createServer((request, response) => {
 
 const wss = new WebSocketServer({ server, maxPayload: 5 * 1024 * 1024 });
 
+async function cleanupOrphanImages() {
+  if (!storageAdmin) {
+    console.warn("Skipping orphan image cleanup: SUPABASE_SERVICE_ROLE_KEY is not configured");
+    return;
+  }
+  const cutoff = new Date(Date.now() - orphanRetentionMs);
+  const candidates = await prisma.documentImage.findMany({
+    where: { createdAt: { lt: cutoff } },
+    select: {
+      id: true,
+      fileName: true,
+      document: {
+        select: {
+          content: true,
+          versions: { select: { content: true } },
+          publication: { select: { content: true } },
+        },
+      },
+    },
+  });
+
+  for (const candidate of candidates) {
+    const reference = `/api/images/${candidate.fileName}`;
+    const referenced = [
+      candidate.document.content,
+      ...candidate.document.versions.map((version: { content: string }) => version.content),
+      candidate.document.publication?.content,
+    ].some((content) => content?.includes(reference));
+    if (referenced) continue;
+
+    const { error } = await storageAdmin.storage.from("document-images").remove([candidate.fileName]);
+    if (error) {
+      console.error("Orphan image storage cleanup failed", candidate.fileName, error.message);
+      continue;
+    }
+    await prisma.documentImage.delete({ where: { id: candidate.id } }).catch((error: unknown) => console.error("Orphan image metadata cleanup failed", candidate.fileName, error));
+  }
+}
+
+function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, messageApplication);
+  encoding.writeVarString(encoder, JSON.stringify(payload));
+  ws.send(encoding.toUint8Array(encoder));
+}
+
 async function persist(documentId: string, forceVersion = false) {
   const room = active.get(documentId);
   if (!room) return;
   if (room.persistPromise) {
     if (forceVersion) room.snapshotRequested = true;
     await room.persistPromise;
+    if (room.revision > room.persistedRevision || room.snapshotRequested || room.pendingRequests.some((request) => request.checkpoint)) await persist(documentId, room.snapshotRequested);
     return;
   }
-  if (!forceVersion && room.revision === room.persistedRevision) return;
+  if (!forceVersion && room.revision === room.persistedRevision && !room.snapshotRequested && !room.pendingRequests.some((request) => request.checkpoint)) return;
   const revision = room.revision;
   const content = yDocToContent(room.doc);
+  const requests = room.pendingRequests.filter((request) => request.revision <= revision);
+  const checkpoint = requests.find((request) => request.checkpoint)?.checkpoint;
   const hasUnversionedChanges = room.revision > (room.versionRevision ?? -1);
-  const createVersion = hasUnversionedChanges && (forceVersion || !room.lastVersionAt || Date.now() - room.lastVersionAt >= versionSnapshotIntervalMs);
+  const createVersion = hasUnversionedChanges && (forceVersion || Boolean(checkpoint) || Boolean(room.snapshotRequested));
   room.snapshotRequested = false;
   const operation = (async () => {
     await prisma.document.update({
@@ -68,22 +126,20 @@ async function persist(documentId: string, forceVersion = false) {
     if (createVersion) {
       try {
         const latestVersion = await prisma.documentVersion.findFirst({ where: { documentId }, orderBy: { versionNumber: "desc" }, select: { versionNumber: true } });
-        await prisma.documentVersion.create({
-          data: {
-            documentId,
-            content,
-            versionNumber: (latestVersion?.versionNumber || 0) + 1,
-            changeDescription: "Collaborative session snapshot",
-            createdBy: room.lastEditorId || room.ownerId,
-          },
-        });
+        const title = checkpoint?.title?.trim() || room.title;
+        const contentHash = documentContentHash(title, content);
+        const existing = await prisma.documentVersion.findUnique({ where: { documentId_contentHash: { documentId, contentHash } }, select: { id:true, versionNumber:true } });
+        if (!existing) await prisma.documentVersion.create({ data: { documentId, title, content, versionNumber: (latestVersion?.versionNumber || 0) + 1, changeDescription: checkpoint?.description || (forceVersion ? "Collaborative session snapshot" : "Automatic checkpoint"), source: checkpoint?.source || (forceVersion ? "session-close" : "automatic"), contentHash, contributors: Array.from(new Set([room.lastEditorId || room.ownerId, ...requests.map((request) => request.connection.userId)])), createdBy: room.lastEditorId || room.ownerId } });
         room.versionRevision = revision;
         room.lastVersionAt = Date.now();
+        room.changeStartedAt = undefined;
       } catch (error) {
         console.error("Yjs version snapshot failed", error);
       }
     }
     room.persistedRevision = revision;
+    room.pendingRequests = room.pendingRequests.filter((request) => request.revision > revision);
+    requests.forEach((request) => { if (request.connection.ws.readyState === WebSocket.OPEN) sendApplication(request.connection.ws, { kind:"persisted", sequence:request.sequence, persistedAt:new Date().toISOString() }); });
   })();
   room.persistPromise = operation;
   try { await operation; } finally { if (room.persistPromise === operation) room.persistPromise = undefined; }
@@ -103,6 +159,15 @@ function schedulePersist(documentId: string) {
   }, persistDebounceMs);
 }
 
+function scheduleVersion(documentId: string) {
+  const room = active.get(documentId);
+  if (!room || !room.changeStartedAt) return;
+  if (room.versionTimer) clearTimeout(room.versionTimer);
+  const maxRemaining = versionSnapshotIntervalMs - (Date.now() - room.changeStartedAt);
+  const delay = Math.max(0, Math.min(versionIdleMs, maxRemaining));
+  room.versionTimer = setTimeout(() => { room.snapshotRequested = true; persist(documentId).catch((error) => console.error("Automatic version checkpoint failed", error)); }, delay);
+}
+
 async function loadRoom(documentId: string) {
   const existing = active.get(documentId);
   if (existing) return existing;
@@ -112,7 +177,7 @@ async function loadRoom(documentId: string) {
   const promise = (async () => {
     const current = active.get(documentId);
     if (current) return current;
-    const document = await prisma.document.findUnique({ where: { id: documentId }, select: { id: true, userId: true, yjsState: true, content:true } });
+    const document = await prisma.document.findUnique({ where: { id: documentId }, select: { id: true, userId: true, title:true, yjsState: true, content:true } });
     if (!document) return null;
     let doc = document.yjsState ? new Y.Doc() : contentToYDoc(document.content);
     if (document.yjsState) {
@@ -120,13 +185,15 @@ async function loadRoom(documentId: string) {
       if (doc.getXmlFragment("default").length === 0 && document.content) doc = contentToYDoc(document.content);
     }
     const awareness = new awarenessProtocol.Awareness(doc);
-    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, revision:0, persistedRevision:0 };
+    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[] };
     active.set(documentId, room);
     doc.on("update", (update: Uint8Array, origin: unknown) => {
       room.revision += 1;
       const editor = Array.from(connections.get(documentId) || []).find(({ ws }) => ws === origin);
       if (editor) room.lastEditorId = editor.userId;
       schedulePersist(documentId);
+      room.changeStartedAt ||= Date.now();
+      scheduleVersion(documentId);
       const encoder = encoding.createEncoder();
       encoding.writeVarUint(encoder, messageSync);
       syncProtocol.writeUpdate(encoder, update);
@@ -192,6 +259,13 @@ wss.on("connection", async (ws, request) => {
         if (encoding.length(response) > 1 && ws.readyState === WebSocket.OPEN) ws.send(encoding.toUint8Array(response));
       } else if (type === messageAwareness) {
         awarenessProtocol.applyAwarenessUpdate(room.awareness,decoding.readVarUint8Array(decoder),entry);
+      } else if (type === messageApplication) {
+        const payload = JSON.parse(decoding.readVarString(decoder)) as { kind?:string; sequence?:number; checkpoint?:{description?:string;title?:string;source?:string} };
+        const sequence = payload.sequence;
+        if (payload.kind !== "persist-request" || typeof sequence !== "number" || !Number.isSafeInteger(sequence) || sequence < 0 || (payload.checkpoint && !entry.canEdit)) return;
+        room.pendingRequests.push({ connection:entry, sequence, revision:room.revision, checkpoint:payload.checkpoint });
+        if (payload.checkpoint) room.snapshotRequested = true;
+        void persist(documentId);
       }
     } catch (error) {
       console.error("Invalid collaboration message", error);
@@ -205,6 +279,7 @@ wss.on("connection", async (ws, request) => {
     if (!connections.get(documentId)?.size) {
       const room = active.get(documentId);
       if (room?.saveTimer) clearTimeout(room.saveTimer);
+      if (room?.versionTimer) clearTimeout(room.versionTimer);
       if (room && (room.persistPromise || room.revision > room.persistedRevision)) await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
       const current = active.get(documentId);
       if (current === room && !connections.get(documentId)?.size) {
@@ -223,4 +298,9 @@ const shutdown = async () => {
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
-server.listen(PORT, HOST, () => console.log(`Omnidoc WebSocket server listening on ${HOST}:${PORT}`));
+const cleanupTimer = setInterval(() => { cleanupOrphanImages().catch((error) => console.error("Orphan image cleanup failed", error)); }, orphanCleanupIntervalMs);
+cleanupTimer.unref();
+server.listen(PORT, HOST, () => {
+  console.log(`Omnidoc WebSocket server listening on ${HOST}:${PORT}`);
+  cleanupOrphanImages().catch((error) => console.error("Initial orphan image cleanup failed", error));
+});

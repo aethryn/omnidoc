@@ -14,6 +14,7 @@
     "ws:start": "tsx websocket-server.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run ws:dev\" --names \"NEXT,WS\" --prefix-colors \"blue,green\"",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "documents:backfill-previews": "tsx scripts/backfill-document-previews.ts"

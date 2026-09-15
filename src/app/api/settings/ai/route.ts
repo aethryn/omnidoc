@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
-import { encryptApiKey, isCredentialEncryptionConfigured } from "@/lib/ai/credentials";
+import { encryptApiKey, getCredentialEncryptionStatus } from "@/lib/ai/credentials";
 import { isAIProvider, listProviderModels } from "@/lib/ai/providers";
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     prisma.userSettings.findUnique({ where: { userId: auth.userId }, select: { activeAiProvider: true } }),
     prisma.aIProviderCredential.findMany({ where: { userId: auth.userId }, select: { provider: true, keyHint: true, model: true, updatedAt: true } }),
   ]);
-  return NextResponse.json({ activeProvider: settings?.activeAiProvider ?? null, encryptionConfigured:isCredentialEncryptionConfigured(), providers: credentials.map((item) => ({ ...item, configured: true })) });
+  const encryption = getCredentialEncryptionStatus();
+  return NextResponse.json({ activeProvider: settings?.activeAiProvider ?? null, encryptionConfigured: encryption.configured, encryptionCode: encryption.configured ? null : encryption.code, providers: credentials.map((item: typeof credentials[number]) => ({ ...item, configured: true })) });
 }
 
 export async function PUT(request: NextRequest) {
@@ -21,6 +22,8 @@ export async function PUT(request: NextRequest) {
   if (!isAIProvider(body.provider) || typeof body.apiKey !== "string" || body.apiKey.trim().length < 10) {
     return NextResponse.json({ error: "Choose a provider and enter a valid API key" }, { status: 400 });
   }
+  const encryption = getCredentialEncryptionStatus();
+  if (!encryption.configured) return NextResponse.json({ error: "The server encryption key is missing or invalid. Set AI_CREDENTIALS_ENCRYPTION_KEY to a valid Base64 value containing exactly 32 decoded bytes.", code: encryption.code }, { status: 503 });
   try {
     const apiKey = body.apiKey.trim();
     const models = await listProviderModels(body.provider, apiKey);

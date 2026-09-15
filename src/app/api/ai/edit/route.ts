@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, verifyDocumentAccess } from "@/lib/auth";
-import { decryptApiKey } from "@/lib/ai/credentials";
+import { decryptApiKey, ENCRYPTION_KEY_ERROR } from "@/lib/ai/credentials";
 import { extractProviderDelta, isAIProvider, providerRequest } from "@/lib/ai/providers";
 
 const encoder = new TextEncoder();
@@ -38,7 +38,15 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(output) {
       try {
-        const upstream = await providerRequest(provider, decryptApiKey(credential), credential.model, prompt, controller.signal);
+        let apiKey: string;
+        try { apiKey = decryptApiKey(credential); }
+        catch (error) {
+          const message = error instanceof Error && error.message.includes(ENCRYPTION_KEY_ERROR)
+            ? "The server encryption key is missing or invalid. Ask an administrator to configure AI_CREDENTIALS_ENCRYPTION_KEY."
+            : "This saved API key can no longer be decrypted. Enter the provider key again in Settings.";
+          throw new Error(message);
+        }
+        const upstream = await providerRequest(provider, apiKey, credential.model, prompt, controller.signal);
         if (!upstream.ok || !upstream.body) throw new Error(upstream.status === 401 || upstream.status === 403 ? "The saved API key was rejected" : `The provider returned ${upstream.status}`);
         const reader = upstream.body.getReader();
         const decoder = new TextDecoder();

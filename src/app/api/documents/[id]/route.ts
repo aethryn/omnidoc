@@ -3,6 +3,7 @@ import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deriveDocumentPreview } from "@/lib/document-content";
+import { documentContentHash } from "@/lib/document-version";
 
 export async function GET(
   request: NextRequest,
@@ -81,7 +82,7 @@ export async function GET(
       );
     }
 
-    const role = document.userId === userId ? "owner" : document.collaborators.find((member) => member.userId === userId)?.role || "viewer";
+    const role = document.userId === userId ? "owner" : document.collaborators.find((member: typeof document.collaborators[number]) => member.userId === userId)?.role || "viewer";
     return NextResponse.json({
       ...document,
       role,
@@ -154,8 +155,12 @@ export async function PUT(
       await prisma.documentVersion.create({
         data: {
           documentId,
+          title: document.title,
           content: document.content,
           versionNumber: (latestVersion?.versionNumber || 0) + 1,
+          source: "legacy-rest",
+          contentHash: documentContentHash(document.title, document.content),
+          contributors: [userId],
           createdBy: userId,
         },
       });
@@ -324,7 +329,7 @@ export async function DELETE(
 
         if (document.images.length) {
           const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-          const { error: storageError } = await supabase.storage.from("document-images").remove(document.images.map((image) => image.fileName));
+          const { error: storageError } = await supabase.storage.from("document-images").remove(document.images.map((image: typeof document.images[number]) => image.fileName));
           if (storageError) console.error("Failed to remove document images", storageError.message);
         }
 

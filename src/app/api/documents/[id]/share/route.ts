@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const document = await prisma.document.findFirst({ where:{ id,userId:auth.userId }, select:{id:true} });
   if(!document)return NextResponse.json({error:"Only the owner can manage links"},{status:403});
   const links=await prisma.documentShare.findMany({where:{documentId:id},orderBy:{createdAt:"desc"},select:{id:true,permissions:true,expiresAt:true,maxUses:true,useCount:true,createdAt:true,isActive:true}});
-  return NextResponse.json(links.map((link)=>({...link,role:link.permissions.includes("viewer")?"viewer":"editor"})));
+  return NextResponse.json(links.map((link: typeof links[number])=>({...link,role:link.permissions.includes("viewer")?"viewer":"editor"})));
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

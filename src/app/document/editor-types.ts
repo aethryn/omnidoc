@@ -11,6 +11,9 @@ export interface EditorHandle {
   applySuggestion(change: EditorSuggestion): boolean;
   dismissSuggestion(id: string): void;
   runFormat(command: FormatCommand): void;
+  addCommentMark(threadId: string, from: number, to: number): void;
+  replaceDocument(content: string): boolean;
+  createCheckpoint(description: string, title?: string): Promise<boolean>;
 }
 
 export type PresenceUser = { id: string; name: string; avatar?: string | null; color: string; role?: string };

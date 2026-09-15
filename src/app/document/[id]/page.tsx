@@ -16,7 +16,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     prisma.document.findFirst({
       where:{ id, OR:[{userId},{collaborators:{some:{userId,acceptedAt:{not:null}}}}] },
       select:{
-        id:true,title:true,content:true,yjsState:true,userId:true,status:true,updatedAt:true,lastEditedAt:true,
+        id:true,title:true,content:true,yjsState:true,userId:true,status:true,allowComments:true,updatedAt:true,lastEditedAt:true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true,revisionHash:true}},
         user:{select:{id:true,name:true,avatar:true}},
         collaborators:{where:{acceptedAt:{not:null}},select:{role:true,user:{select:{id:true,name:true,avatar:true}}}},
@@ -24,12 +24,12 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     }),
   ]);
   if (!user || !document) notFound();
-  const role = document.userId === userId ? "owner" : document.collaborators.find((item) => item.user.id === userId)?.role ?? "viewer";
+  const role = document.userId === userId ? "owner" : document.collaborators.find((item: typeof document.collaborators[number]) => item.user.id === userId)?.role ?? "viewer";
   const initialDocument: InitialDocument = {
-    id:document.id,title:document.title,content:document.content,role,status:document.status,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
+    id:document.id,title:document.title,content:document.content,role,status:document.status,allowComments:document.allowComments,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
     publication:document.publication?{...document.publication,publishedAt:document.publication.publishedAt.toISOString(),updatedAt:document.publication.updatedAt.toISOString()}:null,
     yjsState:document.yjsState ? Buffer.from(document.yjsState).toString("base64") : null,
-    collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item)=>({...item.user,role:item.role}))],
+    collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };
   console.info(JSON.stringify({ event:"document.load", documentId:id, durationMs:Math.round(performance.now()-startedAt) }));
   return <DocumentEditorClient initialDocument={initialDocument} currentUser={{...user,color:"#7c4dcc",role}} />;

@@ -1,0 +1,26 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { EditorHandle } from "./editor-types";
+
+type Person = { id:string; name:string; avatar?:string|null } | null;
+type Version = { id:string; title:string; versionNumber:number; changeDescription:string|null; source:string; createdAt:string; author:Person; contributors:Person[] };
+type Detail = Version & { content:string };
+
+export function HistoryDrawer({ documentId, open, onClose, editorRef, title, canEdit }: { documentId?:string; open:boolean; onClose:()=>void; editorRef:React.RefObject<EditorHandle|null>; title:string; canEdit:boolean }) {
+  const [versions,setVersions]=useState<Version[]>([]);
+  const [selected,setSelected]=useState<Detail|null>(null);
+  const [compare,setCompare]=useState<Detail|null>(null);
+  const [description,setDescription]=useState("");
+  const [pickCompare,setPickCompare]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const refresh=useCallback(async()=>{if(!documentId)return;const response=await fetch(`/api/documents/${documentId}/versions`,{cache:"no-store"});if(response.ok)setVersions(await response.json());},[documentId]);
+  useEffect(()=>{if(!open)return;void refresh();const onFocus=()=>void refresh();window.addEventListener("focus",onFocus);const timer=window.setInterval(()=>void refresh(),10_000);return()=>{window.removeEventListener("focus",onFocus);window.clearInterval(timer);};},[open,refresh]);
+  useEffect(()=>{if(!open)return;const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape")onClose();};window.addEventListener("keydown",onKeyDown);return()=>window.removeEventListener("keydown",onKeyDown);},[open,onClose]);
+  async function select(version:Version,setter:(value:Detail|null)=>void){const response=await fetch(`/api/documents/${documentId}/versions/${version.id}`,{cache:"no-store"});if(response.ok)setter(await response.json());}
+  async function checkpoint(){if(!editorRef.current||!description.trim())return;setBusy(true);const ok=await editorRef.current.createCheckpoint(description.trim(),title);setBusy(false);if(ok){setDescription("");await refresh();}}
+  async function restore(){if(!selected||!editorRef.current||!canEdit)return;if(!window.confirm(`Restore version ${selected.versionNumber}? Your current state will be preserved first.`))return;setBusy(true);const preserved=await editorRef.current.createCheckpoint(`Before restoring version ${selected.versionNumber}`,title);if(!preserved){setBusy(false);return;}const response=await fetch(`/api/documents/${documentId}/versions/${selected.id}`,{method:"POST"});const data=await response.json().catch(()=>({}));if(response.ok&&data.version?.content){editorRef.current.replaceDocument(data.version.content);await editorRef.current.createCheckpoint(`Restored from version ${selected.versionNumber}`,data.version.title||title);await refresh();}setBusy(false);}
+  const diff=selected&&compare?selected.content.split(/\r?\n/):[];
+  const compareLines=selected&&compare?compare.content.split(/\r?\n/):[];
+  return <><button className={`mobile-sheet-backdrop ${open?"is-open":""}`} aria-label="Close history" tabIndex={open?0:-1} onClick={onClose}/><aside className={`history-drawer ${open?"is-open":""}`} aria-hidden={!open}><div className="history-drawer__header"><div><strong>History</strong><span>Immutable checkpoints and restores</span></div><button onClick={onClose} aria-label="Close history">×</button></div>{canEdit&&<div className="history-checkpoint"><input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Name this version"/><button disabled={busy||!description.trim()} onClick={()=>void checkpoint()}>Checkpoint</button></div>}<div className="history-drawer__body"><div className="history-list">{versions.length===0?<p className="history-empty">No checkpoints yet. The first automatic checkpoint appears after editing settles.</p>:versions.map(version=><button className={`history-item ${selected?.id===version.id?"selected":""}`} key={version.id} onClick={()=>{if(pickCompare){void select(version,setCompare);setPickCompare(false);}else void select(version,setSelected);}}><span>Version {version.versionNumber}</span><strong>{version.changeDescription||"Automatic checkpoint"}</strong><small>{version.author?.name||"A collaborator"} · {new Date(version.createdAt).toLocaleString()}</small></button>)}</div>{selected&&<section className="history-detail"><div className="history-detail__title"><span>Version {selected.versionNumber}</span><button onClick={()=>setSelected(null)}>Close</button></div><p>{selected.changeDescription||"Automatic checkpoint"}</p><pre>{selected.content}</pre><div className="history-detail__actions"><button onClick={()=>setPickCompare(true)}>{pickCompare?"Choose another version":"Compare with…"}</button>{canEdit&&<button disabled={busy} onClick={()=>void restore()}>Restore</button>}</div></section>}{selected&&compare&&compare.id!==selected.id&&<section className="history-compare"><strong>Compare v{selected.versionNumber} with v{compare.versionNumber}</strong>{Array.from({length:Math.max(diff.length,compareLines.length)}).map((_,index)=>{const left=diff[index]||"",right=compareLines[index]||"";return <div key={index} className={left===right?"same":"changed"}><del>{left}</del><ins>{right}</ins></div>})}</section>}</div></aside></>;
+}

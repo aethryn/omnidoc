@@ -31,7 +31,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
       return response.json();
     }).then((data) => {
       setActiveProvider(data.activeProvider);
-      setEncryptionReady(data.encryptionConfigured !== false);
+      setEncryptionReady(data.encryptionConfigured === true);
       setConfigs(data.providers);
       setSelectedModels((current) => ({ ...current, ...Object.fromEntries(data.providers.map((item: Config) => [item.provider, item.model])) }));
     }).catch((error) => setMessage(error.message));
@@ -90,7 +90,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
             <Button onClick={saveProfile} disabled={busy === "profile"} className="text-white bg-[#7140cd] hover:bg-[#6033b7]">{busy === "profile" ? "Saving…" : "Save profile"}</Button>
           </TabsContent>
           <TabsContent value="ai" className="mt-6 space-y-4">
-            {!encryptionReady && <div role="alert" className="rounded-xl border border-[#efc3bc] bg-[#fff0ed] p-4 text-xs leading-5 text-[#963b32]">This server cannot store API keys yet. Set <code>AI_CREDENTIALS_ENCRYPTION_KEY</code> to 32 random bytes encoded as base64, then restart Omnidoc.</div>}
+            {!encryptionReady && <div role="alert" className="rounded-xl border border-[#efc3bc] bg-[#fff0ed] p-4 text-xs leading-5 text-[#963b32]">This server cannot store API keys yet. Set <code>AI_CREDENTIALS_ENCRYPTION_KEY</code> to a Base64 or Base64URL value that decodes to exactly 32 bytes, then restart Omnidoc. Generate one with <code>node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"</code>.</div>}
             <div className="rounded-xl border border-[#ded6c9] bg-[#f5f1e8] p-4 text-xs leading-5 text-[#6d665c]">
               Keys are encrypted with AES-256-GCM and never returned to the browser. Document excerpts are sent only to the provider you select when you request an edit.
             </div>

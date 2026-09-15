@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-
-const instrument = Instrument_Serif({ subsets: ["latin"], weight: "400", variable: "--font-instrument", display: "swap" });
 
 function metadataBase() {
   const configured = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
@@ -31,6 +28,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${instrument.variable} min-h-screen antialiased`}>
+      <body className="min-h-screen antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           {children}
           <Toaster position="bottom-right" richColors closeButton />

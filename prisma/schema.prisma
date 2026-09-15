@@ -167,9 +167,13 @@ model DocumentImage {
 model DocumentVersion {
   id String @id @default(uuid())
   documentId String
+  title String
   content String @db.Text  // JSON content snapshot from Tiptap editor
   versionNumber Int
   changeDescription String?  // Optional description of changes
+  source String @default("automatic")
+  contentHash String
+  contributors String[]
   createdAt DateTime @default(now())
   createdBy String  // User ID who made the change
   
@@ -178,6 +182,8 @@ model DocumentVersion {
   @@index([documentId])
   @@index([versionNumber])
   @@index([createdAt])
+  @@unique([documentId, versionNumber])
+  @@unique([documentId, contentHash])
 }
 
 model DocumentCollaborators {
@@ -203,16 +209,25 @@ model DocumentComment {
   userId String
   content String @db.Text
   lineNumber Int?  // For line-specific comments
+  parentId String?
+  anchorType String @default("general")
+  anchorText String?
+  resolvedAt DateTime?
+  resolvedBy String?
+  deletedAt DateTime?
   isResolved Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent DocumentComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies DocumentComment[] @relation("CommentReplies")
   
   @@index([documentId])
   @@index([userId])
   @@index([createdAt])
+  @@index([parentId])
 }
 
 model DocumentShare {
@@ -300,4 +315,19 @@ model DocumentActivity {
   @@index([documentId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model LinkPreview {
+  urlHash String @id
+  url String @db.Text
+  title String?
+  description String? @db.Text
+  siteName String?
+  faviconUrl String? @db.Text
+  imageUrl String? @db.Text
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+  isAvailable Boolean @default(true)
+
+  @@index([expiresAt])
 }
