@@ -1,11 +1,13 @@
 "use client";
 
-import { FormEvent, type RefObject, useRef, useState } from "react";
+import { FormEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpIcon, CheckIcon, CopyIcon, MagicWandIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowUpIcon, CheckIcon, CopyIcon, MagicWandIcon, PaperclipIcon, SparkleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { EditorHandle, EditorSuggestion } from "./editor-types";
+
+type DocumentImage = { id:string; originalName:string; fileUrl:string; mimeType:string; width?:number|null; height?:number|null };
 
 export function AIAssistantPanel({ onClose, editorRef, documentId, onOpenSettings, readOnly }: { onClose:()=>void; editorRef:RefObject<EditorHandle | null>; documentId?:string; onOpenSettings:()=>void; readOnly?:boolean }) {
   const [prompt,setPrompt]=useState("");
@@ -15,7 +17,19 @@ export function AIAssistantPanel({ onClose, editorRef, documentId, onOpenSetting
   const [error,setError]=useState<string|null>(null);
   const [needsSettings,setNeedsSettings]=useState(false);
   const [applied,setApplied]=useState(false);
+  const [images,setImages]=useState<DocumentImage[]>([]);
+  const [selectedImageIds,setSelectedImageIds]=useState<string[]>([]);
   const abortRef=useRef<AbortController|null>(null);
+
+  useEffect(() => {
+    if (!documentId) { setImages([]); setSelectedImageIds([]); return; }
+    let cancelled = false;
+    setSelectedImageIds([]);
+    fetch(`/api/documents/${documentId}`, { cache:"no-store" }).then((response) => response.ok ? response.json() : Promise.reject(new Error("Could not load document images"))).then((data) => {
+      if (!cancelled) setImages(Array.isArray(data.images) ? data.images : []);
+    }).catch(() => { if (!cancelled) setImages([]); });
+    return () => { cancelled = true; };
+  }, [documentId]);
 
   async function submit(event?:FormEvent) {
     event?.preventDefault();
@@ -30,7 +44,7 @@ export function AIAssistantPanel({ onClose, editorRef, documentId, onOpenSetting
     const base:EditorSuggestion={id,text:"",from:selection.from,to:selection.to,originalText:selection.text};
     let complete="";
     try{
-      const response=await fetch("/api/ai/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({documentId,instruction,selection:selection.text,context:editor.getPlainText()}),signal:controller.signal});
+      const response=await fetch("/api/ai/edit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({documentId,instruction,selection:selection.text,context:editor.getPlainText(),imageIds:selectedImageIds}),signal:controller.signal});
       if(!response.ok){const data=await response.json().catch(()=>({}));if(response.status===409)setNeedsSettings(true);throw new Error(data.error||"Omni could not complete that edit.");}
       if(!response.body)throw new Error("The AI provider returned no response.");
       const reader=response.body.getReader();const decoder=new TextDecoder();let buffer="";
@@ -48,6 +62,7 @@ export function AIAssistantPanel({ onClose, editorRef, documentId, onOpenSetting
       <div className="ai-welcome"><MagicWandIcon size={22} weight="duotone"/><h3>Shape the page, not just the prose.</h3><p>Select a passage for a rewrite, or leave the caret where you want new text. Nothing changes until you accept.</p></div>
       {!request&&<div className="ai-quick-actions">{["Make this more concise","Find the missing argument","Write a stronger closing"].map((label)=><button key={label} onClick={()=>setPrompt(label)}>{label}</button>)}</div>}
       {request&&<div className="ai-user-message">{request}</div>}
+      {documentId&&<div className="rounded-xl border border-[#e2dcd3] bg-[#faf8f3] p-3"><div className="mb-2 flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#5c5349]"><PaperclipIcon/> Attach document images</span><span className="text-[10px] text-[#948b80]">{selectedImageIds.length}/4</span></div>{images.length===0?<p className="text-[11px] leading-5 text-[#8b8379]">Images added to this document will appear here.</p>:<div className="grid grid-cols-2 gap-2">{images.map((image)=>{const selected=selectedImageIds.includes(image.id);return <button type="button" key={image.id} onClick={()=>setSelectedImageIds((current)=>selected?current.filter((id)=>id!==image.id):current.length<4?[...current,image.id]:current)} className={`flex min-w-0 items-center gap-2 rounded-lg border p-1.5 text-left text-[10px] ${selected?"border-[#8260bd] bg-[#f1ebfb]":"border-[#e4ded4] bg-white"}`} aria-pressed={selected}><img src={image.fileUrl} alt="" className="h-9 w-9 shrink-0 rounded object-cover"/><span className="min-w-0 truncate">{image.originalName}</span></button>;})}</div>}</div>}
       {(suggestion||loading||error)&&<div className="ai-response"><div className="ai-response__label"><SparkleIcon weight="fill"/> {loading?"Writing suggestion…":error&&!suggestion?"Omni needs attention":"Suggested change"}</div>{suggestion?.text&&<p>{suggestion.text}</p>}{error&&<p className="!font-[var(--font-inter)] !text-xs !leading-5 !text-[#a63f36]">{error}</p>}<div className="ai-response__actions">{needsSettings&&<Button variant="outline" size="sm" onClick={onOpenSettings}>Open AI settings</Button>}{applied?<span className="ai-applied"><CheckIcon weight="bold"/>Added to document</span>:suggestion?.text&&<><Button variant="ghost" size="sm" onClick={()=>navigator.clipboard?.writeText(suggestion.text)}><CopyIcon/>Copy</Button><Button variant="outline" size="sm" onClick={dismiss}>Dismiss</Button><Button size="sm" onClick={accept} disabled={loading} className="bg-[#352d59] text-white hover:bg-[#282044]">Accept change</Button></>}</div></div>}
     </div>
     <form className="ai-composer" onSubmit={submit}><Textarea value={prompt} disabled={readOnly||loading} onChange={(event)=>setPrompt(event.target.value)} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();submit();}}} placeholder={readOnly?"Viewers can’t edit this document":"Ask Omni to change this document…"}/><div className="ai-composer__footer"><span>{loading?"Streaming from your provider…":"Enter to submit"}</span><Button type="submit" size="icon" disabled={loading||readOnly||!prompt.trim()} className="h-8 w-8 rounded-full bg-[#352d59] text-white"><ArrowUpIcon weight="bold"/></Button></div></form>

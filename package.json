@@ -15,6 +15,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run ws:dev\" --names \"NEXT,WS\" --prefix-colors \"blue,green\"",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "documents:backfill-previews": "tsx scripts/backfill-document-previews.ts"
@@ -117,6 +118,7 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/lodash.throttle": "^4.1.9",
     "@types/node": "^20",

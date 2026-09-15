@@ -13,6 +13,7 @@ export interface EditorHandle {
   runFormat(command: FormatCommand): void;
   addCommentMark(threadId: string, from: number, to: number): void;
   replaceDocument(content: string): boolean;
+  retryPersistence(): void;
   createCheckpoint(description: string, title?: string): Promise<boolean>;
 }
 

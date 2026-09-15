@@ -26,6 +26,7 @@ COPY src/lib/document-version.ts ./src/lib/document-version.ts
 COPY src/lib/omnidoc-image-extension.ts ./src/lib/omnidoc-image-extension.ts
 COPY src/lib/collaboration-bus.ts ./src/lib/collaboration-bus.ts
 COPY src/lib/websocket-liveness.ts ./src/lib/websocket-liveness.ts
+COPY src/lib/collaboration-persistence.ts ./src/lib/collaboration-persistence.ts
 
 ENV NODE_ENV=production
 ENV PORT=8080

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, ArrowSquareOutIcon, CaretDownIcon, CheckCircleIcon, ChatCircleDotsIcon, ClockCounterClockwiseIcon, CloudCheckIcon, CopyIcon, DotsThreeIcon, FileDocIcon, FileHtmlIcon, FileMdIcon, FilePdfIcon, GearSixIcon, GlobeHemisphereWestIcon, ListBulletsIcon, NotePencilIcon, ShareNetworkIcon, SparkleIcon, TextAlignLeftIcon, TextBIcon, TextItalicIcon, TextUnderlineIcon, TrashIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import "./workspace-styles.css";
 import "./mobile-overrides.css";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { CommentsDrawer } from "./CommentsDrawer";
+import { initialWorkspaceUIState, workspaceReducer, type WorkspaceModal, type WorkspaceSheet } from "./workspace-state";
 
 const AIAssistantPanel=dynamic(()=>import("./AIAssistantPanel").then((module)=>module.AIAssistantPanel),{ssr:false});
 const SettingsModal=dynamic(()=>import("@/components/setting-modal").then((module)=>module.SettingsModal),{ssr:false});
@@ -46,7 +47,23 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [role]=useState(initialDocument?.role||"owner");
   const [status,setStatus]=useState<DocumentStatus>(initialDocument?.status||"WORKING_DRAFT");
   const [publication,setPublication]=useState<PublicationSummary|null>(initialDocument?.publication||null);
-  const [publishOpen,setPublishOpen]=useState(false);
+  const [workspaceUI,dispatchWorkspace]=useReducer(workspaceReducer,initialWorkspaceUIState);
+  const publishOpen=workspaceUI.modal==="publish";
+  const settingsOpen=workspaceUI.modal==="settings";
+  const shareOpen=workspaceUI.modal==="share";
+  const mobileMoreOpen=workspaceUI.modal==="more";
+  const historyOpen=workspaceUI.sheet==="history";
+  const commentsOpen=workspaceUI.sheet==="comments";
+  const aiOpen=workspaceUI.sheet==="ai";
+  const setSheetOpen=(sheet:WorkspaceSheet, value:boolean|((current:boolean)=>boolean))=>{const current=workspaceUI.sheet===sheet;const next=typeof value==="function"?value(current):value;dispatchWorkspace({type:next?"open-sheet":"close-sheet",sheet});};
+  const setModalOpen=(modal:WorkspaceModal, value:boolean|((current:boolean)=>boolean))=>{const current=workspaceUI.modal===modal;const next=typeof value==="function"?value(current):value;dispatchWorkspace({type:next?"open-modal":"close-modal",modal});};
+  const setPublishOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("publish",value);
+  const setSettingsOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("settings",value);
+  const setShareOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("share",value);
+  const setMobileMoreOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("more",value);
+  const setHistoryOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("history",value);
+  const setCommentsOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("comments",value);
+  const setAiOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("ai",value);
   const [publishBusy,setPublishBusy]=useState(false);
   const [exporting,setExporting]=useState<string|null>(null);
   const [hasUnpublishedChanges,setHasUnpublishedChanges]=useState(Boolean(initialDocument?.publication?.isActive&&initialDocument.lastEditedAt>initialDocument.publication.updatedAt));
@@ -55,16 +72,10 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [dirty,setDirty]=useState(false);
   const [lastSaved,setLastSaved]=useState(initialDocument?.updatedAt||null);
   const [collaborationStatus,setCollaborationStatus]=useState<CollaborationStatus>(activeId?"connecting":"local");
-  const [collaborationState,setCollaborationState]=useState<CollaborationState>({connectivity:activeId?"connecting":"online",indexedDbReady:false,pendingLocalChanges:false,lastPersistedAt:initialDocument?.updatedAt||null});
-  const [historyOpen,setHistoryOpen]=useState(false);
-  const [commentsOpen,setCommentsOpen]=useState(false);
+  const [collaborationState,setCollaborationState]=useState<CollaborationState>({connectivity:activeId?"connecting":"online",indexedDbReady:false,pendingLocalChanges:false,lastPersistedAt:initialDocument?.updatedAt||null,syncError:null,retryAvailable:false});
   const selectionRef=useRef<ReturnType<EditorHandle["getSelection"]>|null>(null);
   const [livePresence,setLivePresence]=useState<PresenceUser[]>([currentUser]);
-  const [aiOpen,setAiOpen]=useState(false);
   const [presenceOpen,setPresenceOpen]=useState(false);
-  const [settingsOpen,setSettingsOpen]=useState(false);
-  const [shareOpen,setShareOpen]=useState(false);
-  const [mobileMoreOpen,setMobileMoreOpen]=useState(false);
   const [shareRole,setShareRole]=useState<"viewer"|"editor">("editor");
   const [expiry,setExpiry]=useState("7");
   const [maxUses,setMaxUses]=useState("");
@@ -102,8 +113,11 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     // database's yjsState out of sync with its content column.
     if(initialDocument?.id||activeId){const acknowledged=await editorRef.current?.createCheckpoint("Manual checkpoint",documentName);if(acknowledged){setDirty(false);setLastSaved(new Date().toISOString());}return Boolean(acknowledged)&&collaborationStatus!=="error";}
     setIsSaving(true);const json=editorRef.current?.getDocumentJSON()||content;
-    const response=await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName,content:json})});
-    if(response.ok){setDirty(false);setLastSaved(new Date().toISOString());localStorage.removeItem(`document-${id}-backup`);}else localStorage.setItem(`document-${id}-backup`,json);setIsSaving(false);return response.ok;
+    try {
+      const response=await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName,content:json})});
+      if(response.ok){setDirty(false);setLastSaved(new Date().toISOString());localStorage.removeItem(`document-${id}-backup`);}else localStorage.setItem(`document-${id}-backup`,json);
+      return response.ok;
+    } catch { localStorage.setItem(`document-${id}-backup`,json); return false; } finally { setIsSaving(false); }
   }
 
   // Collaborative documents are persisted by the websocket room. Sending the
@@ -125,12 +139,12 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   async function createShare(){if(!activeId)return;setShareBusy(true);const response=await fetch(`/api/documents/${activeId}/share`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:shareRole,expiresInDays:Number(expiry),maxUses:maxUses?Number(maxUses):null})});if(response.ok){const data=await response.json();setShareUrl(data.url);const list=await fetch(`/api/documents/${activeId}/share`,{cache:"no-store"});if(list.ok)setShareLinks(await list.json());}setShareBusy(false);}
   async function revokeShare(shareId:string){if(!activeId)return;await fetch(`/api/documents/${activeId}/share`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({shareId})});setShareLinks((items)=>items.map((item)=>item.id===shareId?{...item,isActive:false}:item));}
 
-  const savedLabel=isSaving?"Saving…":activeId?(collaborationState.connectivity==="error"?"Couldn’t sync":!isOnline||collaborationState.connectivity==="offline"?"Saved locally":collaborationState.pendingLocalChanges?"Saving…":"All changes saved"):!isOnline?"Saved locally":dirty?"Saving…":lastSaved?"Saved":"Local draft";
+  const savedLabel=isSaving?"Saving…":activeId?(!isOnline||collaborationState.connectivity==="offline"?"Saved locally":collaborationState.connectivity==="connecting"?"Connecting…":collaborationState.syncError?"Couldn’t sync":collaborationState.pendingLocalChanges?"Saving…":"All changes saved"):!isOnline?"Saved locally":dirty?"Saving…":lastSaved?"Saved":"Local draft";
   const publicPath=publication?`/p/${publication.id}/${publication.slug}`:"";
 
   return <div className="omnidoc-workspace">
     <header className="workspace-topbar"><div className="workspace-wordmark"><button className="workspace-logo" onClick={()=>router.push("/dashboard")} aria-label="Back to documents"><OmnidocLogo priority className="workspace-logo-image"/></button><div className="workspace-breadcrumb"><span>Omnidoc</span><span className="workspace-slash">/</span><span className="document-name">{documentName}</span></div></div><div className="topbar-actions">
-      <div className="save-state">{isOnline?<CloudCheckIcon/>:<ClockCounterClockwiseIcon/>}<span className={`save-state__dot ${dirty?"pending":""}`}/>{savedLabel}</div>
+      <div className={`save-state ${collaborationState.syncError?"is-error":""}`}>{isOnline&&!collaborationState.syncError?<CloudCheckIcon/>:<ClockCounterClockwiseIcon/>}<span className={`save-state__dot ${(dirty||collaborationState.pendingLocalChanges)?"pending":""}`}/>{savedLabel}{collaborationState.retryAvailable&&<button type="button" className="ml-1 rounded border border-[#bdaecb] px-1.5 py-0.5 text-[9px] text-[#694d83] hover:bg-[#eee8f4]" onClick={()=>editorRef.current?.retryPersistence()} aria-label="Retry syncing changes">Retry</button>}</div>
       <Popover open={presenceOpen} onOpenChange={(open)=>{setPresenceOpen(open);if(open)setAiOpen(false);}}><PopoverTrigger asChild><button className="collaborator-tab"><span className="avatar-stack">{livePresence.slice(0,3).map((person,index)=><i key={person.id} className="mini-avatar" style={{background:person.color||colors[index%colors.length]}}>{initials(person.name)}</i>)}</span><span>{livePresence.length} here</span></button></PopoverTrigger><PopoverContent align="end" sideOffset={8} className="collaborator-popover"><h3>People in this document</h3>{knownPeople.map((person)=><div className="person-row" key={person.id}><i className="mini-avatar" style={{background:person.color}}>{initials(person.name)}</i><div><p>{person.id===currentUser.id?"You":person.name}</p><span>{livePresence.some((live)=>live.id===person.id)?"Active now":person.role||"Collaborator"}</span></div>{livePresence.some((live)=>live.id===person.id)&&<i className="online-dot"/>}</div>)}</PopoverContent></Popover>
       <button className="icon-action topbar-secondary-action" onClick={()=>void openHistory()} aria-label="Open history"><ClockCounterClockwiseIcon/></button><button className="icon-action topbar-secondary-action" onClick={()=>void openComments()} aria-label="Open comments"><ChatCircleDotsIcon/></button><button className="icon-action topbar-secondary-action" onClick={openShare} disabled={readOnly} aria-label="Share document"><ShareNetworkIcon/></button>{role==="owner"&&status==="COMPLETE"&&<button className="icon-action topbar-secondary-action mobile-publish-action" onClick={()=>setPublishOpen(true)} aria-label="Publish document"><GlobeHemisphereWestIcon/></button>}<button className="ai-toggle topbar-secondary-action" onClick={()=>{setPresenceOpen(false);setAiOpen((open)=>!open);}}><SparkleIcon weight="fill"/><span>Ask Omni</span></button>
       <div className="topbar-overflow"><DropdownMenu><DropdownMenuTrigger asChild><button className="icon-action" aria-label="Document actions"><DotsThreeIcon weight="bold"/></button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={()=>void save()}>Save now</DropdownMenuItem><DropdownMenuItem onClick={()=>document.getElementById("document-title")?.focus()}>Rename</DropdownMenuItem>{role==="owner"&&status==="COMPLETE"&&<DropdownMenuItem onClick={()=>setPublishOpen(true)}><GlobeHemisphereWestIcon/>{publication?.isActive?"Manage published page":"Publish document"}</DropdownMenuItem>}<DropdownMenuSeparator/><DropdownMenuItem disabled={Boolean(exporting)} onClick={()=>void exportDocument("pdf")}><FilePdfIcon/>Export as PDF</DropdownMenuItem><DropdownMenuItem disabled={Boolean(exporting)} onClick={()=>void exportDocument("docx")}><FileDocIcon/>Export as DOCX</DropdownMenuItem><DropdownMenuItem disabled={Boolean(exporting)} onClick={()=>void exportDocument("md")}><FileMdIcon/>Export as Markdown</DropdownMenuItem><DropdownMenuItem disabled={Boolean(exporting)} onClick={()=>void exportDocument("html")}><FileHtmlIcon/>Export as HTML</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>

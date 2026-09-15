@@ -15,6 +15,7 @@ import { deriveDocumentPreview } from "@/lib/document-content";
 import { documentContentHash } from "@/lib/document-version";
 import { CollaborationBus, type CollaborationBusMessage } from "@/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
+import type { PersistCheckpoint } from "@/lib/collaboration-persistence";
 
 const PORT = Number(process.env.PORT || process.env.WEBSOCKET_PORT || 4000);
 const HOST = process.env.WEBSOCKET_HOST || "0.0.0.0";
@@ -28,9 +29,9 @@ const orphanRetentionMs = 30 * 24 * 60 * 60 * 1000;
 const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
 const redisBatchMs = 50;
 type RedisOrigin = { kind: "redis"; id: string; sender: string };
-type PersistRequest = { connection: Connection; sequence: number; revision: number; checkpoint?: { description?: string; title?: string; source?: string } };
+type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
 type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number>; closed?: boolean };
-type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
+type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
@@ -191,6 +192,8 @@ async function cleanupEmptyRoom(documentId: string) {
   room.cleanupPromise = (async () => {
     if (room.saveTimer) clearTimeout(room.saveTimer);
     if (room.versionTimer) clearTimeout(room.versionTimer);
+    if (room.persistRetryTimer) clearTimeout(room.persistRetryTimer);
+    if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
     await flushRedisUpdates(room).catch((error) => console.error("Final Redis update failed", error));
     if (room.persistPromise || room.revision > room.persistedRevision || room.pendingRequests.length) await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
     room.pendingRequests = room.pendingRequests.filter((request) => !request.connection.closed && request.connection.ws.readyState === WebSocket.OPEN);
@@ -246,11 +249,31 @@ async function persist(documentId: string, forceVersion = false) {
       }
     }
     room.persistedRevision = revision;
+    const persistedAt = new Date().toISOString();
     room.pendingRequests = room.pendingRequests.filter((request) => request.revision > revision);
-    requests.forEach((request) => { if (request.connection.ws.readyState === WebSocket.OPEN) sendApplication(request.connection.ws, { kind:"persisted", sequence:request.sequence, persistedAt:new Date().toISOString() }); });
+    requests.forEach((request) => {
+      room.acknowledgedMarkers.set(request.markerId, { revision, persistedAt });
+      if (request.connection.ws.readyState === WebSocket.OPEN) sendApplication(request.connection.ws, { kind:"persisted", markerId:request.markerId, sequence:request.sequence, revision, persistedAt });
+    });
+    room.persistRetryAttempt = 0;
+    if (room.persistRetryTimer) clearTimeout(room.persistRetryTimer);
+    room.persistRetryTimer = undefined;
   })();
   room.persistPromise = operation;
-  try { await operation; } finally { if (room.persistPromise === operation) room.persistPromise = undefined; }
+  try {
+    await operation;
+  } catch (error) {
+    requests.forEach((request) => {
+      if (request.connection.ws.readyState === WebSocket.OPEN) sendApplication(request.connection.ws, { kind:"persist-failed", markerId:request.markerId, sequence:request.sequence, code:"PERSISTENCE_FAILED" });
+    });
+    room.persistRetryAttempt = (room.persistRetryAttempt || 0) + 1;
+    if (!room.persistRetryTimer) {
+      const delay = Math.min(30_000, 2_000 * 2 ** Math.min(room.persistRetryAttempt - 1, 4));
+      room.persistRetryTimer = setTimeout(() => { room.persistRetryTimer = undefined; void persist(documentId).catch((retryError) => console.error("Yjs persistence retry failed", retryError)); }, delay);
+      room.persistRetryTimer.unref();
+    }
+    throw error;
+  } finally { if (room.persistPromise === operation) room.persistPromise = undefined; }
 
   const current = active.get(documentId);
   if (current !== room || (room.revision <= revision && !room.snapshotRequested)) return;
@@ -293,7 +316,7 @@ async function loadRoom(documentId: string) {
       if (doc.getXmlFragment("default").length === 0 && document.content) doc = contentToYDoc(document.content);
     }
     const awareness = new awarenessProtocol.Awareness(doc);
-    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[], redisUpdates:[] };
+    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[], acknowledgedMarkers:new Map(), redisUpdates:[] };
     active.set(documentId, room);
     doc.on("update", (update: Uint8Array, origin: unknown) => {
       room.revision += 1;
@@ -391,10 +414,25 @@ wss.on("connection", async (ws, request) => {
       } else if (type === messageAwareness) {
         awarenessProtocol.applyAwarenessUpdate(room.awareness,decoding.readVarUint8Array(decoder),entry);
       } else if (type === messageApplication) {
-        const payload = JSON.parse(decoding.readVarString(decoder)) as { kind?:string; sequence?:number; checkpoint?:{description?:string;title?:string;source?:string} };
+        const payload = JSON.parse(decoding.readVarString(decoder)) as { kind?:string; markerId?:string; clientId?:string; sequence?:number; checkpoint?:PersistCheckpoint };
         const sequence = payload.sequence;
         if (payload.kind !== "persist-request" || typeof sequence !== "number" || !Number.isSafeInteger(sequence) || sequence < 0 || (payload.checkpoint && !entry.canEdit)) return;
-        room.pendingRequests.push({ connection:entry, sequence, revision:room.revision, checkpoint:payload.checkpoint });
+        const markerId = typeof payload.markerId === "string" ? payload.markerId : `legacy:${entry.userId}:${sequence}`;
+        const clientId = typeof payload.clientId === "string" ? payload.clientId : `legacy:${entry.userId}`;
+        const previous = room.acknowledgedMarkers.get(markerId);
+        if (previous) {
+          if (ws.readyState === WebSocket.OPEN) sendApplication(ws, { kind:"persisted", markerId, sequence, revision:previous.revision, persistedAt:previous.persistedAt });
+          return;
+        }
+        const duplicate = room.pendingRequests.find((request) => request.markerId === markerId);
+        if (duplicate) { duplicate.connection = entry; return; }
+        if (room.revision === room.persistedRevision && !payload.checkpoint) {
+          const persistedAt = new Date().toISOString();
+          room.acknowledgedMarkers.set(markerId, { revision:room.persistedRevision, persistedAt });
+          sendApplication(ws, { kind:"persisted", markerId, sequence, revision:room.persistedRevision, persistedAt });
+          return;
+        }
+        room.pendingRequests.push({ connection:entry, markerId, clientId, sequence, revision:room.revision, checkpoint:payload.checkpoint });
         if (payload.checkpoint) room.snapshotRequested = true;
         void persist(documentId);
       }

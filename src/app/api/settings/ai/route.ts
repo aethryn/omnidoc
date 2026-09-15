@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { encryptApiKey, getCredentialEncryptionStatus } from "@/lib/ai/credentials";
-import { isAIProvider, listProviderModels } from "@/lib/ai/providers";
+import { describeModel, isAIProvider, listProviderModels } from "@/lib/ai/providers";
 
 export async function GET(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     prisma.aIProviderCredential.findMany({ where: { userId: auth.userId }, select: { provider: true, keyHint: true, model: true, updatedAt: true } }),
   ]);
   const encryption = getCredentialEncryptionStatus();
-  return NextResponse.json({ activeProvider: settings?.activeAiProvider ?? null, encryptionConfigured: encryption.configured, encryptionCode: encryption.configured ? null : encryption.code, providers: credentials.map((item: typeof credentials[number]) => ({ ...item, configured: true })) });
+  return NextResponse.json({ activeProvider: settings?.activeAiProvider ?? null, encryptionConfigured: encryption.configured, encryptionCode: encryption.configured ? null : encryption.code, providers: credentials.map((item: typeof credentials[number]) => ({ ...item, configured: true, capabilities: describeModel(item.provider as "gemini" | "xai", item.model) })) });
 }
 
 export async function PUT(request: NextRequest) {
@@ -29,13 +29,13 @@ export async function PUT(request: NextRequest) {
     const models = await listProviderModels(body.provider, apiKey);
     if (!models.length) return NextResponse.json({ error: "No compatible text models were found" }, { status: 400 });
     const requestedModel = typeof body.model === "string" ? body.model : "";
-    const model = models.includes(requestedModel) ? requestedModel : models[0];
+    const model = models.find((item) => item.id === requestedModel) || models[0];
     const encrypted = encryptApiKey(apiKey);
     await prisma.$transaction([
       prisma.aIProviderCredential.upsert({
         where: { userId_provider: { userId: auth.userId, provider: body.provider } },
-        update: { ...encrypted, model },
-        create: { userId: auth.userId, provider: body.provider, model, ...encrypted },
+        update: { ...encrypted, model: model.id },
+        create: { userId: auth.userId, provider: body.provider, model: model.id, ...encrypted },
       }),
       prisma.userSettings.upsert({
         where: { userId: auth.userId },
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
         create: { userId: auth.userId, activeAiProvider: body.provider },
       }),
     ]);
-    return NextResponse.json({ provider: body.provider, configured: true, keyHint: encrypted.keyHint, model, models });
+    return NextResponse.json({ provider: body.provider, configured: true, keyHint: encrypted.keyHint, model: model.id, capabilities: model, models });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save this provider";
     return NextResponse.json({ error: message }, { status: 400 });

@@ -24,9 +24,10 @@ import { InteractiveImage } from "../document/InteractiveImage";
 import { uploadAndInsertImage } from "../document/image-upload";
 import { LinkPreviewCard } from "../document/LinkPreviewCard";
 import { CommentThreadExtension } from "../document/comment-thread-extension";
+import { isPersistedMessage, isPersistFailedMessage, persistenceAckTimeoutMs, persistenceRetryDelay, type PersistMarker } from "@/lib/collaboration-persistence";
 
 export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
-export type CollaborationState = { connectivity: "connecting" | "online" | "offline" | "error"; indexedDbReady: boolean; pendingLocalChanges: boolean; lastPersistedAt: string | null };
+export type CollaborationState = { connectivity: "connecting" | "online" | "offline" | "error"; indexedDbReady: boolean; pendingLocalChanges: boolean; lastPersistedAt: string | null; syncError: string | null; retryAvailable: boolean };
 interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onStateChange?: (state: CollaborationState) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; }
 
 function decodeState(value: string) { const binary = atob(value); return Uint8Array.from(binary, (char) => char.charCodeAt(0)); }
@@ -48,12 +49,17 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   const onContentChangeRef = useRef(onContentChange);
   const onStateChangeRef = useRef(onStateChange);
   const providerRef = useRef<WebsocketProvider | null>(null);
-  const stateRef = useRef<CollaborationState>({ connectivity:"connecting", indexedDbReady:false, pendingLocalChanges:false, lastPersistedAt:null });
+  const stateRef = useRef<CollaborationState>({ connectivity:"connecting", indexedDbReady:false, pendingLocalChanges:false, lastPersistedAt:null, syncError:null, retryAvailable:false });
   const pendingSequencesRef = useRef(new Set<number>());
-  const pendingMessagesRef = useRef(new Map<number, { kind:string; sequence:number; checkpoint?: { description:string; title?:string; source?:string } }>());
+  const pendingMessagesRef = useRef(new Map<number, PersistMarker>());
   const pendingCheckpointsRef = useRef(new Map<number, (ok:boolean)=>void>());
   const sequenceRef = useRef(0);
+  const clientIdRef = useRef(crypto.randomUUID());
+  const pendingSinceRef = useRef<number | null>(null);
+  const retryAttemptRef = useRef(0);
   const markerTimerRef = useRef<number | null>(null);
+  const ackTimerRef = useRef<number | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
 
   onStatusChangeRef.current = onStatusChange;
@@ -66,7 +72,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     onStateChangeRef.current?.(stateRef.current);
   }
 
-  function sendAppMessage(provider: WebsocketProvider, payload: { kind:string; sequence:number; checkpoint?: { description:string; title?:string; source?:string } }) {
+  function sendAppMessage(provider: WebsocketProvider, payload: PersistMarker) {
     if (!provider.ws || provider.ws.readyState !== WebSocket.OPEN) return false;
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, 4);
@@ -78,7 +84,47 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   function flushMarkers() {
     const provider = providerRef.current;
     if (!provider?.ws || provider.ws.readyState !== WebSocket.OPEN) return;
-    pendingSequencesRef.current.forEach((sequence) => sendAppMessage(provider, pendingMessagesRef.current.get(sequence) || { kind:"persist-request", sequence }));
+    pendingSequencesRef.current.forEach((sequence) => {
+      const marker = pendingMessagesRef.current.get(sequence);
+      if (marker) sendAppMessage(provider, marker);
+    });
+    if (pendingSequencesRef.current.size) {
+      if (ackTimerRef.current != null) window.clearTimeout(ackTimerRef.current);
+      const elapsed = pendingSinceRef.current == null ? 0 : Date.now() - pendingSinceRef.current;
+      ackTimerRef.current = window.setTimeout(() => {
+        if (!pendingSequencesRef.current.size) return;
+        updateState({ syncError:"PERSISTENCE_TIMEOUT", retryAvailable:true });
+        scheduleRetry();
+      }, Math.max(0, persistenceAckTimeoutMs - elapsed));
+    }
+  }
+
+  function scheduleRetry() {
+    if (retryTimerRef.current != null || !pendingSequencesRef.current.size) return;
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      retryAttemptRef.current += 1;
+      flushMarkers();
+      if (pendingSequencesRef.current.size) scheduleRetry();
+    }, persistenceRetryDelay(retryAttemptRef.current));
+  }
+
+  function markPending(marker: PersistMarker) {
+    pendingSequencesRef.current.add(marker.sequence);
+    pendingMessagesRef.current.set(marker.sequence, marker);
+    pendingSinceRef.current ||= Date.now();
+    retryAttemptRef.current = 0;
+    updateState({ pendingLocalChanges:true, syncError:null, retryAvailable:false });
+  }
+
+  function retryPending() {
+    if (!pendingSequencesRef.current.size) return;
+    if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+    pendingSinceRef.current = Date.now();
+    retryAttemptRef.current = 0;
+    updateState({ syncError:null, retryAvailable:false });
+    flushMarkers();
   }
 
   useEffect(() => {
@@ -93,9 +139,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     const onUpdate = (_update: Uint8Array, origin: unknown) => {
       if (origin === providerRef.current || origin === persistenceRef.current) return;
       const sequence = ++sequenceRef.current;
-      pendingSequencesRef.current.add(sequence);
-      pendingMessagesRef.current.set(sequence, { kind:"persist-request", sequence });
-      updateState({ pendingLocalChanges:true });
+      markPending({ kind:"persist-request", markerId:`${clientIdRef.current}:${sequence}`, clientId:clientIdRef.current, sequence });
       if (markerTimerRef.current != null) window.clearTimeout(markerTimerRef.current);
       markerTimerRef.current = window.setTimeout(flushMarkers, 0);
     };
@@ -118,25 +162,45 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
         onPresenceChangeRef.current?.(users);
       };
       nextProvider.awareness.on("change", publishPresence);
-      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") flushMarkers(); });
-      nextProvider.on("connection-error", () => { updateState({ connectivity:"error" }); onStatusChangeRef.current?.("error"); });
+      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); } });
+      nextProvider.on("connection-error", () => { updateState({ connectivity:"error", syncError:"CONNECTION_ERROR", retryAvailable:stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.("error"); scheduleRetry(); });
       nextProvider.on("sync", (synced) => { if (synced) flushMarkers(); });
       nextProvider.messageHandlers.push((_encoder, decoder, _provider, _isBc, messageType) => {
         if (messageType !== 4) return;
         try {
-          const payload = JSON.parse(decoding.readVarString(decoder)) as { kind?:string; sequence?:number; persistedAt?:string };
-          if (payload.kind !== "persisted" || typeof payload.sequence !== "number") return;
-          pendingSequencesRef.current.delete(payload.sequence);
-          pendingMessagesRef.current.delete(payload.sequence);
-          pendingCheckpointsRef.current.get(payload.sequence)?.(true);
-          pendingCheckpointsRef.current.delete(payload.sequence);
-          updateState({ pendingLocalChanges:pendingSequencesRef.current.size > 0, lastPersistedAt:payload.persistedAt || new Date().toISOString() });
+          const payload = JSON.parse(decoding.readVarString(decoder)) as Record<string, unknown>;
+          if (isPersistedMessage(payload)) {
+            const sequence = typeof payload.sequence === "number" ? payload.sequence : undefined;
+            const markerId = typeof payload.markerId === "string" ? payload.markerId : undefined;
+            if (sequence == null && !markerId) return;
+            const markerSequence = sequence ?? Array.from(pendingMessagesRef.current.entries()).find(([, marker]) => marker.markerId === markerId)?.[0];
+            if (markerSequence == null) return;
+            pendingSequencesRef.current.delete(markerSequence);
+            pendingMessagesRef.current.delete(markerSequence);
+            pendingCheckpointsRef.current.get(markerSequence)?.(true);
+            pendingCheckpointsRef.current.delete(markerSequence);
+            if (!pendingSequencesRef.current.size) {
+              pendingSinceRef.current = null;
+              retryAttemptRef.current = 0;
+              if (ackTimerRef.current != null) window.clearTimeout(ackTimerRef.current);
+              if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current);
+              ackTimerRef.current = null;
+              retryTimerRef.current = null;
+            }
+            updateState({ pendingLocalChanges:pendingSequencesRef.current.size > 0, syncError:null, retryAvailable:false, lastPersistedAt:payload.persistedAt || new Date().toISOString() });
+          } else if (isPersistFailedMessage(payload)) {
+            updateState({ syncError:payload.code, retryAvailable:true });
+            const failedSequence = typeof payload.sequence === "number" ? payload.sequence : -1;
+            pendingCheckpointsRef.current.get(failedSequence)?.(false);
+            pendingCheckpointsRef.current.delete(failedSequence);
+            scheduleRetry();
+          }
         } catch { /* Ignore malformed application messages. */ }
       });
       setProvider(nextProvider);
       publishPresence();
     }).catch(() => { if (!disposed) { updateState({ connectivity:"error" }); onStatusChangeRef.current?.("error"); } });
-    return () => { disposed = true; providerRef.current = null; nextProvider?.destroy(); };
+    return () => { disposed = true; providerRef.current = null; if (ackTimerRef.current != null) window.clearTimeout(ackTimerRef.current); if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current); nextProvider?.destroy(); };
   }, [documentId, user, ydoc]);
 
   const editor = useEditor({
@@ -164,14 +228,14 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     runFormat:(command) => { if(editor&&!readOnly)runFormat(editor,command); },
     addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
     replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
+    retryPersistence: () => retryPending(),
     createCheckpoint: async (description, title) => {
       if (!provider?.ws || provider.ws.readyState !== WebSocket.OPEN || !editor) return false;
       const sequence = ++sequenceRef.current;
-      pendingSequencesRef.current.add(sequence);
-      pendingMessagesRef.current.set(sequence, { kind:"persist-request", sequence, checkpoint:{ description, title: title || undefined, source:"manual" } });
-      updateState({ pendingLocalChanges:true });
+      const marker: PersistMarker = { kind:"persist-request", markerId:`${clientIdRef.current}:${sequence}`, clientId:clientIdRef.current, sequence, checkpoint:{ description, title: title || undefined, source:"manual" } };
+      markPending(marker);
       const acknowledged = new Promise<boolean>((resolve) => pendingCheckpointsRef.current.set(sequence, resolve));
-      if (!sendAppMessage(provider, { kind:"persist-request", sequence, checkpoint:{ description, title: title || undefined, source:"manual" } })) { pendingCheckpointsRef.current.delete(sequence); pendingMessagesRef.current.delete(sequence); pendingSequencesRef.current.delete(sequence); return false; }
+      if (!sendAppMessage(provider, marker)) { pendingCheckpointsRef.current.delete(sequence); pendingMessagesRef.current.delete(sequence); pendingSequencesRef.current.delete(sequence); updateState({ pendingLocalChanges:pendingSequencesRef.current.size > 0, syncError:"CONNECTION_ERROR", retryAvailable:true }); return false; }
       return Promise.race([acknowledged, new Promise<boolean>((resolve) => window.setTimeout(() => { pendingCheckpointsRef.current.delete(sequence); resolve(false); }, 15000))]);
     },
   }),[editor,readOnly]);

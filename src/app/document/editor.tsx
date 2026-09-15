@@ -82,6 +82,7 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
     runFormat: (command) => { if (editor && !readOnly) runFormat(editor, command); },
     addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
     replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
+    retryPersistence: () => undefined,
     createCheckpoint: async (description, title) => { if (!documentId) return false; const response = await fetch(`/api/documents/${documentId}/versions`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content: editor ? JSON.stringify(editor.getJSON()) : content, description }) }); return response.ok; },
   }), [content, editor, readOnly]);
 

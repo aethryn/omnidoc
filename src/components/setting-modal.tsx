@@ -10,13 +10,14 @@ import { Label } from "@/components/ui/label";
 
 type Provider = "gemini" | "xai";
 type Config = { provider: Provider; configured: true; keyHint: string; model: string; updatedAt: string };
+type ModelOption = { id: string; imageInput: boolean; imageOutput: boolean };
 
 export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onClose: () => void; user?: { name: string; avatar?: string } }) {
   const [name, setName] = useState(user?.name ?? "");
   const [activeProvider, setActiveProvider] = useState<Provider | null>(null);
   const [configs, setConfigs] = useState<Config[]>([]);
   const [keys, setKeys] = useState<Record<Provider, string>>({ gemini: "", xai: "" });
-  const [models, setModels] = useState<Record<Provider, string[]>>({ gemini: [], xai: [] });
+  const [models, setModels] = useState<Record<Provider, ModelOption[]>>({ gemini: [], xai: [] });
   const [selectedModels, setSelectedModels] = useState<Record<Provider, string>>({ gemini: "", xai: "" });
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
     const data = await response.json();
     if (!response.ok) { setMessage(data.error || "Could not validate that key."); setBusy(null); return; }
     setConfigs((items) => [...items.filter((item) => item.provider !== provider), { provider, configured: true, keyHint: data.keyHint, model: data.model, updatedAt: new Date().toISOString() }]);
-    setModels((current) => ({ ...current, [provider]: data.models ?? [data.model] }));
+    setModels((current) => ({ ...current, [provider]: data.models ?? [{ id:data.model, imageInput:false, imageOutput:false }] }));
     setSelectedModels((current) => ({ ...current, [provider]: data.model }));
     setKeys((current) => ({ ...current, [provider]: "" }));
     setActiveProvider(provider);
@@ -92,7 +93,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
           <TabsContent value="ai" className="mt-6 space-y-4">
             {!encryptionReady && <div role="alert" className="rounded-xl border border-[#efc3bc] bg-[#fff0ed] p-4 text-xs leading-5 text-[#963b32]">This server cannot store API keys yet. Set <code>AI_CREDENTIALS_ENCRYPTION_KEY</code> to a Base64 or Base64URL value that decodes to exactly 32 bytes, then restart Omnidoc. Generate one with <code>node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"</code>.</div>}
             <div className="rounded-xl border border-[#ded6c9] bg-[#f5f1e8] p-4 text-xs leading-5 text-[#6d665c]">
-              Keys are encrypted with AES-256-GCM and never returned to the browser. Document excerpts are sent only to the provider you select when you request an edit.
+              Keys are encrypted with AES-256-GCM and never returned to the browser. Document excerpts and explicitly attached images are sent only to the provider you select when you request an edit.
             </div>
             {(["gemini", "xai"] as Provider[]).map((provider) => {
               const configured = configs.find((item) => item.provider === provider);
@@ -101,7 +102,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
                 <div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><h3 className="text-sm font-semibold">{label}</h3>{configured && <span className="inline-flex items-center gap-1 rounded-full bg-[#e9e0f9] px-2 py-1 text-[10px] text-[#6940ab]"><CheckCircleIcon weight="fill" /> {activeProvider === provider ? "Active" : "Configured"}</span>}</div><p className="mt-1 text-xs text-[#837c72]">{configured ? `Key ending in ${configured.keyHint} · ${configured.model}` : "Use your own provider key."}</p></div>{configured && <button onClick={() => removeProvider(provider)} disabled={busy === `delete-${provider}`} className="rounded-lg p-2 text-[#9b4a43] hover:bg-[#fff0ed]" aria-label={`Remove ${label}`}><TrashIcon /></button>}</div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
                   <div className="relative"><KeyIcon className="absolute left-3 top-2.5 text-[#8c8378]" /><Input type="password" aria-label={`${label} API key`} value={keys[provider]} onChange={(event) => setKeys((current) => ({ ...current, [provider]: event.target.value }))} placeholder={configured ? "Replace API key" : "Paste API key"} className="border-[#d8d1c5] bg-white pl-9" /></div>
-                  {models[provider].length ? <select aria-label={`${label} model`} value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} className="h-9 rounded-md border border-[#d8d1c5] bg-white px-2 text-xs">{models[provider].map((model) => <option key={model}>{model}</option>)}</select> : <Input value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} placeholder="Model (auto)" className="border-[#d8d1c5] bg-white text-xs" />}
+                  {models[provider].length ? <select aria-label={`${label} model`} value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} className="h-9 rounded-md border border-[#d8d1c5] bg-white px-2 text-xs">{models[provider].map((model) => <option key={model.id} value={model.id}>{model.id}{model.imageInput ? " · vision" : ""}</option>)}</select> : <Input value={selectedModels[provider]} onChange={(event) => setSelectedModels((current) => ({ ...current, [provider]: event.target.value }))} placeholder="Model (auto)" className="border-[#d8d1c5] bg-white text-xs" />}
                   <Button onClick={() => saveProvider(provider)} disabled={!encryptionReady || busy === provider || !keys[provider].trim()} className="bg-[#2d2924] text-white hover:bg-[#4b443b]">{busy === provider ? "Checking…" : configured ? "Update" : "Connect"}</Button>
                 </div>
               </section>;
