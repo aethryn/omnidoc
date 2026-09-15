@@ -90,6 +90,7 @@
     "framer-motion": "^13.2.0",
     "gsap": "^3.13.0",
     "input-otp": "^1.4.2",
+    "ioredis": "^6.0.0",
     "lib0": "^0.2.114",
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^0.544.0",

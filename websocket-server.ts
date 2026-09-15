@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import http from "http";
+import { randomUUID } from "node:crypto";
 import WebSocket, { WebSocketServer } from "ws";
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
@@ -12,6 +13,8 @@ import { prisma } from "@/lib/prisma";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { documentContentHash } from "@/lib/document-version";
+import { CollaborationBus, type CollaborationBusMessage } from "@/lib/collaboration-bus";
+import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
 
 const PORT = Number(process.env.PORT || process.env.WEBSOCKET_PORT || 4000);
 const HOST = process.env.WEBSOCKET_HOST || "0.0.0.0";
@@ -23,13 +26,17 @@ const versionIdleMs = 120_000;
 const versionSnapshotIntervalMs = 15 * 60_000;
 const orphanRetentionMs = 30 * 24 * 60 * 60 * 1000;
 const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
+const redisBatchMs = 50;
+type RedisOrigin = { kind: "redis"; id: string; sender: string };
 type PersistRequest = { connection: Connection; sequence: number; revision: number; checkpoint?: { description?: string; title?: string; source?: string } };
-type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number> };
-type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistPromise?: Promise<void> };
+type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number>; closed?: boolean };
+type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
 const connections = new Map<string, Set<Connection>>();
+const instanceId = randomUUID();
+const collaborationBus = new CollaborationBus(process.env.REDIS_URL, process.env.WS_REDIS_REQUIRED === "true");
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -40,8 +47,9 @@ const storageAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const server = http.createServer((request, response) => {
   if (request.url === "/health") {
+    const connectionCount = Array.from(connections.values()).reduce((total, roomConnections) => total + roomConnections.size, 0);
     response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ ok: true, rooms: active.size }));
+    response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, redis: collaborationBus.status, redisRooms: collaborationBus.subscribedRooms }));
     return;
   }
   response.writeHead(200, { "Content-Type": "text/plain" });
@@ -49,6 +57,20 @@ const server = http.createServer((request, response) => {
 });
 
 const wss = new WebSocketServer({ server, maxPayload: 5 * 1024 * 1024 });
+
+type HeartbeatSocket = WebSocket & { isAlive?: boolean; missedPongs?: number };
+const heartbeatTimer = setInterval(() => {
+  wss.clients.forEach((client) => {
+    const socket = client as HeartbeatSocket;
+    if (shouldTerminateHeartbeat(socket.missedPongs || 0)) {
+      socket.terminate();
+      return;
+    }
+    socket.missedPongs = nextHeartbeatMissCount(socket.missedPongs || 0);
+    try { socket.ping(); } catch { socket.terminate(); }
+  });
+}, websocketHeartbeatIntervalMs);
+heartbeatTimer.unref();
 
 async function cleanupOrphanImages() {
   if (!storageAdmin) {
@@ -94,6 +116,92 @@ function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
   encoding.writeVarUint(encoder, messageApplication);
   encoding.writeVarString(encoder, JSON.stringify(payload));
   ws.send(encoding.toUint8Array(encoder));
+}
+
+function isConnectionOrigin(origin: unknown): origin is Connection {
+  return Boolean(origin && typeof origin === "object" && "ws" in origin);
+}
+
+function isRedisOrigin(origin: unknown): origin is RedisOrigin {
+  return Boolean(origin && typeof origin === "object" && (origin as RedisOrigin).kind === "redis");
+}
+
+function sendSyncUpdate(documentId: string, update: Uint8Array, except?: WebSocket) {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, messageSync);
+  syncProtocol.writeUpdate(encoder, update);
+  const message = encoding.toUint8Array(encoder);
+  connections.get(documentId)?.forEach(({ ws }) => {
+    if (ws !== except && ws.readyState === WebSocket.OPEN) ws.send(message);
+  });
+}
+
+function sendAwarenessUpdate(documentId: string, update: Uint8Array, except?: WebSocket) {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, messageAwareness);
+  encoding.writeVarUint8Array(encoder, update);
+  const message = encoding.toUint8Array(encoder);
+  connections.get(documentId)?.forEach(({ ws }) => {
+    if (ws !== except && ws.readyState === WebSocket.OPEN) ws.send(message);
+  });
+}
+
+function transportDecode(value: string) {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 === 1) throw new Error("Invalid collaboration bus payload");
+  return new Uint8Array(Buffer.from(value, "base64"));
+}
+
+async function flushRedisUpdates(room: ActiveRoom) {
+  if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
+  room.redisUpdateTimer = undefined;
+  const updates = room.redisUpdates.splice(0);
+  if (!updates.length) return;
+  const update = updates.length === 1 ? updates[0] : Y.mergeUpdates(updates);
+  const published = await collaborationBus.publish({ version: 1, id: randomUUID(), sender: instanceId, documentId: room.roomId, kind: "yjs-update", data: Buffer.from(update).toString("base64") });
+  if (!published && collaborationBus.status !== "disabled") console.warn("Redis Yjs update was not published", room.roomId);
+}
+
+function scheduleRedisUpdate(room: ActiveRoom, update: Uint8Array) {
+  room.redisUpdates.push(update);
+  if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
+  room.redisUpdateTimer = setTimeout(() => { flushRedisUpdates(room).catch((error) => console.error("Redis Yjs update failed", error)); }, redisBatchMs);
+  room.redisUpdateTimer.unref();
+}
+
+async function subscribeRoom(room: ActiveRoom) {
+  try {
+    room.redisUnsubscribe = await collaborationBus.subscribe(room.roomId, (message: CollaborationBusMessage) => {
+      if (message.sender === instanceId || message.documentId !== room.roomId) return;
+      try {
+        const update = transportDecode(message.data);
+        if (message.kind === "yjs-update") Y.applyUpdate(room.doc, update, { kind: "redis", id: message.id, sender: message.sender } satisfies RedisOrigin);
+        else awarenessProtocol.applyAwarenessUpdate(room.awareness, update, { kind: "redis", id: message.id, sender: message.sender } satisfies RedisOrigin);
+      } catch (error) {
+        console.error("Invalid collaboration bus update", room.roomId, error instanceof Error ? error.message : error);
+      }
+    });
+  } catch (error) {
+    console.error("Redis room subscription failed", room.roomId, error instanceof Error ? error.message : error);
+  }
+}
+
+async function cleanupEmptyRoom(documentId: string) {
+  const room = active.get(documentId);
+  if (!room || connections.get(documentId)?.size || room.cleanupPromise) return room?.cleanupPromise;
+  room.cleanupPromise = (async () => {
+    if (room.saveTimer) clearTimeout(room.saveTimer);
+    if (room.versionTimer) clearTimeout(room.versionTimer);
+    await flushRedisUpdates(room).catch((error) => console.error("Final Redis update failed", error));
+    if (room.persistPromise || room.revision > room.persistedRevision || room.pendingRequests.length) await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
+    room.pendingRequests = room.pendingRequests.filter((request) => !request.connection.closed && request.connection.ws.readyState === WebSocket.OPEN);
+    const current = active.get(documentId);
+    if (current !== room || connections.get(documentId)?.size) return;
+    active.delete(documentId);
+    connections.delete(documentId);
+    const unsubscribe = room.redisUnsubscribe;
+    if (unsubscribe) await unsubscribe().catch((error) => console.error("Redis room unsubscribe failed", error));
+  })().finally(() => { room.cleanupPromise = undefined; });
+  return room.cleanupPromise;
 }
 
 async function persist(documentId: string, forceVersion = false) {
@@ -185,7 +293,7 @@ async function loadRoom(documentId: string) {
       if (doc.getXmlFragment("default").length === 0 && document.content) doc = contentToYDoc(document.content);
     }
     const awareness = new awarenessProtocol.Awareness(doc);
-    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[] };
+    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[], redisUpdates:[] };
     active.set(documentId, room);
     doc.on("update", (update: Uint8Array, origin: unknown) => {
       room.revision += 1;
@@ -194,21 +302,19 @@ async function loadRoom(documentId: string) {
       schedulePersist(documentId);
       room.changeStartedAt ||= Date.now();
       scheduleVersion(documentId);
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageSync);
-      syncProtocol.writeUpdate(encoder, update);
-      connections.get(documentId)?.forEach(({ ws }) => {
-        if (ws !== origin && ws.readyState === WebSocket.OPEN) ws.send(encoding.toUint8Array(encoder));
-      });
+      if (!isRedisOrigin(origin)) scheduleRedisUpdate(room, update);
+      sendSyncUpdate(documentId, update, isConnectionOrigin(origin) ? origin.ws : undefined);
     });
     awareness.on("update", ({added,updated,removed}:{added:number[];updated:number[];removed:number[]}, origin:unknown) => {
       const changed=[...added,...updated,...removed];
-      const connection=origin as Connection|undefined;
+      const connection=isConnectionOrigin(origin) ? origin : undefined;
       if(connection?.awarenessIds){added.concat(updated).forEach((id)=>connection.awarenessIds.add(id));removed.forEach((id)=>connection.awarenessIds.delete(id));}
       if(!changed.length)return;
-      const encoder=encoding.createEncoder();encoding.writeVarUint(encoder,messageAwareness);encoding.writeVarUint8Array(encoder,awarenessProtocol.encodeAwarenessUpdate(awareness,changed));
-      const message=encoding.toUint8Array(encoder);connections.get(documentId)?.forEach(({ws})=>{if(ws!==connection?.ws&&ws.readyState===WebSocket.OPEN)ws.send(message);});
+      const update = awarenessProtocol.encodeAwarenessUpdate(awareness, changed);
+      if (!isRedisOrigin(origin)) void collaborationBus.publish({ version: 1, id: randomUUID(), sender: instanceId, documentId, kind: "awareness", data: Buffer.from(update).toString("base64") });
+      sendAwarenessUpdate(documentId, update, connection?.ws);
     });
+    await subscribeRoom(room);
     return room;
   })();
   loadingRooms.set(documentId, promise);
@@ -216,36 +322,61 @@ async function loadRoom(documentId: string) {
 }
 
 wss.on("connection", async (ws, request) => {
+  const socket = ws as HeartbeatSocket;
+  socket.isAlive = true;
+  socket.missedPongs = 0;
+  ws.on("pong", () => { socket.isAlive = true; socket.missedPongs = resetHeartbeat(); });
+  let closedBeforeSetup = false;
+  let closeHandler = () => { closedBeforeSetup = true; };
+  ws.once("close", closeHandler);
+  ws.on("error", (error) => {
+    console.error("WebSocket error", error instanceof Error ? error.message : error);
+    closeHandler();
+    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close(1011, "WebSocket error");
+  });
+
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   const documentId = url.pathname.split("/").filter(Boolean).pop();
   const token = url.searchParams.get("token");
   if (!documentId || !token) return ws.close(1008, "Authentication required");
 
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (authError || !user) return ws.close(1008, "Invalid session");
 
   const document = await prisma.document.findFirst({
     where: { id: documentId, OR: [{ userId: user.id }, { collaborators: { some: { userId: user.id, acceptedAt: { not: null } } } }] },
     select: { id: true, userId:true, collaborators:{where:{userId:user.id,acceptedAt:{not:null}},select:{role:true}} },
   });
+  if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (!document) return ws.close(1008, "Document access denied");
 
   const room = await loadRoom(documentId);
+  if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) { await cleanupEmptyRoom(documentId); return; }
   if (!room) return ws.close(1008, "Document not found");
   const role=document.userId===user.id?"owner":document.collaborators[0]?.role;
   const entry:Connection = { ws, userId: user.id, canEdit:role!=="viewer", awarenessIds:new Set() };
+  ws.off("close", closeHandler);
+  closeHandler = () => {
+    if (entry.closed) return;
+    entry.closed = true;
+    awarenessProtocol.removeAwarenessStates(room.awareness,Array.from(entry.awarenessIds),entry);
+    connections.get(documentId)?.delete(entry);
+    void cleanupEmptyRoom(documentId);
+  };
+  ws.on("close", closeHandler);
   if (!connections.has(documentId)) connections.set(documentId, new Set());
   connections.get(documentId)!.add(entry);
 
   const initial = encoding.createEncoder();
   encoding.writeVarUint(initial, messageSync);
   syncProtocol.writeSyncStep1(initial, room.doc);
-  ws.send(encoding.toUint8Array(initial));
+  if (ws.readyState === WebSocket.OPEN) ws.send(encoding.toUint8Array(initial));
   const existingIds=Array.from(room.awareness.getStates().keys());
-  if(existingIds.length){const awareness=encoding.createEncoder();encoding.writeVarUint(awareness,messageAwareness);encoding.writeVarUint8Array(awareness,awarenessProtocol.encodeAwarenessUpdate(room.awareness,existingIds));ws.send(encoding.toUint8Array(awareness));}
+  if(existingIds.length && ws.readyState === WebSocket.OPEN){const awareness=encoding.createEncoder();encoding.writeVarUint(awareness,messageAwareness);encoding.writeVarUint8Array(awareness,awarenessProtocol.encodeAwarenessUpdate(room.awareness,existingIds));ws.send(encoding.toUint8Array(awareness));}
 
   ws.on("message", (raw, isBinary) => {
-    if (!isBinary || typeof raw === "string") return;
+    if (entry.closed || ws.readyState !== WebSocket.OPEN || !isBinary || typeof raw === "string") return;
     try {
       const decoder = decoding.createDecoder(new Uint8Array(raw as Buffer));
       const type = decoding.readVarUint(decoder);
@@ -268,31 +399,19 @@ wss.on("connection", async (ws, request) => {
         void persist(documentId);
       }
     } catch (error) {
-      console.error("Invalid collaboration message", error);
+      console.error("Invalid collaboration message", error instanceof Error ? error.message : error);
       ws.close(1003, "Invalid collaboration message");
     }
   });
 
-  ws.on("close", async () => {
-    awarenessProtocol.removeAwarenessStates(room.awareness,Array.from(entry.awarenessIds),entry);
-    connections.get(documentId)?.delete(entry);
-    if (!connections.get(documentId)?.size) {
-      const room = active.get(documentId);
-      if (room?.saveTimer) clearTimeout(room.saveTimer);
-      if (room?.versionTimer) clearTimeout(room.versionTimer);
-      if (room && (room.persistPromise || room.revision > room.persistedRevision)) await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
-      const current = active.get(documentId);
-      if (current === room && !connections.get(documentId)?.size) {
-        active.delete(documentId);
-        connections.delete(documentId);
-      }
-    }
-  });
-  ws.on("error", (error) => console.error("WebSocket error", error));
 });
 
 const shutdown = async () => {
+  clearInterval(heartbeatTimer);
+  clearInterval(cleanupTimer);
   for (const documentId of active.keys()) await persist(documentId).catch(console.error);
+  await Promise.all(Array.from(active.keys()).map((documentId) => cleanupEmptyRoom(documentId)));
+  await collaborationBus.close();
   wss.clients.forEach((client) => client.close(1001, "Server restarting"));
   server.close(async () => { await prisma.$disconnect(); process.exit(0); });
 };

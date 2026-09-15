@@ -16,9 +16,9 @@ The Next.js app runs on port 3000 and the collaboration server on port 4000.
 
 ## Deployment
 
-Deploy the collaboration service first by connecting this repository to a Render Blueprint. The included `render.yaml` creates `omnidoc-collaboration` in Singapore. Add the requested Supabase and database variables, deploy it, and copy its public `onrender.com` URL.
+Deploy the collaboration service to Cloud Run from `Dockerfile.ws`. Create an Upstash Redis database and add its TLS `REDIS_URL`, `WS_REDIS_REQUIRED=true`, and the existing Supabase/database variables to the Cloud Run service. Build the image with `gcloud builds submit --tag YOUR_IMAGE --file Dockerfile.ws .`, then deploy it with `--min 0 --max 3 --timeout 900s --concurrency 100 --session-affinity`. Keep end-to-end HTTP/2 disabled. Cloud Run's service URL is the WebSocket endpoint; use it with `wss://` in `NEXT_PUBLIC_WS_URL`.
 
-Import the same GitHub repository into Vercel as a Next.js project. Add every variable from `.env.example` to the Production environment. Set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the final HTTPS Vercel or custom-domain URL, and set `NEXT_PUBLIC_WS_URL` to the Render URL with `wss://`. The included `vercel.json` keeps server functions in Singapore, close to the configured Supabase database.
+Import the same GitHub repository into Vercel as a Next.js project. Add every frontend variable from `.env.example` to the Production environment. Set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the final HTTPS Vercel or custom-domain URL, and set `NEXT_PUBLIC_WS_URL` to the Cloud Run URL with `wss://`. The included `vercel.json` keeps server functions in Singapore, close to the configured Supabase database.
 
 In Supabase Authentication URL Configuration, set the Site URL to the production site and add `https://your-domain/auth/callback` to the redirect allow list. Keep `http://localhost:3000/**` as an additional development redirect if local sign-in is still needed. Then redeploy Vercel so the final public URLs are embedded in the client bundle.
 
@@ -28,7 +28,7 @@ Supabase is the source of truth for Google authentication, Postgres, and private
 
 Image uploads use the private `document-images` Storage bucket. The Next.js app needs `SUPABASE_SERVICE_ROLE_KEY` for server-side image processing and delivery, and the collaboration service needs the same server-only variable for its daily orphan-image cleanup. Images removed from documents remain recoverable while referenced by versions or publications, then are cleaned up after 30 days.
 
-Render’s free service can sleep when idle, so Omnidoc keeps a local IndexedDB copy and reconnects automatically when the service wakes. Use an always-on instance when immediate collaboration presence is required. Keep the Next.js deployment region close to the Supabase database region.
+Cloud Run WebSocket requests are subject to the configured request timeout, so the client reconnects and resynchronizes after the 15-minute limit. Keep the Redis URL server-only. Add a Google Cloud budget alert and monitor active instances, open requests, timeout disconnects, and Upstash command usage. Keep the Next.js deployment region close to the Supabase database region.
 
 Required production variables are documented in `.env.example`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
 
