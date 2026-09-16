@@ -25,6 +25,32 @@ function walk(node: TiptapNode, visitor: (node: TiptapNode) => void) {
   node.content?.forEach((child) => walk(child, visitor));
 }
 
+/**
+ * Returns the image files that are actually embedded in the current editor
+ * document. DocumentImage rows can outlive an image node after an undo or
+ * delete, so callers that need the live document contents must use this
+ * instead of treating every stored image as active.
+ */
+export function extractDocumentImageUrls(value: string) {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  walk(parseDocumentContent(value), (node) => {
+    const src = node.type === "image" && typeof node.attrs?.src === "string" ? node.attrs.src : "";
+    if (!src.startsWith("/api/images/") || seen.has(src)) return;
+    seen.add(src);
+    urls.push(src);
+  });
+  return urls;
+}
+
+export function selectEmbeddedDocumentImages<T extends { fileUrl: string }>(images: T[], embeddedImageUrls: readonly string[]) {
+  const byUrl = new Map(images.map((image) => [image.fileUrl, image]));
+  return embeddedImageUrls.flatMap((url) => {
+    const image = byUrl.get(url);
+    return image ? [image] : [];
+  });
+}
+
 export function documentPlainText(value: string) {
   const blocks: string[] = [];
   const collect = (node: TiptapNode): string => {

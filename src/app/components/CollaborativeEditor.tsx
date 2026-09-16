@@ -207,6 +207,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     immediatelyRender:false,
     extensions:[StarterKit.configure({ history:false }), Underline, Link.configure({ openOnClick:false, autolink:true, linkOnPaste:true, validate:(href) => /^https?:\/\//i.test(href) }), CommentThreadExtension, InteractiveImage.configure({ documentId, getDocumentId: () => Promise.resolve(documentId), editable: !readOnly }), TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start writing…" }), GhostSuggestionExtension, Collaboration.configure({ document:ydoc, field:"default" }), ...(provider ? [CollaborationCursor.configure({ provider, user })] : [])],
     editable:!readOnly,
+    onCreate:({editor:instance})=>onContentChangeRef.current?.(JSON.stringify(instance.getJSON())),
     onUpdate:({editor:instance})=>onContentChangeRef.current?.(JSON.stringify(instance.getJSON())),
     editorProps:{
       attributes:{ class:"notion-editor focus:outline-none min-h-[520px]" },

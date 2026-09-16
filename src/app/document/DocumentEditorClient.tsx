@@ -20,6 +20,7 @@ import "./mobile-overrides.css";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { initialWorkspaceUIState, workspaceReducer, type WorkspaceModal, type WorkspaceSheet } from "./workspace-state";
+import { extractDocumentImageUrls } from "@/lib/document-content";
 
 const AIAssistantPanel=dynamic(()=>import("./AIAssistantPanel").then((module)=>module.AIAssistantPanel),{ssr:false});
 const SettingsModal=dynamic(()=>import("@/components/setting-modal").then((module)=>module.SettingsModal),{ssr:false});
@@ -42,6 +43,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const creationRef=useRef<Promise<string|null>|null>(null);
   const [activeId,setActiveId]=useState(initialDocument?.id);
   const [content,setContent]=useState(initialDocument?.content||EMPTY_DOCUMENT);
+  const [embeddedImageUrls,setEmbeddedImageUrls]=useState(()=>extractDocumentImageUrls(initialDocument?.content||EMPTY_DOCUMENT));
   const [documentName,setDocumentName]=useState(initialDocument?.title||"Untitled document");
   const [initialYjsState,setInitialYjsState]=useState(initialDocument?.yjsState||null);
   const [role]=useState(initialDocument?.role||"owner");
@@ -87,7 +89,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const presenceUser=useMemo(()=>({...currentUser,color:currentUser.color||colors[0],role}),[currentUser,role]);
   const knownPeople=useMemo(()=>{const byId=new Map<string,PresenceUser>();(initialDocument?.collaborators||[]).forEach((person,index)=>byId.set(person.id,{...person,color:colors[index%colors.length]}));livePresence.forEach((person)=>byId.set(person.id,person));return Array.from(byId.values());},[initialDocument?.collaborators,livePresence]);
 
-  useEffect(()=>{const online=()=>setIsOnline(true),offline=()=>setIsOnline(false);setIsOnline(navigator.onLine);window.addEventListener("online",online);window.addEventListener("offline",offline);if(!initialDocument){const recovered=localStorage.getItem(LOCAL_DRAFT);if(recovered){setContent(recovered);}}return()=>{window.removeEventListener("online",online);window.removeEventListener("offline",offline);};},[initialDocument]);
+  useEffect(()=>{const online=()=>setIsOnline(true),offline=()=>setIsOnline(false);setIsOnline(navigator.onLine);window.addEventListener("online",online);window.addEventListener("offline",offline);if(!initialDocument){const recovered=localStorage.getItem(LOCAL_DRAFT);if(recovered){setContent(recovered);setEmbeddedImageUrls(extractDocumentImageUrls(recovered));}}return()=>{window.removeEventListener("online",online);window.removeEventListener("offline",offline);};},[initialDocument]);
 
   useEffect(()=>{
     const locked=historyOpen||commentsOpen||aiOpen;
@@ -104,7 +106,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     return creationRef.current;
   },[activeId,content,documentName,router]);
 
-  const contentChanged=useCallback((json:string)=>{setContent(json);if(!activeId)setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);if(!activeId){localStorage.setItem(LOCAL_DRAFT,json);void ensureSaved(json);}},[activeId,ensureSaved,publication?.isActive]);
+  const contentChanged=useCallback((json:string)=>{setContent(json);setEmbeddedImageUrls(extractDocumentImageUrls(json));if(!activeId)setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);if(!activeId){localStorage.setItem(LOCAL_DRAFT,json);void ensureSaved(json);}},[activeId,ensureSaved,publication?.isActive]);
 
   async function save(documentId?:string){
     const id=documentId||await ensureSaved();if(!id||!isOnline)return false;
@@ -154,7 +156,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
         <div className="editor-rule"/><div className="editor-toolbar"><div className="toolbar-group"><button className="toolbar-style" disabled={readOnly} onClick={()=>format("paragraph")}>Body <CaretDownIcon/></button><span className="toolbar-divider"/><button className="toolbar-button" disabled={readOnly} onClick={()=>format("bold")}><TextBIcon weight="bold"/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("italic")}><TextItalicIcon/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("underline")}><TextUnderlineIcon/></button><span className="toolbar-divider"/><button className="toolbar-button" disabled={readOnly} onClick={()=>format("align-left")}><TextAlignLeftIcon/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("bullet-list")}><ListBulletsIcon/></button></div><span className="text-[10px] text-[#aaa4ac]">{readOnly?"Viewer access":"Select text, then ask Omni"}</span></div>
         <div className="paper-editor"><Suspense fallback={<div className="min-h-[520px] text-xs text-[#aaa49b]">Preparing the page…</div>}>{activeId?<CollaborativeEditor ref={editorRef} documentId={activeId} initialState={initialYjsState} readOnly={readOnly} user={presenceUser} onStatusChange={setCollaborationStatus} onStateChange={setCollaborationState} onPresenceChange={setLivePresence} onContentChange={contentChanged}/>:<Editor ref={editorRef} initialContent={content} onContentChange={contentChanged} ensureDocumentId={()=>ensureSaved()} readOnly={readOnly}/>}</Suspense></div>
       </motion.article></main>
-      <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} documentId={activeId} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
+      <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} documentId={activeId} embeddedImageUrls={embeddedImageUrls} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
     </div>
     <MobileBottomNav
       className="document-mobile-nav"
