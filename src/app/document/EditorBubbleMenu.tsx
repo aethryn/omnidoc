@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { uploadAndInsertImage } from './image-upload'
+import { normalizeHttpUrl } from '@/lib/links'
 
 interface EditorBubbleMenuProps {
   editor: Editor
@@ -34,11 +35,13 @@ interface EditorBubbleMenuProps {
 export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: EditorBubbleMenuProps) {
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
   const [isOpen, setIsOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if((e.ctrlKey || e.metaKey) && e.key === 'k'){
         e.preventDefault();//stop browser goonin mechanism
+        setLinkUrl(editor.getAttributes('link').href || '')
         setIsOpen((prev) => !prev);
         // editor.view.updateState(editor.state);
         editor.view.focus();
@@ -222,10 +225,9 @@ export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: Edito
         <button
           ref={(el) => { buttonsRef.current[10] = el }}
           onClick={() => {
-            const url = window.prompt('Enter URL:')
-            if (url) {
-              editor.chain().focus().setLink({ href: url }).run()
-            }
+            setLinkUrl(editor.getAttributes('link').href || '')
+            setIsOpen(true)
+            editor.view.focus()
           }}
           title="Link"
           className={`p-2 rounded-lg transition-colors ${
@@ -234,6 +236,7 @@ export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: Edito
         >
           <LinkSimpleIcon size={18} weight="bold" />
         </button>
+        {isOpen && <form className="link-editor-popover" onSubmit={(event) => { event.preventDefault(); const href = normalizeHttpUrl(linkUrl); if (!href) return; editor.chain().focus().setLink({ href }).run(); setIsOpen(false); }}><input autoFocus value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="Paste a link" aria-label="Link URL"/><button type="submit">Apply</button><button type="button" onClick={() => { const href=normalizeHttpUrl(linkUrl); if(href)void navigator.clipboard.writeText(href); }}>Copy</button>{editor.isActive('link') && <button type="button" onClick={() => { editor.chain().focus().unsetLink().run(); setIsOpen(false); }}>Remove</button>}</form>}
 
         {/* Image Upload */}
         <button
@@ -241,7 +244,7 @@ export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: Edito
           onClick={async () => {
             const input = document.createElement('input')
             input.type = 'file'
-            input.accept = 'image/*'
+            input.accept = 'image/jpeg,image/png,image/webp,image/gif'
             
             input.onchange = async (e) => {
               const file = (e.target as HTMLInputElement).files?.[0]

@@ -83,6 +83,11 @@ export type AIProviderCredential = $Result.DefaultSelection<Prisma.$AIProviderCr
  * 
  */
 export type DocumentActivity = $Result.DefaultSelection<Prisma.$DocumentActivityPayload>
+/**
+ * Model LinkPreview
+ * 
+ */
+export type LinkPreview = $Result.DefaultSelection<Prisma.$LinkPreviewPayload>
 
 /**
  * Enums
@@ -358,6 +363,16 @@ export class PrismaClient<
     * ```
     */
   get documentActivity(): Prisma.DocumentActivityDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.linkPreview`: Exposes CRUD operations for the **LinkPreview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LinkPreviews
+    * const linkPreviews = await prisma.linkPreview.findMany()
+    * ```
+    */
+  get linkPreview(): Prisma.LinkPreviewDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -811,7 +826,8 @@ export namespace Prisma {
     DocumentTemplate: 'DocumentTemplate',
     UserSettings: 'UserSettings',
     AIProviderCredential: 'AIProviderCredential',
-    DocumentActivity: 'DocumentActivity'
+    DocumentActivity: 'DocumentActivity',
+    LinkPreview: 'LinkPreview'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -830,7 +846,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "room" | "roomUser" | "document" | "documentPublication" | "documentImage" | "documentVersion" | "documentCollaborators" | "documentComment" | "documentShare" | "documentTemplate" | "userSettings" | "aIProviderCredential" | "documentActivity"
+      modelProps: "user" | "room" | "roomUser" | "document" | "documentPublication" | "documentImage" | "documentVersion" | "documentCollaborators" | "documentComment" | "documentShare" | "documentTemplate" | "userSettings" | "aIProviderCredential" | "documentActivity" | "linkPreview"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1870,6 +1886,80 @@ export namespace Prisma {
           }
         }
       }
+      LinkPreview: {
+        payload: Prisma.$LinkPreviewPayload<ExtArgs>
+        fields: Prisma.LinkPreviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LinkPreviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LinkPreviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          findFirst: {
+            args: Prisma.LinkPreviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LinkPreviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          findMany: {
+            args: Prisma.LinkPreviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>[]
+          }
+          create: {
+            args: Prisma.LinkPreviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          createMany: {
+            args: Prisma.LinkPreviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LinkPreviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>[]
+          }
+          delete: {
+            args: Prisma.LinkPreviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          update: {
+            args: Prisma.LinkPreviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.LinkPreviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LinkPreviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LinkPreviewUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>[]
+          }
+          upsert: {
+            args: Prisma.LinkPreviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LinkPreviewPayload>
+          }
+          aggregate: {
+            args: Prisma.LinkPreviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLinkPreview>
+          }
+          groupBy: {
+            args: Prisma.LinkPreviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LinkPreviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LinkPreviewCountArgs<ExtArgs>
+            result: $Utils.Optional<LinkPreviewCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1980,6 +2070,7 @@ export namespace Prisma {
     userSettings?: UserSettingsOmit
     aIProviderCredential?: AIProviderCredentialOmit
     documentActivity?: DocumentActivityOmit
+    linkPreview?: LinkPreviewOmit
   }
 
   /* Types for Logging */
@@ -2244,6 +2335,37 @@ export namespace Prisma {
    */
   export type DocumentCountOutputTypeCountRoomArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: RoomWhereInput
+  }
+
+
+  /**
+   * Count Type DocumentCommentCountOutputType
+   */
+
+  export type DocumentCommentCountOutputType = {
+    replies: number
+  }
+
+  export type DocumentCommentCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    replies?: boolean | DocumentCommentCountOutputTypeCountRepliesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DocumentCommentCountOutputType without action
+   */
+  export type DocumentCommentCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DocumentCommentCountOutputType
+     */
+    select?: DocumentCommentCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DocumentCommentCountOutputType without action
+   */
+  export type DocumentCommentCountOutputTypeCountRepliesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DocumentCommentWhereInput
   }
 
 
@@ -9541,9 +9663,12 @@ export namespace Prisma {
   export type DocumentVersionMinAggregateOutputType = {
     id: string | null
     documentId: string | null
+    title: string | null
     content: string | null
     versionNumber: number | null
     changeDescription: string | null
+    source: string | null
+    contentHash: string | null
     createdAt: Date | null
     createdBy: string | null
   }
@@ -9551,9 +9676,12 @@ export namespace Prisma {
   export type DocumentVersionMaxAggregateOutputType = {
     id: string | null
     documentId: string | null
+    title: string | null
     content: string | null
     versionNumber: number | null
     changeDescription: string | null
+    source: string | null
+    contentHash: string | null
     createdAt: Date | null
     createdBy: string | null
   }
@@ -9561,9 +9689,13 @@ export namespace Prisma {
   export type DocumentVersionCountAggregateOutputType = {
     id: number
     documentId: number
+    title: number
     content: number
     versionNumber: number
     changeDescription: number
+    source: number
+    contentHash: number
+    contributors: number
     createdAt: number
     createdBy: number
     _all: number
@@ -9581,9 +9713,12 @@ export namespace Prisma {
   export type DocumentVersionMinAggregateInputType = {
     id?: true
     documentId?: true
+    title?: true
     content?: true
     versionNumber?: true
     changeDescription?: true
+    source?: true
+    contentHash?: true
     createdAt?: true
     createdBy?: true
   }
@@ -9591,9 +9726,12 @@ export namespace Prisma {
   export type DocumentVersionMaxAggregateInputType = {
     id?: true
     documentId?: true
+    title?: true
     content?: true
     versionNumber?: true
     changeDescription?: true
+    source?: true
+    contentHash?: true
     createdAt?: true
     createdBy?: true
   }
@@ -9601,9 +9739,13 @@ export namespace Prisma {
   export type DocumentVersionCountAggregateInputType = {
     id?: true
     documentId?: true
+    title?: true
     content?: true
     versionNumber?: true
     changeDescription?: true
+    source?: true
+    contentHash?: true
+    contributors?: true
     createdAt?: true
     createdBy?: true
     _all?: true
@@ -9698,9 +9840,13 @@ export namespace Prisma {
   export type DocumentVersionGroupByOutputType = {
     id: string
     documentId: string
+    title: string
     content: string
     versionNumber: number
     changeDescription: string | null
+    source: string
+    contentHash: string
+    contributors: string[]
     createdAt: Date
     createdBy: string
     _count: DocumentVersionCountAggregateOutputType | null
@@ -9727,9 +9873,13 @@ export namespace Prisma {
   export type DocumentVersionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     documentId?: boolean
+    title?: boolean
     content?: boolean
     versionNumber?: boolean
     changeDescription?: boolean
+    source?: boolean
+    contentHash?: boolean
+    contributors?: boolean
     createdAt?: boolean
     createdBy?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
@@ -9738,9 +9888,13 @@ export namespace Prisma {
   export type DocumentVersionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     documentId?: boolean
+    title?: boolean
     content?: boolean
     versionNumber?: boolean
     changeDescription?: boolean
+    source?: boolean
+    contentHash?: boolean
+    contributors?: boolean
     createdAt?: boolean
     createdBy?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
@@ -9749,9 +9903,13 @@ export namespace Prisma {
   export type DocumentVersionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     documentId?: boolean
+    title?: boolean
     content?: boolean
     versionNumber?: boolean
     changeDescription?: boolean
+    source?: boolean
+    contentHash?: boolean
+    contributors?: boolean
     createdAt?: boolean
     createdBy?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
@@ -9760,14 +9918,18 @@ export namespace Prisma {
   export type DocumentVersionSelectScalar = {
     id?: boolean
     documentId?: boolean
+    title?: boolean
     content?: boolean
     versionNumber?: boolean
     changeDescription?: boolean
+    source?: boolean
+    contentHash?: boolean
+    contributors?: boolean
     createdAt?: boolean
     createdBy?: boolean
   }
 
-  export type DocumentVersionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "content" | "versionNumber" | "changeDescription" | "createdAt" | "createdBy", ExtArgs["result"]["documentVersion"]>
+  export type DocumentVersionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "title" | "content" | "versionNumber" | "changeDescription" | "source" | "contentHash" | "contributors" | "createdAt" | "createdBy", ExtArgs["result"]["documentVersion"]>
   export type DocumentVersionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
   }
@@ -9786,9 +9948,13 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       documentId: string
+      title: string
       content: string
       versionNumber: number
       changeDescription: string | null
+      source: string
+      contentHash: string
+      contributors: string[]
       createdAt: Date
       createdBy: string
     }, ExtArgs["result"]["documentVersion"]>
@@ -10217,9 +10383,13 @@ export namespace Prisma {
   interface DocumentVersionFieldRefs {
     readonly id: FieldRef<"DocumentVersion", 'String'>
     readonly documentId: FieldRef<"DocumentVersion", 'String'>
+    readonly title: FieldRef<"DocumentVersion", 'String'>
     readonly content: FieldRef<"DocumentVersion", 'String'>
     readonly versionNumber: FieldRef<"DocumentVersion", 'Int'>
     readonly changeDescription: FieldRef<"DocumentVersion", 'String'>
+    readonly source: FieldRef<"DocumentVersion", 'String'>
+    readonly contentHash: FieldRef<"DocumentVersion", 'String'>
+    readonly contributors: FieldRef<"DocumentVersion", 'String[]'>
     readonly createdAt: FieldRef<"DocumentVersion", 'DateTime'>
     readonly createdBy: FieldRef<"DocumentVersion", 'String'>
   }
@@ -11750,6 +11920,12 @@ export namespace Prisma {
     userId: string | null
     content: string | null
     lineNumber: number | null
+    parentId: string | null
+    anchorType: string | null
+    anchorText: string | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    deletedAt: Date | null
     isResolved: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11761,6 +11937,12 @@ export namespace Prisma {
     userId: string | null
     content: string | null
     lineNumber: number | null
+    parentId: string | null
+    anchorType: string | null
+    anchorText: string | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    deletedAt: Date | null
     isResolved: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11772,6 +11954,12 @@ export namespace Prisma {
     userId: number
     content: number
     lineNumber: number
+    parentId: number
+    anchorType: number
+    anchorText: number
+    resolvedAt: number
+    resolvedBy: number
+    deletedAt: number
     isResolved: number
     createdAt: number
     updatedAt: number
@@ -11793,6 +11981,12 @@ export namespace Prisma {
     userId?: true
     content?: true
     lineNumber?: true
+    parentId?: true
+    anchorType?: true
+    anchorText?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    deletedAt?: true
     isResolved?: true
     createdAt?: true
     updatedAt?: true
@@ -11804,6 +11998,12 @@ export namespace Prisma {
     userId?: true
     content?: true
     lineNumber?: true
+    parentId?: true
+    anchorType?: true
+    anchorText?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    deletedAt?: true
     isResolved?: true
     createdAt?: true
     updatedAt?: true
@@ -11815,6 +12015,12 @@ export namespace Prisma {
     userId?: true
     content?: true
     lineNumber?: true
+    parentId?: true
+    anchorType?: true
+    anchorText?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    deletedAt?: true
     isResolved?: true
     createdAt?: true
     updatedAt?: true
@@ -11913,6 +12119,12 @@ export namespace Prisma {
     userId: string
     content: string
     lineNumber: number | null
+    parentId: string | null
+    anchorType: string
+    anchorText: string | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    deletedAt: Date | null
     isResolved: boolean
     createdAt: Date
     updatedAt: Date
@@ -11943,11 +12155,20 @@ export namespace Prisma {
     userId?: boolean
     content?: boolean
     lineNumber?: boolean
+    parentId?: boolean
+    anchorType?: boolean
+    anchorText?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    deletedAt?: boolean
     isResolved?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
+    replies?: boolean | DocumentComment$repliesArgs<ExtArgs>
+    _count?: boolean | DocumentCommentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["documentComment"]>
 
   export type DocumentCommentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -11956,11 +12177,18 @@ export namespace Prisma {
     userId?: boolean
     content?: boolean
     lineNumber?: boolean
+    parentId?: boolean
+    anchorType?: boolean
+    anchorText?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    deletedAt?: boolean
     isResolved?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
   }, ExtArgs["result"]["documentComment"]>
 
   export type DocumentCommentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -11969,11 +12197,18 @@ export namespace Prisma {
     userId?: boolean
     content?: boolean
     lineNumber?: boolean
+    parentId?: boolean
+    anchorType?: boolean
+    anchorText?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    deletedAt?: boolean
     isResolved?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
   }, ExtArgs["result"]["documentComment"]>
 
   export type DocumentCommentSelectScalar = {
@@ -11982,23 +12217,34 @@ export namespace Prisma {
     userId?: boolean
     content?: boolean
     lineNumber?: boolean
+    parentId?: boolean
+    anchorType?: boolean
+    anchorText?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    deletedAt?: boolean
     isResolved?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DocumentCommentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "userId" | "content" | "lineNumber" | "isResolved" | "createdAt" | "updatedAt", ExtArgs["result"]["documentComment"]>
+  export type DocumentCommentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "documentId" | "userId" | "content" | "lineNumber" | "parentId" | "anchorType" | "anchorText" | "resolvedAt" | "resolvedBy" | "deletedAt" | "isResolved" | "createdAt" | "updatedAt", ExtArgs["result"]["documentComment"]>
   export type DocumentCommentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
+    replies?: boolean | DocumentComment$repliesArgs<ExtArgs>
+    _count?: boolean | DocumentCommentCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DocumentCommentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
   }
   export type DocumentCommentIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     document?: boolean | DocumentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
+    parent?: boolean | DocumentComment$parentArgs<ExtArgs>
   }
 
   export type $DocumentCommentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12006,6 +12252,8 @@ export namespace Prisma {
     objects: {
       document: Prisma.$DocumentPayload<ExtArgs>
       user: Prisma.$UserPayload<ExtArgs>
+      parent: Prisma.$DocumentCommentPayload<ExtArgs> | null
+      replies: Prisma.$DocumentCommentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12013,6 +12261,12 @@ export namespace Prisma {
       userId: string
       content: string
       lineNumber: number | null
+      parentId: string | null
+      anchorType: string
+      anchorText: string | null
+      resolvedAt: Date | null
+      resolvedBy: string | null
+      deletedAt: Date | null
       isResolved: boolean
       createdAt: Date
       updatedAt: Date
@@ -12412,6 +12666,8 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     document<T extends DocumentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DocumentDefaultArgs<ExtArgs>>): Prisma__DocumentClient<$Result.GetResult<Prisma.$DocumentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    parent<T extends DocumentComment$parentArgs<ExtArgs> = {}>(args?: Subset<T, DocumentComment$parentArgs<ExtArgs>>): Prisma__DocumentCommentClient<$Result.GetResult<Prisma.$DocumentCommentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    replies<T extends DocumentComment$repliesArgs<ExtArgs> = {}>(args?: Subset<T, DocumentComment$repliesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DocumentCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12446,6 +12702,12 @@ export namespace Prisma {
     readonly userId: FieldRef<"DocumentComment", 'String'>
     readonly content: FieldRef<"DocumentComment", 'String'>
     readonly lineNumber: FieldRef<"DocumentComment", 'Int'>
+    readonly parentId: FieldRef<"DocumentComment", 'String'>
+    readonly anchorType: FieldRef<"DocumentComment", 'String'>
+    readonly anchorText: FieldRef<"DocumentComment", 'String'>
+    readonly resolvedAt: FieldRef<"DocumentComment", 'DateTime'>
+    readonly resolvedBy: FieldRef<"DocumentComment", 'String'>
+    readonly deletedAt: FieldRef<"DocumentComment", 'DateTime'>
     readonly isResolved: FieldRef<"DocumentComment", 'Boolean'>
     readonly createdAt: FieldRef<"DocumentComment", 'DateTime'>
     readonly updatedAt: FieldRef<"DocumentComment", 'DateTime'>
@@ -12842,6 +13104,49 @@ export namespace Prisma {
      * Limit how many DocumentComments to delete.
      */
     limit?: number
+  }
+
+  /**
+   * DocumentComment.parent
+   */
+  export type DocumentComment$parentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DocumentComment
+     */
+    select?: DocumentCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DocumentComment
+     */
+    omit?: DocumentCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DocumentCommentInclude<ExtArgs> | null
+    where?: DocumentCommentWhereInput
+  }
+
+  /**
+   * DocumentComment.replies
+   */
+  export type DocumentComment$repliesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DocumentComment
+     */
+    select?: DocumentCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DocumentComment
+     */
+    omit?: DocumentCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DocumentCommentInclude<ExtArgs> | null
+    where?: DocumentCommentWhereInput
+    orderBy?: DocumentCommentOrderByWithRelationInput | DocumentCommentOrderByWithRelationInput[]
+    cursor?: DocumentCommentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DocumentCommentScalarFieldEnum | DocumentCommentScalarFieldEnum[]
   }
 
   /**
@@ -18445,6 +18750,1066 @@ export namespace Prisma {
 
 
   /**
+   * Model LinkPreview
+   */
+
+  export type AggregateLinkPreview = {
+    _count: LinkPreviewCountAggregateOutputType | null
+    _min: LinkPreviewMinAggregateOutputType | null
+    _max: LinkPreviewMaxAggregateOutputType | null
+  }
+
+  export type LinkPreviewMinAggregateOutputType = {
+    urlHash: string | null
+    url: string | null
+    title: string | null
+    description: string | null
+    siteName: string | null
+    faviconUrl: string | null
+    imageUrl: string | null
+    fetchedAt: Date | null
+    expiresAt: Date | null
+    isAvailable: boolean | null
+  }
+
+  export type LinkPreviewMaxAggregateOutputType = {
+    urlHash: string | null
+    url: string | null
+    title: string | null
+    description: string | null
+    siteName: string | null
+    faviconUrl: string | null
+    imageUrl: string | null
+    fetchedAt: Date | null
+    expiresAt: Date | null
+    isAvailable: boolean | null
+  }
+
+  export type LinkPreviewCountAggregateOutputType = {
+    urlHash: number
+    url: number
+    title: number
+    description: number
+    siteName: number
+    faviconUrl: number
+    imageUrl: number
+    fetchedAt: number
+    expiresAt: number
+    isAvailable: number
+    _all: number
+  }
+
+
+  export type LinkPreviewMinAggregateInputType = {
+    urlHash?: true
+    url?: true
+    title?: true
+    description?: true
+    siteName?: true
+    faviconUrl?: true
+    imageUrl?: true
+    fetchedAt?: true
+    expiresAt?: true
+    isAvailable?: true
+  }
+
+  export type LinkPreviewMaxAggregateInputType = {
+    urlHash?: true
+    url?: true
+    title?: true
+    description?: true
+    siteName?: true
+    faviconUrl?: true
+    imageUrl?: true
+    fetchedAt?: true
+    expiresAt?: true
+    isAvailable?: true
+  }
+
+  export type LinkPreviewCountAggregateInputType = {
+    urlHash?: true
+    url?: true
+    title?: true
+    description?: true
+    siteName?: true
+    faviconUrl?: true
+    imageUrl?: true
+    fetchedAt?: true
+    expiresAt?: true
+    isAvailable?: true
+    _all?: true
+  }
+
+  export type LinkPreviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LinkPreview to aggregate.
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LinkPreviews to fetch.
+     */
+    orderBy?: LinkPreviewOrderByWithRelationInput | LinkPreviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LinkPreviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LinkPreviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LinkPreviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LinkPreviews
+    **/
+    _count?: true | LinkPreviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LinkPreviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LinkPreviewMaxAggregateInputType
+  }
+
+  export type GetLinkPreviewAggregateType<T extends LinkPreviewAggregateArgs> = {
+        [P in keyof T & keyof AggregateLinkPreview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLinkPreview[P]>
+      : GetScalarType<T[P], AggregateLinkPreview[P]>
+  }
+
+
+
+
+  export type LinkPreviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LinkPreviewWhereInput
+    orderBy?: LinkPreviewOrderByWithAggregationInput | LinkPreviewOrderByWithAggregationInput[]
+    by: LinkPreviewScalarFieldEnum[] | LinkPreviewScalarFieldEnum
+    having?: LinkPreviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LinkPreviewCountAggregateInputType | true
+    _min?: LinkPreviewMinAggregateInputType
+    _max?: LinkPreviewMaxAggregateInputType
+  }
+
+  export type LinkPreviewGroupByOutputType = {
+    urlHash: string
+    url: string
+    title: string | null
+    description: string | null
+    siteName: string | null
+    faviconUrl: string | null
+    imageUrl: string | null
+    fetchedAt: Date
+    expiresAt: Date
+    isAvailable: boolean
+    _count: LinkPreviewCountAggregateOutputType | null
+    _min: LinkPreviewMinAggregateOutputType | null
+    _max: LinkPreviewMaxAggregateOutputType | null
+  }
+
+  type GetLinkPreviewGroupByPayload<T extends LinkPreviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LinkPreviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LinkPreviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LinkPreviewGroupByOutputType[P]>
+            : GetScalarType<T[P], LinkPreviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LinkPreviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    urlHash?: boolean
+    url?: boolean
+    title?: boolean
+    description?: boolean
+    siteName?: boolean
+    faviconUrl?: boolean
+    imageUrl?: boolean
+    fetchedAt?: boolean
+    expiresAt?: boolean
+    isAvailable?: boolean
+  }, ExtArgs["result"]["linkPreview"]>
+
+  export type LinkPreviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    urlHash?: boolean
+    url?: boolean
+    title?: boolean
+    description?: boolean
+    siteName?: boolean
+    faviconUrl?: boolean
+    imageUrl?: boolean
+    fetchedAt?: boolean
+    expiresAt?: boolean
+    isAvailable?: boolean
+  }, ExtArgs["result"]["linkPreview"]>
+
+  export type LinkPreviewSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    urlHash?: boolean
+    url?: boolean
+    title?: boolean
+    description?: boolean
+    siteName?: boolean
+    faviconUrl?: boolean
+    imageUrl?: boolean
+    fetchedAt?: boolean
+    expiresAt?: boolean
+    isAvailable?: boolean
+  }, ExtArgs["result"]["linkPreview"]>
+
+  export type LinkPreviewSelectScalar = {
+    urlHash?: boolean
+    url?: boolean
+    title?: boolean
+    description?: boolean
+    siteName?: boolean
+    faviconUrl?: boolean
+    imageUrl?: boolean
+    fetchedAt?: boolean
+    expiresAt?: boolean
+    isAvailable?: boolean
+  }
+
+  export type LinkPreviewOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"urlHash" | "url" | "title" | "description" | "siteName" | "faviconUrl" | "imageUrl" | "fetchedAt" | "expiresAt" | "isAvailable", ExtArgs["result"]["linkPreview"]>
+
+  export type $LinkPreviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LinkPreview"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      urlHash: string
+      url: string
+      title: string | null
+      description: string | null
+      siteName: string | null
+      faviconUrl: string | null
+      imageUrl: string | null
+      fetchedAt: Date
+      expiresAt: Date
+      isAvailable: boolean
+    }, ExtArgs["result"]["linkPreview"]>
+    composites: {}
+  }
+
+  type LinkPreviewGetPayload<S extends boolean | null | undefined | LinkPreviewDefaultArgs> = $Result.GetResult<Prisma.$LinkPreviewPayload, S>
+
+  type LinkPreviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LinkPreviewFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LinkPreviewCountAggregateInputType | true
+    }
+
+  export interface LinkPreviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LinkPreview'], meta: { name: 'LinkPreview' } }
+    /**
+     * Find zero or one LinkPreview that matches the filter.
+     * @param {LinkPreviewFindUniqueArgs} args - Arguments to find a LinkPreview
+     * @example
+     * // Get one LinkPreview
+     * const linkPreview = await prisma.linkPreview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LinkPreviewFindUniqueArgs>(args: SelectSubset<T, LinkPreviewFindUniqueArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LinkPreview that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LinkPreviewFindUniqueOrThrowArgs} args - Arguments to find a LinkPreview
+     * @example
+     * // Get one LinkPreview
+     * const linkPreview = await prisma.linkPreview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LinkPreviewFindUniqueOrThrowArgs>(args: SelectSubset<T, LinkPreviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LinkPreview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewFindFirstArgs} args - Arguments to find a LinkPreview
+     * @example
+     * // Get one LinkPreview
+     * const linkPreview = await prisma.linkPreview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LinkPreviewFindFirstArgs>(args?: SelectSubset<T, LinkPreviewFindFirstArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LinkPreview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewFindFirstOrThrowArgs} args - Arguments to find a LinkPreview
+     * @example
+     * // Get one LinkPreview
+     * const linkPreview = await prisma.linkPreview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LinkPreviewFindFirstOrThrowArgs>(args?: SelectSubset<T, LinkPreviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LinkPreviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LinkPreviews
+     * const linkPreviews = await prisma.linkPreview.findMany()
+     * 
+     * // Get first 10 LinkPreviews
+     * const linkPreviews = await prisma.linkPreview.findMany({ take: 10 })
+     * 
+     * // Only select the `urlHash`
+     * const linkPreviewWithUrlHashOnly = await prisma.linkPreview.findMany({ select: { urlHash: true } })
+     * 
+     */
+    findMany<T extends LinkPreviewFindManyArgs>(args?: SelectSubset<T, LinkPreviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LinkPreview.
+     * @param {LinkPreviewCreateArgs} args - Arguments to create a LinkPreview.
+     * @example
+     * // Create one LinkPreview
+     * const LinkPreview = await prisma.linkPreview.create({
+     *   data: {
+     *     // ... data to create a LinkPreview
+     *   }
+     * })
+     * 
+     */
+    create<T extends LinkPreviewCreateArgs>(args: SelectSubset<T, LinkPreviewCreateArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LinkPreviews.
+     * @param {LinkPreviewCreateManyArgs} args - Arguments to create many LinkPreviews.
+     * @example
+     * // Create many LinkPreviews
+     * const linkPreview = await prisma.linkPreview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LinkPreviewCreateManyArgs>(args?: SelectSubset<T, LinkPreviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LinkPreviews and returns the data saved in the database.
+     * @param {LinkPreviewCreateManyAndReturnArgs} args - Arguments to create many LinkPreviews.
+     * @example
+     * // Create many LinkPreviews
+     * const linkPreview = await prisma.linkPreview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LinkPreviews and only return the `urlHash`
+     * const linkPreviewWithUrlHashOnly = await prisma.linkPreview.createManyAndReturn({
+     *   select: { urlHash: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LinkPreviewCreateManyAndReturnArgs>(args?: SelectSubset<T, LinkPreviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LinkPreview.
+     * @param {LinkPreviewDeleteArgs} args - Arguments to delete one LinkPreview.
+     * @example
+     * // Delete one LinkPreview
+     * const LinkPreview = await prisma.linkPreview.delete({
+     *   where: {
+     *     // ... filter to delete one LinkPreview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LinkPreviewDeleteArgs>(args: SelectSubset<T, LinkPreviewDeleteArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LinkPreview.
+     * @param {LinkPreviewUpdateArgs} args - Arguments to update one LinkPreview.
+     * @example
+     * // Update one LinkPreview
+     * const linkPreview = await prisma.linkPreview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LinkPreviewUpdateArgs>(args: SelectSubset<T, LinkPreviewUpdateArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LinkPreviews.
+     * @param {LinkPreviewDeleteManyArgs} args - Arguments to filter LinkPreviews to delete.
+     * @example
+     * // Delete a few LinkPreviews
+     * const { count } = await prisma.linkPreview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LinkPreviewDeleteManyArgs>(args?: SelectSubset<T, LinkPreviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LinkPreviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LinkPreviews
+     * const linkPreview = await prisma.linkPreview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LinkPreviewUpdateManyArgs>(args: SelectSubset<T, LinkPreviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LinkPreviews and returns the data updated in the database.
+     * @param {LinkPreviewUpdateManyAndReturnArgs} args - Arguments to update many LinkPreviews.
+     * @example
+     * // Update many LinkPreviews
+     * const linkPreview = await prisma.linkPreview.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LinkPreviews and only return the `urlHash`
+     * const linkPreviewWithUrlHashOnly = await prisma.linkPreview.updateManyAndReturn({
+     *   select: { urlHash: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LinkPreviewUpdateManyAndReturnArgs>(args: SelectSubset<T, LinkPreviewUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LinkPreview.
+     * @param {LinkPreviewUpsertArgs} args - Arguments to update or create a LinkPreview.
+     * @example
+     * // Update or create a LinkPreview
+     * const linkPreview = await prisma.linkPreview.upsert({
+     *   create: {
+     *     // ... data to create a LinkPreview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LinkPreview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LinkPreviewUpsertArgs>(args: SelectSubset<T, LinkPreviewUpsertArgs<ExtArgs>>): Prisma__LinkPreviewClient<$Result.GetResult<Prisma.$LinkPreviewPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LinkPreviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewCountArgs} args - Arguments to filter LinkPreviews to count.
+     * @example
+     * // Count the number of LinkPreviews
+     * const count = await prisma.linkPreview.count({
+     *   where: {
+     *     // ... the filter for the LinkPreviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends LinkPreviewCountArgs>(
+      args?: Subset<T, LinkPreviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LinkPreviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LinkPreview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LinkPreviewAggregateArgs>(args: Subset<T, LinkPreviewAggregateArgs>): Prisma.PrismaPromise<GetLinkPreviewAggregateType<T>>
+
+    /**
+     * Group by LinkPreview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LinkPreviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LinkPreviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LinkPreviewGroupByArgs['orderBy'] }
+        : { orderBy?: LinkPreviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LinkPreviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLinkPreviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LinkPreview model
+   */
+  readonly fields: LinkPreviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LinkPreview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LinkPreviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LinkPreview model
+   */
+  interface LinkPreviewFieldRefs {
+    readonly urlHash: FieldRef<"LinkPreview", 'String'>
+    readonly url: FieldRef<"LinkPreview", 'String'>
+    readonly title: FieldRef<"LinkPreview", 'String'>
+    readonly description: FieldRef<"LinkPreview", 'String'>
+    readonly siteName: FieldRef<"LinkPreview", 'String'>
+    readonly faviconUrl: FieldRef<"LinkPreview", 'String'>
+    readonly imageUrl: FieldRef<"LinkPreview", 'String'>
+    readonly fetchedAt: FieldRef<"LinkPreview", 'DateTime'>
+    readonly expiresAt: FieldRef<"LinkPreview", 'DateTime'>
+    readonly isAvailable: FieldRef<"LinkPreview", 'Boolean'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LinkPreview findUnique
+   */
+  export type LinkPreviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter, which LinkPreview to fetch.
+     */
+    where: LinkPreviewWhereUniqueInput
+  }
+
+  /**
+   * LinkPreview findUniqueOrThrow
+   */
+  export type LinkPreviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter, which LinkPreview to fetch.
+     */
+    where: LinkPreviewWhereUniqueInput
+  }
+
+  /**
+   * LinkPreview findFirst
+   */
+  export type LinkPreviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter, which LinkPreview to fetch.
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LinkPreviews to fetch.
+     */
+    orderBy?: LinkPreviewOrderByWithRelationInput | LinkPreviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LinkPreviews.
+     */
+    cursor?: LinkPreviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LinkPreviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LinkPreviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LinkPreviews.
+     */
+    distinct?: LinkPreviewScalarFieldEnum | LinkPreviewScalarFieldEnum[]
+  }
+
+  /**
+   * LinkPreview findFirstOrThrow
+   */
+  export type LinkPreviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter, which LinkPreview to fetch.
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LinkPreviews to fetch.
+     */
+    orderBy?: LinkPreviewOrderByWithRelationInput | LinkPreviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LinkPreviews.
+     */
+    cursor?: LinkPreviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LinkPreviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LinkPreviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LinkPreviews.
+     */
+    distinct?: LinkPreviewScalarFieldEnum | LinkPreviewScalarFieldEnum[]
+  }
+
+  /**
+   * LinkPreview findMany
+   */
+  export type LinkPreviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter, which LinkPreviews to fetch.
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LinkPreviews to fetch.
+     */
+    orderBy?: LinkPreviewOrderByWithRelationInput | LinkPreviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LinkPreviews.
+     */
+    cursor?: LinkPreviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LinkPreviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LinkPreviews.
+     */
+    skip?: number
+    distinct?: LinkPreviewScalarFieldEnum | LinkPreviewScalarFieldEnum[]
+  }
+
+  /**
+   * LinkPreview create
+   */
+  export type LinkPreviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LinkPreview.
+     */
+    data: XOR<LinkPreviewCreateInput, LinkPreviewUncheckedCreateInput>
+  }
+
+  /**
+   * LinkPreview createMany
+   */
+  export type LinkPreviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LinkPreviews.
+     */
+    data: LinkPreviewCreateManyInput | LinkPreviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LinkPreview createManyAndReturn
+   */
+  export type LinkPreviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * The data used to create many LinkPreviews.
+     */
+    data: LinkPreviewCreateManyInput | LinkPreviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LinkPreview update
+   */
+  export type LinkPreviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LinkPreview.
+     */
+    data: XOR<LinkPreviewUpdateInput, LinkPreviewUncheckedUpdateInput>
+    /**
+     * Choose, which LinkPreview to update.
+     */
+    where: LinkPreviewWhereUniqueInput
+  }
+
+  /**
+   * LinkPreview updateMany
+   */
+  export type LinkPreviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LinkPreviews.
+     */
+    data: XOR<LinkPreviewUpdateManyMutationInput, LinkPreviewUncheckedUpdateManyInput>
+    /**
+     * Filter which LinkPreviews to update
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * Limit how many LinkPreviews to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LinkPreview updateManyAndReturn
+   */
+  export type LinkPreviewUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * The data used to update LinkPreviews.
+     */
+    data: XOR<LinkPreviewUpdateManyMutationInput, LinkPreviewUncheckedUpdateManyInput>
+    /**
+     * Filter which LinkPreviews to update
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * Limit how many LinkPreviews to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LinkPreview upsert
+   */
+  export type LinkPreviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LinkPreview to update in case it exists.
+     */
+    where: LinkPreviewWhereUniqueInput
+    /**
+     * In case the LinkPreview found by the `where` argument doesn't exist, create a new LinkPreview with this data.
+     */
+    create: XOR<LinkPreviewCreateInput, LinkPreviewUncheckedCreateInput>
+    /**
+     * In case the LinkPreview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LinkPreviewUpdateInput, LinkPreviewUncheckedUpdateInput>
+  }
+
+  /**
+   * LinkPreview delete
+   */
+  export type LinkPreviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+    /**
+     * Filter which LinkPreview to delete.
+     */
+    where: LinkPreviewWhereUniqueInput
+  }
+
+  /**
+   * LinkPreview deleteMany
+   */
+  export type LinkPreviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LinkPreviews to delete
+     */
+    where?: LinkPreviewWhereInput
+    /**
+     * Limit how many LinkPreviews to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LinkPreview without action
+   */
+  export type LinkPreviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LinkPreview
+     */
+    select?: LinkPreviewSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LinkPreview
+     */
+    omit?: LinkPreviewOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -18557,9 +19922,13 @@ export namespace Prisma {
   export const DocumentVersionScalarFieldEnum: {
     id: 'id',
     documentId: 'documentId',
+    title: 'title',
     content: 'content',
     versionNumber: 'versionNumber',
     changeDescription: 'changeDescription',
+    source: 'source',
+    contentHash: 'contentHash',
+    contributors: 'contributors',
     createdAt: 'createdAt',
     createdBy: 'createdBy'
   };
@@ -18586,6 +19955,12 @@ export namespace Prisma {
     userId: 'userId',
     content: 'content',
     lineNumber: 'lineNumber',
+    parentId: 'parentId',
+    anchorType: 'anchorType',
+    anchorText: 'anchorText',
+    resolvedAt: 'resolvedAt',
+    resolvedBy: 'resolvedBy',
+    deletedAt: 'deletedAt',
     isResolved: 'isResolved',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -18669,6 +20044,22 @@ export namespace Prisma {
   };
 
   export type DocumentActivityScalarFieldEnum = (typeof DocumentActivityScalarFieldEnum)[keyof typeof DocumentActivityScalarFieldEnum]
+
+
+  export const LinkPreviewScalarFieldEnum: {
+    urlHash: 'urlHash',
+    url: 'url',
+    title: 'title',
+    description: 'description',
+    siteName: 'siteName',
+    faviconUrl: 'faviconUrl',
+    imageUrl: 'imageUrl',
+    fetchedAt: 'fetchedAt',
+    expiresAt: 'expiresAt',
+    isAvailable: 'isAvailable'
+  };
+
+  export type LinkPreviewScalarFieldEnum = (typeof LinkPreviewScalarFieldEnum)[keyof typeof LinkPreviewScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -19367,9 +20758,13 @@ export namespace Prisma {
     NOT?: DocumentVersionWhereInput | DocumentVersionWhereInput[]
     id?: StringFilter<"DocumentVersion"> | string
     documentId?: StringFilter<"DocumentVersion"> | string
+    title?: StringFilter<"DocumentVersion"> | string
     content?: StringFilter<"DocumentVersion"> | string
     versionNumber?: IntFilter<"DocumentVersion"> | number
     changeDescription?: StringNullableFilter<"DocumentVersion"> | string | null
+    source?: StringFilter<"DocumentVersion"> | string
+    contentHash?: StringFilter<"DocumentVersion"> | string
+    contributors?: StringNullableListFilter<"DocumentVersion">
     createdAt?: DateTimeFilter<"DocumentVersion"> | Date | string
     createdBy?: StringFilter<"DocumentVersion"> | string
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
@@ -19378,9 +20773,13 @@ export namespace Prisma {
   export type DocumentVersionOrderByWithRelationInput = {
     id?: SortOrder
     documentId?: SortOrder
+    title?: SortOrder
     content?: SortOrder
     versionNumber?: SortOrder
     changeDescription?: SortOrderInput | SortOrder
+    source?: SortOrder
+    contentHash?: SortOrder
+    contributors?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
     document?: DocumentOrderByWithRelationInput
@@ -19388,24 +20787,34 @@ export namespace Prisma {
 
   export type DocumentVersionWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    documentId_versionNumber?: DocumentVersionDocumentIdVersionNumberCompoundUniqueInput
+    documentId_contentHash?: DocumentVersionDocumentIdContentHashCompoundUniqueInput
     AND?: DocumentVersionWhereInput | DocumentVersionWhereInput[]
     OR?: DocumentVersionWhereInput[]
     NOT?: DocumentVersionWhereInput | DocumentVersionWhereInput[]
     documentId?: StringFilter<"DocumentVersion"> | string
+    title?: StringFilter<"DocumentVersion"> | string
     content?: StringFilter<"DocumentVersion"> | string
     versionNumber?: IntFilter<"DocumentVersion"> | number
     changeDescription?: StringNullableFilter<"DocumentVersion"> | string | null
+    source?: StringFilter<"DocumentVersion"> | string
+    contentHash?: StringFilter<"DocumentVersion"> | string
+    contributors?: StringNullableListFilter<"DocumentVersion">
     createdAt?: DateTimeFilter<"DocumentVersion"> | Date | string
     createdBy?: StringFilter<"DocumentVersion"> | string
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
-  }, "id">
+  }, "id" | "documentId_versionNumber" | "documentId_contentHash">
 
   export type DocumentVersionOrderByWithAggregationInput = {
     id?: SortOrder
     documentId?: SortOrder
+    title?: SortOrder
     content?: SortOrder
     versionNumber?: SortOrder
     changeDescription?: SortOrderInput | SortOrder
+    source?: SortOrder
+    contentHash?: SortOrder
+    contributors?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
     _count?: DocumentVersionCountOrderByAggregateInput
@@ -19421,9 +20830,13 @@ export namespace Prisma {
     NOT?: DocumentVersionScalarWhereWithAggregatesInput | DocumentVersionScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"DocumentVersion"> | string
     documentId?: StringWithAggregatesFilter<"DocumentVersion"> | string
+    title?: StringWithAggregatesFilter<"DocumentVersion"> | string
     content?: StringWithAggregatesFilter<"DocumentVersion"> | string
     versionNumber?: IntWithAggregatesFilter<"DocumentVersion"> | number
     changeDescription?: StringNullableWithAggregatesFilter<"DocumentVersion"> | string | null
+    source?: StringWithAggregatesFilter<"DocumentVersion"> | string
+    contentHash?: StringWithAggregatesFilter<"DocumentVersion"> | string
+    contributors?: StringNullableListFilter<"DocumentVersion">
     createdAt?: DateTimeWithAggregatesFilter<"DocumentVersion"> | Date | string
     createdBy?: StringWithAggregatesFilter<"DocumentVersion"> | string
   }
@@ -19506,11 +20919,19 @@ export namespace Prisma {
     userId?: StringFilter<"DocumentComment"> | string
     content?: StringFilter<"DocumentComment"> | string
     lineNumber?: IntNullableFilter<"DocumentComment"> | number | null
+    parentId?: StringNullableFilter<"DocumentComment"> | string | null
+    anchorType?: StringFilter<"DocumentComment"> | string
+    anchorText?: StringNullableFilter<"DocumentComment"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DocumentComment"> | string | null
+    deletedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
     isResolved?: BoolFilter<"DocumentComment"> | boolean
     createdAt?: DateTimeFilter<"DocumentComment"> | Date | string
     updatedAt?: DateTimeFilter<"DocumentComment"> | Date | string
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    parent?: XOR<DocumentCommentNullableScalarRelationFilter, DocumentCommentWhereInput> | null
+    replies?: DocumentCommentListRelationFilter
   }
 
   export type DocumentCommentOrderByWithRelationInput = {
@@ -19519,11 +20940,19 @@ export namespace Prisma {
     userId?: SortOrder
     content?: SortOrder
     lineNumber?: SortOrderInput | SortOrder
+    parentId?: SortOrderInput | SortOrder
+    anchorType?: SortOrder
+    anchorText?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    deletedAt?: SortOrderInput | SortOrder
     isResolved?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     document?: DocumentOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
+    parent?: DocumentCommentOrderByWithRelationInput
+    replies?: DocumentCommentOrderByRelationAggregateInput
   }
 
   export type DocumentCommentWhereUniqueInput = Prisma.AtLeast<{
@@ -19535,11 +20964,19 @@ export namespace Prisma {
     userId?: StringFilter<"DocumentComment"> | string
     content?: StringFilter<"DocumentComment"> | string
     lineNumber?: IntNullableFilter<"DocumentComment"> | number | null
+    parentId?: StringNullableFilter<"DocumentComment"> | string | null
+    anchorType?: StringFilter<"DocumentComment"> | string
+    anchorText?: StringNullableFilter<"DocumentComment"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DocumentComment"> | string | null
+    deletedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
     isResolved?: BoolFilter<"DocumentComment"> | boolean
     createdAt?: DateTimeFilter<"DocumentComment"> | Date | string
     updatedAt?: DateTimeFilter<"DocumentComment"> | Date | string
     document?: XOR<DocumentScalarRelationFilter, DocumentWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    parent?: XOR<DocumentCommentNullableScalarRelationFilter, DocumentCommentWhereInput> | null
+    replies?: DocumentCommentListRelationFilter
   }, "id">
 
   export type DocumentCommentOrderByWithAggregationInput = {
@@ -19548,6 +20985,12 @@ export namespace Prisma {
     userId?: SortOrder
     content?: SortOrder
     lineNumber?: SortOrderInput | SortOrder
+    parentId?: SortOrderInput | SortOrder
+    anchorType?: SortOrder
+    anchorText?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    deletedAt?: SortOrderInput | SortOrder
     isResolved?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -19567,6 +21010,12 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"DocumentComment"> | string
     content?: StringWithAggregatesFilter<"DocumentComment"> | string
     lineNumber?: IntNullableWithAggregatesFilter<"DocumentComment"> | number | null
+    parentId?: StringNullableWithAggregatesFilter<"DocumentComment"> | string | null
+    anchorType?: StringWithAggregatesFilter<"DocumentComment"> | string
+    anchorText?: StringNullableWithAggregatesFilter<"DocumentComment"> | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"DocumentComment"> | Date | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"DocumentComment"> | string | null
+    deletedAt?: DateTimeNullableWithAggregatesFilter<"DocumentComment"> | Date | string | null
     isResolved?: BoolWithAggregatesFilter<"DocumentComment"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"DocumentComment"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DocumentComment"> | Date | string
@@ -19957,6 +21406,83 @@ export namespace Prisma {
     description?: StringNullableWithAggregatesFilter<"DocumentActivity"> | string | null
     metadata?: JsonNullableWithAggregatesFilter<"DocumentActivity">
     createdAt?: DateTimeWithAggregatesFilter<"DocumentActivity"> | Date | string
+  }
+
+  export type LinkPreviewWhereInput = {
+    AND?: LinkPreviewWhereInput | LinkPreviewWhereInput[]
+    OR?: LinkPreviewWhereInput[]
+    NOT?: LinkPreviewWhereInput | LinkPreviewWhereInput[]
+    urlHash?: StringFilter<"LinkPreview"> | string
+    url?: StringFilter<"LinkPreview"> | string
+    title?: StringNullableFilter<"LinkPreview"> | string | null
+    description?: StringNullableFilter<"LinkPreview"> | string | null
+    siteName?: StringNullableFilter<"LinkPreview"> | string | null
+    faviconUrl?: StringNullableFilter<"LinkPreview"> | string | null
+    imageUrl?: StringNullableFilter<"LinkPreview"> | string | null
+    fetchedAt?: DateTimeFilter<"LinkPreview"> | Date | string
+    expiresAt?: DateTimeFilter<"LinkPreview"> | Date | string
+    isAvailable?: BoolFilter<"LinkPreview"> | boolean
+  }
+
+  export type LinkPreviewOrderByWithRelationInput = {
+    urlHash?: SortOrder
+    url?: SortOrder
+    title?: SortOrderInput | SortOrder
+    description?: SortOrderInput | SortOrder
+    siteName?: SortOrderInput | SortOrder
+    faviconUrl?: SortOrderInput | SortOrder
+    imageUrl?: SortOrderInput | SortOrder
+    fetchedAt?: SortOrder
+    expiresAt?: SortOrder
+    isAvailable?: SortOrder
+  }
+
+  export type LinkPreviewWhereUniqueInput = Prisma.AtLeast<{
+    urlHash?: string
+    AND?: LinkPreviewWhereInput | LinkPreviewWhereInput[]
+    OR?: LinkPreviewWhereInput[]
+    NOT?: LinkPreviewWhereInput | LinkPreviewWhereInput[]
+    url?: StringFilter<"LinkPreview"> | string
+    title?: StringNullableFilter<"LinkPreview"> | string | null
+    description?: StringNullableFilter<"LinkPreview"> | string | null
+    siteName?: StringNullableFilter<"LinkPreview"> | string | null
+    faviconUrl?: StringNullableFilter<"LinkPreview"> | string | null
+    imageUrl?: StringNullableFilter<"LinkPreview"> | string | null
+    fetchedAt?: DateTimeFilter<"LinkPreview"> | Date | string
+    expiresAt?: DateTimeFilter<"LinkPreview"> | Date | string
+    isAvailable?: BoolFilter<"LinkPreview"> | boolean
+  }, "urlHash">
+
+  export type LinkPreviewOrderByWithAggregationInput = {
+    urlHash?: SortOrder
+    url?: SortOrder
+    title?: SortOrderInput | SortOrder
+    description?: SortOrderInput | SortOrder
+    siteName?: SortOrderInput | SortOrder
+    faviconUrl?: SortOrderInput | SortOrder
+    imageUrl?: SortOrderInput | SortOrder
+    fetchedAt?: SortOrder
+    expiresAt?: SortOrder
+    isAvailable?: SortOrder
+    _count?: LinkPreviewCountOrderByAggregateInput
+    _max?: LinkPreviewMaxOrderByAggregateInput
+    _min?: LinkPreviewMinOrderByAggregateInput
+  }
+
+  export type LinkPreviewScalarWhereWithAggregatesInput = {
+    AND?: LinkPreviewScalarWhereWithAggregatesInput | LinkPreviewScalarWhereWithAggregatesInput[]
+    OR?: LinkPreviewScalarWhereWithAggregatesInput[]
+    NOT?: LinkPreviewScalarWhereWithAggregatesInput | LinkPreviewScalarWhereWithAggregatesInput[]
+    urlHash?: StringWithAggregatesFilter<"LinkPreview"> | string
+    url?: StringWithAggregatesFilter<"LinkPreview"> | string
+    title?: StringNullableWithAggregatesFilter<"LinkPreview"> | string | null
+    description?: StringNullableWithAggregatesFilter<"LinkPreview"> | string | null
+    siteName?: StringNullableWithAggregatesFilter<"LinkPreview"> | string | null
+    faviconUrl?: StringNullableWithAggregatesFilter<"LinkPreview"> | string | null
+    imageUrl?: StringNullableWithAggregatesFilter<"LinkPreview"> | string | null
+    fetchedAt?: DateTimeWithAggregatesFilter<"LinkPreview"> | Date | string
+    expiresAt?: DateTimeWithAggregatesFilter<"LinkPreview"> | Date | string
+    isAvailable?: BoolWithAggregatesFilter<"LinkPreview"> | boolean
   }
 
   export type UserCreateInput = {
@@ -20564,9 +22090,13 @@ export namespace Prisma {
 
   export type DocumentVersionCreateInput = {
     id?: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
     document: DocumentCreateNestedOneWithoutVersionsInput
@@ -20575,18 +22105,26 @@ export namespace Prisma {
   export type DocumentVersionUncheckedCreateInput = {
     id?: string
     documentId: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
   }
 
   export type DocumentVersionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
     document?: DocumentUpdateOneRequiredWithoutVersionsNestedInput
@@ -20595,9 +22133,13 @@ export namespace Prisma {
   export type DocumentVersionUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     documentId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
@@ -20605,18 +22147,26 @@ export namespace Prisma {
   export type DocumentVersionCreateManyInput = {
     id?: string
     documentId: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
   }
 
   export type DocumentVersionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
@@ -20624,9 +22174,13 @@ export namespace Prisma {
   export type DocumentVersionUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     documentId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
@@ -20703,11 +22257,18 @@ export namespace Prisma {
     id?: string
     content: string
     lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     document: DocumentCreateNestedOneWithoutCommentsInput
     user: UserCreateNestedOneWithoutCommentsInput
+    parent?: DocumentCommentCreateNestedOneWithoutRepliesInput
+    replies?: DocumentCommentCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentUncheckedCreateInput = {
@@ -20716,20 +22277,34 @@ export namespace Prisma {
     userId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    replies?: DocumentCommentUncheckedCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     document?: DocumentUpdateOneRequiredWithoutCommentsNestedInput
     user?: UserUpdateOneRequiredWithoutCommentsNestedInput
+    parent?: DocumentCommentUpdateOneWithoutRepliesNestedInput
+    replies?: DocumentCommentUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentUncheckedUpdateInput = {
@@ -20738,9 +22313,16 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    replies?: DocumentCommentUncheckedUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentCreateManyInput = {
@@ -20749,6 +22331,12 @@ export namespace Prisma {
     userId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -20758,6 +22346,11 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20769,6 +22362,12 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21202,6 +22801,97 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LinkPreviewCreateInput = {
+    urlHash: string
+    url: string
+    title?: string | null
+    description?: string | null
+    siteName?: string | null
+    faviconUrl?: string | null
+    imageUrl?: string | null
+    fetchedAt?: Date | string
+    expiresAt: Date | string
+    isAvailable?: boolean
+  }
+
+  export type LinkPreviewUncheckedCreateInput = {
+    urlHash: string
+    url: string
+    title?: string | null
+    description?: string | null
+    siteName?: string | null
+    faviconUrl?: string | null
+    imageUrl?: string | null
+    fetchedAt?: Date | string
+    expiresAt: Date | string
+    isAvailable?: boolean
+  }
+
+  export type LinkPreviewUpdateInput = {
+    urlHash?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    siteName?: NullableStringFieldUpdateOperationsInput | string | null
+    faviconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fetchedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isAvailable?: BoolFieldUpdateOperationsInput | boolean
+  }
+
+  export type LinkPreviewUncheckedUpdateInput = {
+    urlHash?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    siteName?: NullableStringFieldUpdateOperationsInput | string | null
+    faviconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fetchedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isAvailable?: BoolFieldUpdateOperationsInput | boolean
+  }
+
+  export type LinkPreviewCreateManyInput = {
+    urlHash: string
+    url: string
+    title?: string | null
+    description?: string | null
+    siteName?: string | null
+    faviconUrl?: string | null
+    imageUrl?: string | null
+    fetchedAt?: Date | string
+    expiresAt: Date | string
+    isAvailable?: boolean
+  }
+
+  export type LinkPreviewUpdateManyMutationInput = {
+    urlHash?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    siteName?: NullableStringFieldUpdateOperationsInput | string | null
+    faviconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fetchedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isAvailable?: BoolFieldUpdateOperationsInput | boolean
+  }
+
+  export type LinkPreviewUncheckedUpdateManyInput = {
+    urlHash?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    siteName?: NullableStringFieldUpdateOperationsInput | string | null
+    faviconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    fetchedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    isAvailable?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -21819,12 +23509,26 @@ export namespace Prisma {
     _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
+  export type DocumentVersionDocumentIdVersionNumberCompoundUniqueInput = {
+    documentId: string
+    versionNumber: number
+  }
+
+  export type DocumentVersionDocumentIdContentHashCompoundUniqueInput = {
+    documentId: string
+    contentHash: string
+  }
+
   export type DocumentVersionCountOrderByAggregateInput = {
     id?: SortOrder
     documentId?: SortOrder
+    title?: SortOrder
     content?: SortOrder
     versionNumber?: SortOrder
     changeDescription?: SortOrder
+    source?: SortOrder
+    contentHash?: SortOrder
+    contributors?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
   }
@@ -21836,9 +23540,12 @@ export namespace Prisma {
   export type DocumentVersionMaxOrderByAggregateInput = {
     id?: SortOrder
     documentId?: SortOrder
+    title?: SortOrder
     content?: SortOrder
     versionNumber?: SortOrder
     changeDescription?: SortOrder
+    source?: SortOrder
+    contentHash?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
   }
@@ -21846,9 +23553,12 @@ export namespace Prisma {
   export type DocumentVersionMinOrderByAggregateInput = {
     id?: SortOrder
     documentId?: SortOrder
+    title?: SortOrder
     content?: SortOrder
     versionNumber?: SortOrder
     changeDescription?: SortOrder
+    source?: SortOrder
+    contentHash?: SortOrder
     createdAt?: SortOrder
     createdBy?: SortOrder
   }
@@ -21890,12 +23600,23 @@ export namespace Prisma {
     acceptedAt?: SortOrder
   }
 
+  export type DocumentCommentNullableScalarRelationFilter = {
+    is?: DocumentCommentWhereInput | null
+    isNot?: DocumentCommentWhereInput | null
+  }
+
   export type DocumentCommentCountOrderByAggregateInput = {
     id?: SortOrder
     documentId?: SortOrder
     userId?: SortOrder
     content?: SortOrder
     lineNumber?: SortOrder
+    parentId?: SortOrder
+    anchorType?: SortOrder
+    anchorText?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    deletedAt?: SortOrder
     isResolved?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21911,6 +23632,12 @@ export namespace Prisma {
     userId?: SortOrder
     content?: SortOrder
     lineNumber?: SortOrder
+    parentId?: SortOrder
+    anchorType?: SortOrder
+    anchorText?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    deletedAt?: SortOrder
     isResolved?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -21922,6 +23649,12 @@ export namespace Prisma {
     userId?: SortOrder
     content?: SortOrder
     lineNumber?: SortOrder
+    parentId?: SortOrder
+    anchorType?: SortOrder
+    anchorText?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    deletedAt?: SortOrder
     isResolved?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -22202,6 +23935,45 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type LinkPreviewCountOrderByAggregateInput = {
+    urlHash?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    siteName?: SortOrder
+    faviconUrl?: SortOrder
+    imageUrl?: SortOrder
+    fetchedAt?: SortOrder
+    expiresAt?: SortOrder
+    isAvailable?: SortOrder
+  }
+
+  export type LinkPreviewMaxOrderByAggregateInput = {
+    urlHash?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    siteName?: SortOrder
+    faviconUrl?: SortOrder
+    imageUrl?: SortOrder
+    fetchedAt?: SortOrder
+    expiresAt?: SortOrder
+    isAvailable?: SortOrder
+  }
+
+  export type LinkPreviewMinOrderByAggregateInput = {
+    urlHash?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    siteName?: SortOrder
+    faviconUrl?: SortOrder
+    imageUrl?: SortOrder
+    fetchedAt?: SortOrder
+    expiresAt?: SortOrder
+    isAvailable?: SortOrder
   }
 
   export type DocumentCreateNestedManyWithoutUserInput = {
@@ -23018,10 +24790,19 @@ export namespace Prisma {
     update?: XOR<XOR<DocumentUpdateToOneWithWhereWithoutImagesInput, DocumentUpdateWithoutImagesInput>, DocumentUncheckedUpdateWithoutImagesInput>
   }
 
+  export type DocumentVersionCreatecontributorsInput = {
+    set: string[]
+  }
+
   export type DocumentCreateNestedOneWithoutVersionsInput = {
     create?: XOR<DocumentCreateWithoutVersionsInput, DocumentUncheckedCreateWithoutVersionsInput>
     connectOrCreate?: DocumentCreateOrConnectWithoutVersionsInput
     connect?: DocumentWhereUniqueInput
+  }
+
+  export type DocumentVersionUpdatecontributorsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type DocumentUpdateOneRequiredWithoutVersionsNestedInput = {
@@ -23081,6 +24862,26 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type DocumentCommentCreateNestedOneWithoutRepliesInput = {
+    create?: XOR<DocumentCommentCreateWithoutRepliesInput, DocumentCommentUncheckedCreateWithoutRepliesInput>
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutRepliesInput
+    connect?: DocumentCommentWhereUniqueInput
+  }
+
+  export type DocumentCommentCreateNestedManyWithoutParentInput = {
+    create?: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput> | DocumentCommentCreateWithoutParentInput[] | DocumentCommentUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutParentInput | DocumentCommentCreateOrConnectWithoutParentInput[]
+    createMany?: DocumentCommentCreateManyParentInputEnvelope
+    connect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+  }
+
+  export type DocumentCommentUncheckedCreateNestedManyWithoutParentInput = {
+    create?: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput> | DocumentCommentCreateWithoutParentInput[] | DocumentCommentUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutParentInput | DocumentCommentCreateOrConnectWithoutParentInput[]
+    createMany?: DocumentCommentCreateManyParentInputEnvelope
+    connect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+  }
+
   export type DocumentUpdateOneRequiredWithoutCommentsNestedInput = {
     create?: XOR<DocumentCreateWithoutCommentsInput, DocumentUncheckedCreateWithoutCommentsInput>
     connectOrCreate?: DocumentCreateOrConnectWithoutCommentsInput
@@ -23095,6 +24896,44 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutCommentsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCommentsInput, UserUpdateWithoutCommentsInput>, UserUncheckedUpdateWithoutCommentsInput>
+  }
+
+  export type DocumentCommentUpdateOneWithoutRepliesNestedInput = {
+    create?: XOR<DocumentCommentCreateWithoutRepliesInput, DocumentCommentUncheckedCreateWithoutRepliesInput>
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutRepliesInput
+    upsert?: DocumentCommentUpsertWithoutRepliesInput
+    disconnect?: DocumentCommentWhereInput | boolean
+    delete?: DocumentCommentWhereInput | boolean
+    connect?: DocumentCommentWhereUniqueInput
+    update?: XOR<XOR<DocumentCommentUpdateToOneWithWhereWithoutRepliesInput, DocumentCommentUpdateWithoutRepliesInput>, DocumentCommentUncheckedUpdateWithoutRepliesInput>
+  }
+
+  export type DocumentCommentUpdateManyWithoutParentNestedInput = {
+    create?: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput> | DocumentCommentCreateWithoutParentInput[] | DocumentCommentUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutParentInput | DocumentCommentCreateOrConnectWithoutParentInput[]
+    upsert?: DocumentCommentUpsertWithWhereUniqueWithoutParentInput | DocumentCommentUpsertWithWhereUniqueWithoutParentInput[]
+    createMany?: DocumentCommentCreateManyParentInputEnvelope
+    set?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    disconnect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    delete?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    connect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    update?: DocumentCommentUpdateWithWhereUniqueWithoutParentInput | DocumentCommentUpdateWithWhereUniqueWithoutParentInput[]
+    updateMany?: DocumentCommentUpdateManyWithWhereWithoutParentInput | DocumentCommentUpdateManyWithWhereWithoutParentInput[]
+    deleteMany?: DocumentCommentScalarWhereInput | DocumentCommentScalarWhereInput[]
+  }
+
+  export type DocumentCommentUncheckedUpdateManyWithoutParentNestedInput = {
+    create?: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput> | DocumentCommentCreateWithoutParentInput[] | DocumentCommentUncheckedCreateWithoutParentInput[]
+    connectOrCreate?: DocumentCommentCreateOrConnectWithoutParentInput | DocumentCommentCreateOrConnectWithoutParentInput[]
+    upsert?: DocumentCommentUpsertWithWhereUniqueWithoutParentInput | DocumentCommentUpsertWithWhereUniqueWithoutParentInput[]
+    createMany?: DocumentCommentCreateManyParentInputEnvelope
+    set?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    disconnect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    delete?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    connect?: DocumentCommentWhereUniqueInput | DocumentCommentWhereUniqueInput[]
+    update?: DocumentCommentUpdateWithWhereUniqueWithoutParentInput | DocumentCommentUpdateWithWhereUniqueWithoutParentInput[]
+    updateMany?: DocumentCommentUpdateManyWithWhereWithoutParentInput | DocumentCommentUpdateManyWithWhereWithoutParentInput[]
+    deleteMany?: DocumentCommentScalarWhereInput | DocumentCommentScalarWhereInput[]
   }
 
   export type DocumentShareCreatepermissionsInput = {
@@ -23533,10 +25372,17 @@ export namespace Prisma {
     id?: string
     content: string
     lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     document: DocumentCreateNestedOneWithoutCommentsInput
+    parent?: DocumentCommentCreateNestedOneWithoutRepliesInput
+    replies?: DocumentCommentCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentUncheckedCreateWithoutUserInput = {
@@ -23544,9 +25390,16 @@ export namespace Prisma {
     documentId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    replies?: DocumentCommentUncheckedCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentCreateOrConnectWithoutUserInput = {
@@ -23781,6 +25634,12 @@ export namespace Prisma {
     userId?: StringFilter<"DocumentComment"> | string
     content?: StringFilter<"DocumentComment"> | string
     lineNumber?: IntNullableFilter<"DocumentComment"> | number | null
+    parentId?: StringNullableFilter<"DocumentComment"> | string | null
+    anchorType?: StringFilter<"DocumentComment"> | string
+    anchorText?: StringNullableFilter<"DocumentComment"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"DocumentComment"> | string | null
+    deletedAt?: DateTimeNullableFilter<"DocumentComment"> | Date | string | null
     isResolved?: BoolFilter<"DocumentComment"> | boolean
     createdAt?: DateTimeFilter<"DocumentComment"> | Date | string
     updatedAt?: DateTimeFilter<"DocumentComment"> | Date | string
@@ -24384,18 +26243,26 @@ export namespace Prisma {
 
   export type DocumentVersionCreateWithoutDocumentInput = {
     id?: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
   }
 
   export type DocumentVersionUncheckedCreateWithoutDocumentInput = {
     id?: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
   }
@@ -24442,10 +26309,17 @@ export namespace Prisma {
     id?: string
     content: string
     lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutCommentsInput
+    parent?: DocumentCommentCreateNestedOneWithoutRepliesInput
+    replies?: DocumentCommentCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentUncheckedCreateWithoutDocumentInput = {
@@ -24453,9 +26327,16 @@ export namespace Prisma {
     userId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    replies?: DocumentCommentUncheckedCreateNestedManyWithoutParentInput
   }
 
   export type DocumentCommentCreateOrConnectWithoutDocumentInput = {
@@ -24696,9 +26577,13 @@ export namespace Prisma {
     NOT?: DocumentVersionScalarWhereInput | DocumentVersionScalarWhereInput[]
     id?: StringFilter<"DocumentVersion"> | string
     documentId?: StringFilter<"DocumentVersion"> | string
+    title?: StringFilter<"DocumentVersion"> | string
     content?: StringFilter<"DocumentVersion"> | string
     versionNumber?: IntFilter<"DocumentVersion"> | number
     changeDescription?: StringNullableFilter<"DocumentVersion"> | string | null
+    source?: StringFilter<"DocumentVersion"> | string
+    contentHash?: StringFilter<"DocumentVersion"> | string
+    contributors?: StringNullableListFilter<"DocumentVersion">
     createdAt?: DateTimeFilter<"DocumentVersion"> | Date | string
     createdBy?: StringFilter<"DocumentVersion"> | string
   }
@@ -25483,6 +27368,89 @@ export namespace Prisma {
     create: XOR<UserCreateWithoutCommentsInput, UserUncheckedCreateWithoutCommentsInput>
   }
 
+  export type DocumentCommentCreateWithoutRepliesInput = {
+    id?: string
+    content: string
+    lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
+    isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    document: DocumentCreateNestedOneWithoutCommentsInput
+    user: UserCreateNestedOneWithoutCommentsInput
+    parent?: DocumentCommentCreateNestedOneWithoutRepliesInput
+  }
+
+  export type DocumentCommentUncheckedCreateWithoutRepliesInput = {
+    id?: string
+    documentId: string
+    userId: string
+    content: string
+    lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
+    isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DocumentCommentCreateOrConnectWithoutRepliesInput = {
+    where: DocumentCommentWhereUniqueInput
+    create: XOR<DocumentCommentCreateWithoutRepliesInput, DocumentCommentUncheckedCreateWithoutRepliesInput>
+  }
+
+  export type DocumentCommentCreateWithoutParentInput = {
+    id?: string
+    content: string
+    lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
+    isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    document: DocumentCreateNestedOneWithoutCommentsInput
+    user: UserCreateNestedOneWithoutCommentsInput
+    replies?: DocumentCommentCreateNestedManyWithoutParentInput
+  }
+
+  export type DocumentCommentUncheckedCreateWithoutParentInput = {
+    id?: string
+    documentId: string
+    userId: string
+    content: string
+    lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
+    isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    replies?: DocumentCommentUncheckedCreateNestedManyWithoutParentInput
+  }
+
+  export type DocumentCommentCreateOrConnectWithoutParentInput = {
+    where: DocumentCommentWhereUniqueInput
+    create: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput>
+  }
+
+  export type DocumentCommentCreateManyParentInputEnvelope = {
+    data: DocumentCommentCreateManyParentInput | DocumentCommentCreateManyParentInput[]
+    skipDuplicates?: boolean
+  }
+
   export type DocumentUpsertWithoutCommentsInput = {
     update: XOR<DocumentUpdateWithoutCommentsInput, DocumentUncheckedUpdateWithoutCommentsInput>
     create: XOR<DocumentCreateWithoutCommentsInput, DocumentUncheckedCreateWithoutCommentsInput>
@@ -25585,6 +27553,67 @@ export namespace Prisma {
     aiCredentials?: AIProviderCredentialUncheckedUpdateManyWithoutUserNestedInput
     rooms?: RoomUserUncheckedUpdateManyWithoutUserNestedInput
     createdRooms?: RoomUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type DocumentCommentUpsertWithoutRepliesInput = {
+    update: XOR<DocumentCommentUpdateWithoutRepliesInput, DocumentCommentUncheckedUpdateWithoutRepliesInput>
+    create: XOR<DocumentCommentCreateWithoutRepliesInput, DocumentCommentUncheckedCreateWithoutRepliesInput>
+    where?: DocumentCommentWhereInput
+  }
+
+  export type DocumentCommentUpdateToOneWithWhereWithoutRepliesInput = {
+    where?: DocumentCommentWhereInput
+    data: XOR<DocumentCommentUpdateWithoutRepliesInput, DocumentCommentUncheckedUpdateWithoutRepliesInput>
+  }
+
+  export type DocumentCommentUpdateWithoutRepliesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    document?: DocumentUpdateOneRequiredWithoutCommentsNestedInput
+    user?: UserUpdateOneRequiredWithoutCommentsNestedInput
+    parent?: DocumentCommentUpdateOneWithoutRepliesNestedInput
+  }
+
+  export type DocumentCommentUncheckedUpdateWithoutRepliesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DocumentCommentUpsertWithWhereUniqueWithoutParentInput = {
+    where: DocumentCommentWhereUniqueInput
+    update: XOR<DocumentCommentUpdateWithoutParentInput, DocumentCommentUncheckedUpdateWithoutParentInput>
+    create: XOR<DocumentCommentCreateWithoutParentInput, DocumentCommentUncheckedCreateWithoutParentInput>
+  }
+
+  export type DocumentCommentUpdateWithWhereUniqueWithoutParentInput = {
+    where: DocumentCommentWhereUniqueInput
+    data: XOR<DocumentCommentUpdateWithoutParentInput, DocumentCommentUncheckedUpdateWithoutParentInput>
+  }
+
+  export type DocumentCommentUpdateManyWithWhereWithoutParentInput = {
+    where: DocumentCommentScalarWhereInput
+    data: XOR<DocumentCommentUpdateManyMutationInput, DocumentCommentUncheckedUpdateManyWithoutParentInput>
   }
 
   export type DocumentCreateWithoutSharesInput = {
@@ -26010,6 +28039,12 @@ export namespace Prisma {
     documentId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -26147,10 +28182,17 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     document?: DocumentUpdateOneRequiredWithoutCommentsNestedInput
+    parent?: DocumentCommentUpdateOneWithoutRepliesNestedInput
+    replies?: DocumentCommentUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentUncheckedUpdateWithoutUserInput = {
@@ -26158,9 +28200,16 @@ export namespace Prisma {
     documentId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    replies?: DocumentCommentUncheckedUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentUncheckedUpdateManyWithoutUserInput = {
@@ -26168,6 +28217,12 @@ export namespace Prisma {
     documentId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26323,9 +28378,13 @@ export namespace Prisma {
 
   export type DocumentVersionCreateManyDocumentInput = {
     id?: string
+    title: string
     content: string
     versionNumber: number
     changeDescription?: string | null
+    source?: string
+    contentHash: string
+    contributors?: DocumentVersionCreatecontributorsInput | string[]
     createdAt?: Date | string
     createdBy: string
   }
@@ -26344,6 +28403,12 @@ export namespace Prisma {
     userId: string
     content: string
     lineNumber?: number | null
+    parentId?: string | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
     isResolved?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -26422,27 +28487,39 @@ export namespace Prisma {
 
   export type DocumentVersionUpdateWithoutDocumentInput = {
     id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
 
   export type DocumentVersionUncheckedUpdateWithoutDocumentInput = {
     id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
 
   export type DocumentVersionUncheckedUpdateManyWithoutDocumentInput = {
     id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     versionNumber?: IntFieldUpdateOperationsInput | number
     changeDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    contentHash?: StringFieldUpdateOperationsInput | string
+    contributors?: DocumentVersionUpdatecontributorsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: StringFieldUpdateOperationsInput | string
   }
@@ -26478,10 +28555,17 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutCommentsNestedInput
+    parent?: DocumentCommentUpdateOneWithoutRepliesNestedInput
+    replies?: DocumentCommentUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentUncheckedUpdateWithoutDocumentInput = {
@@ -26489,9 +28573,16 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    replies?: DocumentCommentUncheckedUpdateManyWithoutParentNestedInput
   }
 
   export type DocumentCommentUncheckedUpdateManyWithoutDocumentInput = {
@@ -26499,6 +28590,12 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    parentId?: NullableStringFieldUpdateOperationsInput | string | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     isResolved?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -26609,6 +28706,72 @@ export namespace Prisma {
     shareLinkExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     allowedEmails?: RoomUpdateallowedEmailsInput | string[]
     isPublic?: BoolFieldUpdateOperationsInput | boolean
+  }
+
+  export type DocumentCommentCreateManyParentInput = {
+    id?: string
+    documentId: string
+    userId: string
+    content: string
+    lineNumber?: number | null
+    anchorType?: string
+    anchorText?: string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    deletedAt?: Date | string | null
+    isResolved?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DocumentCommentUpdateWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    document?: DocumentUpdateOneRequiredWithoutCommentsNestedInput
+    user?: UserUpdateOneRequiredWithoutCommentsNestedInput
+    replies?: DocumentCommentUpdateManyWithoutParentNestedInput
+  }
+
+  export type DocumentCommentUncheckedUpdateWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    replies?: DocumentCommentUncheckedUpdateManyWithoutParentNestedInput
+  }
+
+  export type DocumentCommentUncheckedUpdateManyWithoutParentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    lineNumber?: NullableIntFieldUpdateOperationsInput | number | null
+    anchorType?: StringFieldUpdateOperationsInput | string
+    anchorText?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isResolved?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 
