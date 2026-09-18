@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
-import { DocumentsFolderIcon, OmnidocLogo } from "@/components/omnidoc-logo";
+import { FilesIcon } from "@phosphor-icons/react/dist/ssr/Files";
+import { OmnidocLogo } from "@/components/omnidoc-logo";
 import "./not-found.css";
 
 export default function NotFound() {
@@ -8,7 +9,7 @@ export default function NotFound() {
     <div className="not-found-glow" />
     <Link href="/" className="not-found-brand"><OmnidocLogo priority className="not-found-logo" />Omnidoc</Link>
     <section className="not-found-card">
-      <div className="not-found-folder"><DocumentsFolderIcon /></div>
+      <div className="not-found-folder"><FilesIcon /></div>
       <span>404 · Page not found</span>
       <h1>This page slipped<br />out of the folder.</h1>
       <p>The link may be old, the document may have moved, or this page simply never existed.</p>

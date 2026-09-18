@@ -57,7 +57,8 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
       nextProvider.awareness.setLocalStateField("user", user);
       const publishPresence = () => {
         const users = Array.from(nextProvider!.awareness.getStates().values()).map((state) => state.user).filter(Boolean) as PresenceUser[];
-        onPresenceChange?.(users);
+        const uniqueUsers = Array.from(new Map(users.map((presenceUser) => [presenceUser.id, presenceUser])).values());
+        onPresenceChange?.(uniqueUsers);
       };
       nextProvider.awareness.on("change", publishPresence);
       nextProvider.on("status", ({ status }) => onStatusChange?.(status === "connected" ? "connecting" : "offline"));

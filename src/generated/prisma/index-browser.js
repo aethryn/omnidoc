@@ -160,13 +160,29 @@ exports.Prisma.DocumentScalarFieldEnum = {
   content: 'content',
   yjsState: 'yjsState',
   userId: 'userId',
-  isPublic: 'isPublic',
+  status: 'status',
+  previewText: 'previewText',
+  previewImageUrl: 'previewImageUrl',
+  wordCount: 'wordCount',
   tags: 'tags',
   allowComments: 'allowComments',
   allowSuggestions: 'allowSuggestions',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastEditedAt: 'lastEditedAt'
+};
+
+exports.Prisma.DocumentPublicationScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  slug: 'slug',
+  title: 'title',
+  content: 'content',
+  excerpt: 'excerpt',
+  revisionHash: 'revisionHash',
+  isActive: 'isActive',
+  publishedAt: 'publishedAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.DocumentImageScalarFieldEnum = {
@@ -300,13 +316,17 @@ exports.Prisma.JsonNullValueFilter = {
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
-
+exports.DocumentStatus = exports.$Enums.DocumentStatus = {
+  WORKING_DRAFT: 'WORKING_DRAFT',
+  COMPLETE: 'COMPLETE'
+};
 
 exports.Prisma.ModelName = {
   User: 'User',
   Room: 'Room',
   RoomUser: 'RoomUser',
   Document: 'Document',
+  DocumentPublication: 'DocumentPublication',
   DocumentImage: 'DocumentImage',
   DocumentVersion: 'DocumentVersion',
   DocumentCollaborators: 'DocumentCollaborators',

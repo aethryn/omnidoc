@@ -1,0 +1,91 @@
+/* Shared galaxy action button styles. Kept global so the component behaves
+   consistently on dashboard, settings, and editor routes. */
+.galaxy-button {
+  --galaxy-active: 0;
+  --galaxy-hue: 258;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  isolation: isolate;
+}
+
+.galaxy-button__trigger {
+  --cut: .12rem;
+  --button-bg: radial-gradient(120% 120% at 126% 126%, hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 97%) 98% / calc(var(--galaxy-active) * .82)) 40%, transparent 51%), radial-gradient(120% 120% at 120% 120%, hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 97%) 70% / var(--galaxy-active)) 30%, transparent 70%), hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 100%) calc(12% - (var(--galaxy-active) * 8%)));
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 10.5rem;
+  min-height: 3.1rem;
+  padding: .8rem 1.25rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--button-bg);
+  color: #eeeafa;
+  box-shadow: 0 0 calc(var(--galaxy-active) * 3.8rem) calc(var(--galaxy-active) * 1.8rem) hsl(var(--galaxy-hue) 97% 61% / .36), 0 .05rem 0 0 hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 97%) calc((var(--galaxy-active) * 50%) + 30%)) inset, 0 -.05rem 0 0 hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 97%) calc(var(--galaxy-active) * 10%)) inset;
+  font-size: clamp(.78rem, 1.15vw, .9rem);
+  font-weight: 600;
+  letter-spacing: .01em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: scale(calc(1 + (var(--galaxy-active) * .06)));
+  transform-style: preserve-3d;
+  perspective: 100vmin;
+  transition: box-shadow .25s, transform .25s, background .25s;
+}
+
+.galaxy-button__trigger:hover,
+.galaxy-button__trigger:focus-visible { --galaxy-active: 1; }
+.galaxy-button--violet { --galaxy-hue: 278; }
+.galaxy-button--light .galaxy-button__trigger {
+  color: #332b4a;
+  --button-bg: radial-gradient(120% 120% at 126% 126%, hsl(var(--galaxy-hue) 75% 98% / .88) 40%, transparent 51%), radial-gradient(120% 120% at 120% 120%, hsl(var(--galaxy-hue) 70% 82% / .7) 30%, transparent 70%), #f7f3ff;
+  box-shadow: 0 8px 22px rgba(74, 55, 111, .12), 0 .05rem 0 0 rgba(255,255,255,.9) inset, 0 -.05rem 0 0 rgba(92,66,142,.1) inset;
+}
+.galaxy-button--outline .galaxy-button__trigger {
+  color: #463864;
+  --button-bg: rgba(255, 254, 250, .72);
+  border: 1px solid #cfc4dc;
+  box-shadow: 0 8px 22px rgba(64, 53, 95, .08);
+}
+.galaxy-button--outline .galaxy-button__backdrop { background: rgba(255, 254, 250, .72); }
+.galaxy-button--light .galaxy-button__text,
+.galaxy-button--outline .galaxy-button__text { color: #463864; }
+.galaxy-button--sm .galaxy-button__trigger { min-width: 8.5rem; min-height: 2.5rem; padding: .62rem 1rem; font-size: .78rem; }
+.galaxy-button--lg .galaxy-button__trigger { min-width: 12.5rem; min-height: 3.5rem; padding: .95rem 1.5rem; font-size: 1rem; }
+.galaxy-button__trigger:active { transform: scale(1); }
+.galaxy-button__trigger:disabled { opacity: .62; cursor: wait; }
+.galaxy-button__trigger:disabled:hover { --galaxy-active: 0; }
+.galaxy-button__spark,
+.galaxy-button__backdrop,
+.galaxy-button__container,
+.galaxy-button__galaxy { position: absolute; pointer-events: none; }
+.galaxy-button__spark { inset: 0; overflow: hidden; border-radius: inherit; mask: linear-gradient(white, transparent 50%); animation: galaxy-flip 3.6s infinite steps(2, end); }
+.galaxy-button__spark::before { content: ""; position: absolute; z-index: -1; top: 0; left: 50%; width: 200%; aspect-ratio: 1; opacity: calc(var(--galaxy-active) + .4); background: conic-gradient(from 0deg, transparent 0 340deg, white 360deg); transform: translate(-50%, -15%) rotate(-90deg); animation: galaxy-rotate 1.8s linear infinite both; transition: opacity .25s; }
+.galaxy-button__backdrop { inset: var(--cut); border-radius: inherit; background: var(--button-bg); transition: background .25s; }
+.galaxy-button__container { inset: 0; opacity: var(--galaxy-active); mask: radial-gradient(white, transparent); transition: opacity .25s; }
+.galaxy-button__galaxy { inset: 0; overflow: hidden; opacity: var(--galaxy-active); transition: opacity .25s; }
+.galaxy-button__ring { position: absolute; top: 50%; left: 50%; width: 200%; height: 200%; border-radius: 50%; transform: translate(-28%, -40%) rotateX(-24deg) rotateY(-30deg) rotateX(90deg); transform-style: preserve-3d; }
+.galaxy-button__star { position: absolute; top: 50%; left: 50%; width: calc(var(--size) * 1px); height: calc(var(--size) * 1px); aspect-ratio: 1; border-radius: 50%; background: white; opacity: var(--alpha); transform: translate(-50%, -50%) rotate(10deg) rotate(0deg) translateY(calc(var(--distance) * 1px)); animation: galaxy-orbit calc(var(--duration) * 1s) calc(var(--delay) * -1s) infinite linear; }
+.galaxy-button__star--static { max-height: 4px; opacity: .9; animation: galaxy-move-x calc(var(--duration) * .1s) calc(var(--delay) * -.1s) infinite linear, galaxy-move-y calc(var(--duration) * .2s) calc(var(--delay) * -.2s) infinite linear; transform: translate(0, 0); }
+.galaxy-button__trigger:hover .galaxy-button__star--static { animation-play-state: paused; }
+.galaxy-button__text { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: .4rem; translate: 0 -3%; color: hsl(0 0% calc(60% + (var(--galaxy-active) * 26%))); transition: color .25s; }
+.galaxy-button__bodydrop { position: absolute; z-index: -1; inset: -3rem; border-radius: 50%; background: hsl(var(--galaxy-hue) calc(var(--galaxy-active) * 97%) 6%); opacity: calc(var(--galaxy-active) * .3); filter: blur(1.5rem); pointer-events: none; transition: opacity .25s; }
+@keyframes galaxy-orbit { to { transform: translate(-50%, -50%) rotate(10deg) rotate(360deg) translateY(calc(var(--distance) * 1px)); } }
+@keyframes galaxy-move-x { 0% { translate: -100px 0; } 100% { translate: 100px 0; } }
+@keyframes galaxy-move-y { 0% { transform: translate(0, -50px); } 100% { transform: translate(0, 50px); } }
+@keyframes galaxy-flip { to { rotate: 360deg; } }
+@keyframes galaxy-rotate { to { transform: rotate(90deg); } }
+
+@media (max-width: 640px) {
+  .galaxy-button { width: min(100%, 15rem); }
+  .galaxy-button__trigger { width: 100%; min-height: 3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-button__spark, .galaxy-button__star { animation: none; }
+  .galaxy-button__trigger { transition: none; }
+}

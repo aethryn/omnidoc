@@ -7,10 +7,66 @@
   --font-serif: var(--font-instrument), Georgia, serif;
   --font-heading: var(--font-instrument), Georgia, serif;
   --radius: 0.5rem;
+
+  /* Shared tokens used by the shadcn/ui primitives. Keep these mapped to
+     runtime variables so menus, dialogs, selects, and tooltips stay opaque
+     in both light and dark themes. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
 :root {
   --radius: 0.5rem;
+  --background: #f5f3ee;
+  --foreground: #29251f;
+  --card: #fffefa;
+  --card-foreground: #29251f;
+  --popover: #fffefa;
+  --popover-foreground: #29251f;
+  --primary: #40355f;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeae3;
+  --secondary-foreground: #40355f;
+  --muted: #f0ece5;
+  --muted-foreground: #817a70;
+  --accent: #eeeaf2;
+  --accent-foreground: #40355f;
+  --destructive: #9a4139;
+  --border: #ddd7cc;
+  --input: #d9d3c8;
+  --ring: #705c8d;
+  --sidebar-background: 40 33% 98%;
+  --sidebar-foreground: 28 13% 27%;
+  --sidebar-primary: 258 28% 29%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 270 18% 93%;
+  --sidebar-accent-foreground: 258 28% 29%;
+  --sidebar-border: 36 16% 85%;
+  --sidebar-ring: 267 23% 46%;
   --font-inter: "Helvetica Neue", Helvetica, Arial, sans-serif;
   
   /* Landing page colors */
@@ -42,6 +98,32 @@
 }
 
 .dark {
+  --background: #24212b;
+  --foreground: #f4f1f8;
+  --card: #2d2936;
+  --card-foreground: #f4f1f8;
+  --popover: #2d2936;
+  --popover-foreground: #f4f1f8;
+  --primary: #b29ad8;
+  --primary-foreground: #241d31;
+  --secondary: #393342;
+  --secondary-foreground: #f4f1f8;
+  --muted: #393342;
+  --muted-foreground: #b5adbf;
+  --accent: #443b51;
+  --accent-foreground: #f4f1f8;
+  --destructive: #e37f77;
+  --border: #4a4253;
+  --input: #51485b;
+  --ring: #b29ad8;
+  --sidebar-background: 270 14% 15%;
+  --sidebar-foreground: 270 15% 93%;
+  --sidebar-primary: 267 44% 72%;
+  --sidebar-primary-foreground: 270 14% 15%;
+  --sidebar-accent: 270 16% 24%;
+  --sidebar-accent-foreground: 270 15% 93%;
+  --sidebar-border: 270 14% 29%;
+  --sidebar-ring: 267 44% 72%;
   /* Tiptap CSS Variables - Dark Mode (preserved for document editor) */
   --tt-bg-color: oklch(0.2166 0.0215 292.8474);
   --tt-border-color: oklch(0.3063 0.0359 293.3367);
@@ -67,6 +149,24 @@
   /* Prevent horizontal scroll on mobile */
   html, body {
     overflow-x: hidden;
+  }
+
+  .landing-page {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .landing-page::-webkit-scrollbar {
+    display: none;
+  }
+
+  .landing-scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .landing-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
   
   /* Smooth scroll for anchor links */
@@ -357,4 +457,11 @@
   background: var(--tt-bg-color);
   color: var(--tt-theme-text);
   min-height: 100vh;
+}
+
+/* Buttons use a consistent pill shape throughout the app. Equal-width icon
+   buttons become circles while text actions remain rounded-full pills. */
+button,
+[role="button"] {
+  border-radius: 9999px !important;
 }

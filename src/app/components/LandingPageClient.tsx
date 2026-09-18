@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight as ArrowUpRightIcon,
@@ -50,10 +50,15 @@ export default function LandingPageClient() {
   const mainRef = useRef<HTMLDivElement>(null);
   const handleAnchor = useSmoothScroll();
 
+  useEffect(() => {
+    document.documentElement.classList.add("landing-scrollbar-hidden");
+    return () => document.documentElement.classList.remove("landing-scrollbar-hidden");
+  }, []);
+
   return (
     <main
       ref={mainRef}
-      className="relative min-h-screen text-[#1C1917] overflow-x-hidden"
+      className="landing-page relative min-h-screen text-[#1C1917] overflow-x-hidden"
       style={{ background: "#F5F3EE" }}
     >
       {/* ─── FLOATING NAVBAR ─────────────────────────────────── */}
@@ -430,7 +435,7 @@ export default function LandingPageClient() {
       {/* ─── GIANT BRAND TEXT ────────────────────────────────── */}
       <section className="relative overflow-hidden -mt-6">
         <div
-          className="text-center font-serif text-[clamp(120px,30vw,500px)] leading-none tracking-tight select-none pointer-events-none"
+          className="max-w-full whitespace-nowrap text-center font-serif text-[clamp(64px,18vw,500px)] leading-none tracking-[-0.05em] select-none pointer-events-none"
           style={{
             background:
               "linear-gradient(to top, #E7E5E4 0%, #D6D3D1 30%, #A8A29E 60%, #78716C 100%)",
