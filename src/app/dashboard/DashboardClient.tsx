@@ -12,6 +12,7 @@ import {
   CopyIcon,
   DotsThreeIcon,
   FilePlusIcon,
+  FilesIcon,
   GearSixIcon,
   GlobeHemisphereWestIcon,
   MagnifyingGlassIcon,
@@ -22,7 +23,7 @@ import {
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { DocumentsFolderIcon, OmnidocLogo } from "@/components/omnidoc-logo";
+import { OmnidocLogo } from "@/components/omnidoc-logo";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +76,15 @@ function formatDate(value: string) {
 
 function publicationPath(doc: DashboardDoc) {
   return doc.publication ? `/p/${doc.publication.id}/${doc.publication.slug}` : "";
+}
+
+async function clearDocumentCache(documentId: string) {
+  localStorage.removeItem(`document-${documentId}-backup`);
+  if (typeof indexedDB === "undefined") return;
+  await new Promise<void>((resolve) => {
+    const request = indexedDB.deleteDatabase(`omnidoc:${documentId}`);
+    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+  });
 }
 
 function Stat({ label, value, accent }: { label: string; value: number; accent?: string }) {
@@ -233,6 +243,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
         setError("That document could not be deleted.");
         toast.error("Document could not be deleted");
       } else {
+        await clearDocumentCache(target.id);
         toast.success("Document deleted");
       }
     } catch {
@@ -267,11 +278,11 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-[#e5dfd5] bg-[#fffdf8] px-5 py-6 md:flex">
         <div className="flex items-center justify-between"><Link href="/" aria-label="Omnidoc home" className="flex items-center gap-2.5 text-[19px] font-semibold tracking-[-0.03em] text-[#302b27] no-underline"><OmnidocLogo priority className="h-8 w-8" />Omnidoc</Link><span className="rounded-full bg-[#f1edf7] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#73618b]">Beta</span></div>
         <button onClick={createDocument} disabled={creating} className="mt-9 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#40355f] px-3 text-[12px] font-semibold text-white shadow-[0_12px_24px_rgba(64,53,95,0.18)] transition hover:bg-[#33284f] disabled:cursor-wait disabled:opacity-65"><FilePlusIcon size={16} />{creating ? "Opening…" : "New document"}</button>
-        <nav className="mt-8 space-y-1" aria-label="Workspace navigation"><p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#a39a8f]">Workspace</p><button className="flex min-h-11 w-full items-center gap-3 rounded-xl bg-[#f0ebf6] px-3 text-left text-[12px] font-semibold text-[#40355f]" aria-current="page"><DocumentsFolderIcon className="h-5 w-5" />Documents<span className="ml-auto rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-medium">{documents.length}</span></button><button onClick={() => setFilter("shared")} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] text-[#756d63] transition hover:bg-[#f5f1eb] hover:text-[#40355f]"><UsersThreeIcon size={19} />Shared with me<span className="ml-auto text-[10px] text-[#a39a8f]">{counts.shared}</span></button></nav>
+        <nav className="mt-8 space-y-1" aria-label="Workspace navigation"><p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#a39a8f]">Workspace</p><button className="flex min-h-11 w-full items-center gap-3 rounded-xl bg-[#f0ebf6] px-3 text-left text-[12px] font-semibold text-[#40355f]" aria-current="page"><FilesIcon className="h-5 w-5" />Documents<span className="ml-auto rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-medium">{documents.length}</span></button><button onClick={() => setFilter("shared")} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] text-[#756d63] transition hover:bg-[#f5f1eb] hover:text-[#40355f]"><UsersThreeIcon size={19} />Shared with me<span className="ml-auto text-[10px] text-[#a39a8f]">{counts.shared}</span></button></nav>
         <div className="mt-auto rounded-2xl border border-[#eee8de] bg-[#faf7f1] p-3.5"><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#403a35] text-[10px] font-semibold text-white">{user.avatar?.startsWith("http") ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user.name)}</span><div className="min-w-0"><p className="truncate text-[11px] font-semibold text-[#403a35]">{user.name}</p><p className="mt-0.5 truncate text-[9px] text-[#988f84]">{user.email}</p></div></div><div className="mt-3 flex gap-1 border-t border-[#eae3d9] pt-2"><button onClick={() => setSettingsOpen(true)} className="flex min-h-9 flex-1 items-center gap-2 rounded-lg px-2 text-[10px] text-[#81786f] hover:bg-[#f0ebe4]" aria-label="Settings"><GearSixIcon size={15} />Settings</button><button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-[#81786f] hover:bg-[#f0ebe4]" aria-label="Sign out"><SignOutIcon size={15} /></button></div></div>
       </aside>
 
-      <MobileBottomNav className="dash-mobile-nav" ariaLabel="Dashboard navigation" items={[{ id: "documents", label: "Docs", icon: <DocumentsFolderIcon />, onClick: () => router.push("/dashboard"), active: true }, { id: "new", label: "New", icon: <FilePlusIcon />, onClick: createDocument }, { id: "settings", label: "Settings", icon: <GearSixIcon />, onClick: () => setSettingsOpen(true) }, { id: "signout", label: "Sign out", icon: <SignOutIcon />, onClick: () => void signOut() }]} />
+      <MobileBottomNav className="dash-mobile-nav" ariaLabel="Dashboard navigation" items={[{ id: "documents", label: "Docs", icon: <FilesIcon />, onClick: () => router.push("/dashboard"), active: true }, { id: "new", label: "New", icon: <FilePlusIcon />, onClick: createDocument }, { id: "settings", label: "Settings", icon: <GearSixIcon />, onClick: () => setSettingsOpen(true) }, { id: "signout", label: "Sign out", icon: <SignOutIcon />, onClick: () => void signOut() }]} />
 
       <div className="min-w-0 px-4 pb-28 sm:px-8 md:col-start-2 md:px-10 md:pb-16 lg:px-16 xl:px-20">
         <header className="flex h-[72px] items-center justify-between border-b border-[#e5dfd5] md:h-[82px]"><Link href="/" className="flex items-center gap-2 text-[18px] font-semibold tracking-[-0.03em] text-[#302b27] no-underline md:hidden"><OmnidocLogo className="h-7 w-7" />Omnidoc</Link><div className="hidden items-center gap-2 text-[11px] font-medium text-[#978e83] md:flex"><span className="h-2 w-2 rounded-full bg-[#7aa98a]" />Workspace <span className="text-[#c8c0b6]">/</span> Documents</div><div className="flex min-w-0 items-center gap-3"><span className="hidden max-w-[240px] truncate text-[11px] text-[#81786f] sm:block">{user.name}</span><span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#2d2924] text-[10px] font-semibold text-white ring-4 ring-[#eee9e1]">{user.avatar?.startsWith("http") ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user.name)}</span></div></header>

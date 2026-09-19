@@ -927,6 +927,20 @@
   background: #e4dfd5;
 }
 
+.recovery-banner { width: min(100% - 32px, 860px); margin: 18px auto 0; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid #e1d7c7; border-radius: 14px; background: #fffaf0; color: #5b5145; font-size: 12px; }
+.recovery-banner > div:first-child { display: grid; gap: 3px; }
+.recovery-banner strong { color: #352d59; font-weight: 600; }
+.recovery-banner span { color: #867b6e; }
+.recovery-actions { display: flex; flex-shrink: 0; gap: 7px; }
+.recovery-actions button { min-height: 32px; padding: 0 12px; border: 1px solid #d6cbbb; border-radius: 999px; background: #fff; color: #51465f; font-size: 12px; }
+.recovery-actions button:first-child { border-color: #352d59; background: #352d59; color: #fff; }
+
+@media (max-width: 640px) {
+  .recovery-banner { align-items: flex-start; flex-direction: column; }
+  .recovery-actions { width: 100%; }
+  .recovery-actions button { flex: 1; }
+}
+
 .mobile-bottom-nav {
   display: none;
 }

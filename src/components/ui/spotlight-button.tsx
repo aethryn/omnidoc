@@ -90,7 +90,7 @@ export function SpotlightButton({
   return (
     <button
       ref={buttonRef}
-      className={`px-6 py-3 cursor-pointer rounded-xl font-medium text-white transition-transform duration-300 hover:scale-105 active:scale-95 ${className}`}
+      className={`px-6 py-3 cursor-pointer rounded-full font-medium text-white transition-transform duration-300 hover:scale-105 active:scale-95 ${className}`}
       style={{
         background: `radial-gradient(
       129% 99% at 112% 85%,

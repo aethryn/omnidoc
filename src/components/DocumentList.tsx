@@ -80,6 +80,8 @@ export default function DocumentList({ documents, isLoading, onRefresh }: Docume
     'bg-purple-500'
   ];
 
+  const uniqueDocuments = documents.filter((document, index, items) => items.findIndex((item) => item.id === document.id) === index);
+
   const titleRefs = useRef<(HTMLHeadingElement | null)[]>([]);
 
   // Close dropdown when clicking outside
@@ -153,12 +155,12 @@ export default function DocumentList({ documents, isLoading, onRefresh }: Docume
         <div className="flex items-center tracking-tight justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-200"></div>
         </div>
-      ) : documents.length === 0 ? (
+      ) : uniqueDocuments.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No documents yet. Create your first document!</p>
         </div>
       ) : (
-        documents.slice(0, 4).map((doc, index) => (
+        uniqueDocuments.slice(0, 4).map((doc, index) => (
           <div 
             key={doc.id}
             onClick={() => handleDocumentClick(doc.id)}

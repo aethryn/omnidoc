@@ -92,6 +92,17 @@
     overflow-x: hidden;
     max-width: 100%;
   }
+
+  .landing-page,
+  .landing-scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .landing-page::-webkit-scrollbar,
+  .landing-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
   
   /* Smooth scroll for anchor links */
   html {

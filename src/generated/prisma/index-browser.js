@@ -160,13 +160,29 @@ exports.Prisma.DocumentScalarFieldEnum = {
   content: 'content',
   yjsState: 'yjsState',
   userId: 'userId',
-  isPublic: 'isPublic',
+  status: 'status',
+  previewText: 'previewText',
+  previewImageUrl: 'previewImageUrl',
+  wordCount: 'wordCount',
   tags: 'tags',
   allowComments: 'allowComments',
   allowSuggestions: 'allowSuggestions',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastEditedAt: 'lastEditedAt'
+};
+
+exports.Prisma.DocumentPublicationScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  slug: 'slug',
+  title: 'title',
+  content: 'content',
+  excerpt: 'excerpt',
+  revisionHash: 'revisionHash',
+  isActive: 'isActive',
+  publishedAt: 'publishedAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.DocumentImageScalarFieldEnum = {
@@ -185,9 +201,13 @@ exports.Prisma.DocumentImageScalarFieldEnum = {
 exports.Prisma.DocumentVersionScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
+  title: 'title',
   content: 'content',
   versionNumber: 'versionNumber',
   changeDescription: 'changeDescription',
+  source: 'source',
+  contentHash: 'contentHash',
+  contributors: 'contributors',
   createdAt: 'createdAt',
   createdBy: 'createdBy'
 };
@@ -208,6 +228,12 @@ exports.Prisma.DocumentCommentScalarFieldEnum = {
   userId: 'userId',
   content: 'content',
   lineNumber: 'lineNumber',
+  parentId: 'parentId',
+  anchorType: 'anchorType',
+  anchorText: 'anchorText',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  deletedAt: 'deletedAt',
   isResolved: 'isResolved',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -275,6 +301,19 @@ exports.Prisma.DocumentActivityScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.LinkPreviewScalarFieldEnum = {
+  urlHash: 'urlHash',
+  url: 'url',
+  title: 'title',
+  description: 'description',
+  siteName: 'siteName',
+  faviconUrl: 'faviconUrl',
+  imageUrl: 'imageUrl',
+  fetchedAt: 'fetchedAt',
+  expiresAt: 'expiresAt',
+  isAvailable: 'isAvailable'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -300,13 +339,17 @@ exports.Prisma.JsonNullValueFilter = {
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
-
+exports.DocumentStatus = exports.$Enums.DocumentStatus = {
+  WORKING_DRAFT: 'WORKING_DRAFT',
+  COMPLETE: 'COMPLETE'
+};
 
 exports.Prisma.ModelName = {
   User: 'User',
   Room: 'Room',
   RoomUser: 'RoomUser',
   Document: 'Document',
+  DocumentPublication: 'DocumentPublication',
   DocumentImage: 'DocumentImage',
   DocumentVersion: 'DocumentVersion',
   DocumentCollaborators: 'DocumentCollaborators',
@@ -315,7 +358,8 @@ exports.Prisma.ModelName = {
   DocumentTemplate: 'DocumentTemplate',
   UserSettings: 'UserSettings',
   AIProviderCredential: 'AIProviderCredential',
-  DocumentActivity: 'DocumentActivity'
+  DocumentActivity: 'DocumentActivity',
+  LinkPreview: 'LinkPreview'
 };
 
 /**
