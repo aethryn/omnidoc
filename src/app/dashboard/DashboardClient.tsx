@@ -182,7 +182,7 @@ function DocumentCard({
           <DropdownMenuTrigger asChild>
             <button className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#968e84] transition hover:bg-[#f1ece4] hover:text-[#433b35]" aria-label={`Actions for ${doc.title}`}><DotsThreeIcon weight="bold" size={17} /></button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 border-[#ded6ca] bg-[#fffdf8] text-[#403a35] shadow-[0_16px_36px_rgba(46,37,28,0.14)]">
             <DropdownMenuItem onClick={() => router.push(`/document/${doc.id}`)}>Open document</DropdownMenuItem>
             {doc.publication?.isActive && <>
               <DropdownMenuItem onClick={() => window.open(publicationPath(doc), "_blank", "noopener,noreferrer")}>View published page</DropdownMenuItem>
