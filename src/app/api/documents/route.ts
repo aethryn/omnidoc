@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { activeCollaboratorConstraint, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as Y from "yjs";
 import { contentToYDoc } from "@/lib/document-yjs";
@@ -18,12 +18,7 @@ export async function GET(request: NextRequest){
         const userId = authResult.userId;
 
         const documents = await prisma.document.findMany({
-            where: {
-                OR: [
-                    { userId },
-                    { collaborators: { some: { userId, acceptedAt: { not: null } } } },
-                ],
-            },
+            where: documentAccessWhere(userId),
             orderBy: {
                 updatedAt: "desc",
             },
@@ -38,7 +33,7 @@ export async function GET(request: NextRequest){
                 previewImageUrl: true,
                 wordCount: true,
                 publication: { select: { id: true, slug: true, isActive: true, publishedAt: true, updatedAt: true } },
-                collaborators: { where: { acceptedAt: { not: null } }, select: { id: true, role: true, user: { select: { id: true, name: true, avatar: true } } } }
+                collaborators: { where: activeCollaboratorConstraint(), select: { id: true, role: true, user: { select: { id: true, name: true, avatar: true } } } }
             }
         });
 

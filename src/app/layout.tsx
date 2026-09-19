@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./galaxy-button.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+
+const instrumental = localFont({ src: [{ path: "../../public/fonts/InstrumentSerif-Regular.ttf", weight: "400", style: "normal" }, { path: "../../public/fonts/InstrumentSerif-Italic.ttf", weight: "400", style: "italic" }], variable: "--font-instrument-serif" });
+const poppins = localFont({ src: [{ path: "../../public/fonts/Poppins-Light.ttf", weight: "300", style: "normal" }, { path: "../../public/fonts/Poppins-Regular.ttf", weight: "400", style: "normal" }, { path: "../../public/fonts/Poppins-Medium.ttf", weight: "500", style: "normal" }, { path: "../../public/fonts/Poppins-SemiBold.ttf", weight: "600", style: "normal" }], variable: "--font-poppins" });
 
 function metadataBase() {
   const configured = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
@@ -41,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${instrumental.variable} ${poppins.variable}`}>
       <body className="min-h-screen antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           {children}

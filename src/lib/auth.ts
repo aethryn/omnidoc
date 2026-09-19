@@ -18,6 +18,33 @@ export function createAuthErrorResponse(_authResult?: AuthResult): NextResponse 
   );
 }
 
+export function activeCollaboratorConstraint() {
+  return {
+    acceptedAt: { not: null },
+    OR: [
+      { accessExpiresAt: null },
+      { accessExpiresAt: { gt: new Date() } },
+    ],
+  };
+}
+
+export function activeCollaboratorWhere(userId: string, requiredRoles?: string[]) {
+  return {
+    userId,
+    ...(requiredRoles ? { role: { in: requiredRoles } } : {}),
+    ...activeCollaboratorConstraint(),
+  };
+}
+
+export function documentAccessWhere(userId: string, requiredRoles?: string[]) {
+  return {
+    OR: [
+      { userId },
+      { collaborators: { some: activeCollaboratorWhere(userId, requiredRoles) } },
+    ],
+  };
+}
+
 // Helper to verify if user has access to a document (owner or accepted collaborator)
 export async function verifyDocumentAccess(
   prisma: any,
@@ -26,21 +53,7 @@ export async function verifyDocumentAccess(
   requiredRoles: string[] = ['admin', 'editor']
 ): Promise<{ authorized: boolean; document: any | null }> {
   const document = await prisma.document.findFirst({
-    where: {
-      id: documentId,
-      OR: [
-        { userId },
-        {
-          collaborators: {
-            some: {
-              userId,
-              role: { in: requiredRoles },
-              acceptedAt: { not: null },
-            },
-          },
-        },
-      ],
-    },
+    where: { id: documentId, ...documentAccessWhere(userId, requiredRoles) },
   });
 
   return {

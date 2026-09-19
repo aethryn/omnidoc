@@ -23,10 +23,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!document) return NextResponse.json({ error: "Only the owner can share this document" }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const role = body.role === "viewer" ? "viewer" : "editor";
-  const expiresInDays = Number.isFinite(Number(body.expiresInDays)) ? Math.min(90, Math.max(1, Number(body.expiresInDays))) : 7;
+  const expiresInMinutes = Number(body.expiresInMinutes);
+  const allowedExpiryWindows = new Set([15, 30, 60, 1_440, 10_080]);
+  if (!allowedExpiryWindows.has(expiresInMinutes)) return NextResponse.json({ error: "Choose a 15 minute, 30 minute, 60 minute, 24 hour, or 7 day invitation window" }, { status: 400 });
   const maxUses = body.maxUses === null || body.maxUses === "" ? null : Math.min(100, Math.max(1, Number(body.maxUses) || 1));
   const rawToken = randomBytes(32).toString("base64url");
-  await prisma.documentShare.create({ data: { documentId: id, shareToken: hash(rawToken), permissions: [role], createdBy: auth.userId, isActive: true, expiresAt:new Date(Date.now()+expiresInDays*86_400_000), maxUses } });
+  await prisma.documentShare.create({ data: { documentId: id, shareToken: hash(rawToken), permissions: [role], createdBy: auth.userId, isActive: true, expiresAt:new Date(Date.now() + expiresInMinutes * 60_000), maxUses } });
   const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
   return NextResponse.json({ url: `${origin}/join/${rawToken}`, role });
 }

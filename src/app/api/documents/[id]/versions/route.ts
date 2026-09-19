@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { activeCollaboratorWhere, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { documentContentHash } from "@/lib/document-version";
 
 async function membership(documentId: string, userId: string) {
-  return prisma.document.findFirst({ where: { id: documentId, OR: [{ userId }, { collaborators: { some: { userId, acceptedAt: { not: null } } } }] }, select: { id: true, userId: true, title: true, content: true } });
+  return prisma.document.findFirst({ where: { id: documentId, ...documentAccessWhere(userId) }, select: { id: true, userId: true, title: true, content: true } });
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const document = await membership(id, auth.userId);
   if (!document) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });
-  const collaborator = await prisma.documentCollaborators.findFirst({ where: { documentId: id, userId: auth.userId, acceptedAt: { not: null } }, select: { role: true } });
+  const collaborator = await prisma.documentCollaborators.findFirst({ where: { documentId: id, ...activeCollaboratorWhere(auth.userId) }, select: { role: true } });
   if (document.userId !== auth.userId && !["editor", "admin"].includes(collaborator?.role || "")) return NextResponse.json({ error: "Only editors can create versions" }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const content = typeof body.content === "string" ? body.content : document.content;

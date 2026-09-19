@@ -194,6 +194,7 @@ model DocumentCollaborators {
   permissions String[] // Array of specific permissions
   invitedAt DateTime @default(now())
   acceptedAt DateTime?
+  accessExpiresAt DateTime?
   
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -201,6 +202,7 @@ model DocumentCollaborators {
   @@unique([documentId, userId])
   @@index([documentId])
   @@index([userId])
+  @@index([documentId, accessExpiresAt])
 }
 
 model DocumentComment {

@@ -3,10 +3,10 @@
 import { toast } from "sonner";
 
 export type UploadedImage = { fileUrl: string; width?: number; height?: number; originalName?: string };
-const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const allowed = new Set(["image/jpeg", "image/png", "image/gif"]);
 
 export async function uploadDocumentImage(file: File, getDocumentId: () => Promise<string | null>): Promise<UploadedImage> {
-  if (!allowed.has(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Choose a JPEG, PNG, WebP, or GIF up to 5 MB.");
+  if (!allowed.has(file.type) || file.size > 500 * 1024) throw new Error("Choose a JPEG, PNG, or GIF up to 500 KB.");
   const documentId = await getDocumentId();
   if (!documentId) throw new Error("Save the document before adding an image.");
   const controller = new AbortController();

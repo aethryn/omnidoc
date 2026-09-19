@@ -80,6 +80,7 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
     },
     dismissSuggestion: (id: string) => editor?.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey, { clear:id })),
     runFormat: (command) => { if (editor && !readOnly) runFormat(editor, command); },
+    insertImage: (image) => { if (!editor || readOnly) return false; editor.chain().focus().setImage({ src:image.fileUrl, alt:image.originalName || "", width:100, align:"center" } as never).run(); return true; },
     addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
     replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
     retryPersistence: () => undefined,

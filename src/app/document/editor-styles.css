@@ -1,7 +1,7 @@
 /* Notion-like Editor Styles - Force Light Mode */
 
 .notion-editor {
-  font-family: var(--font-instrument), "Instrument Serif", Georgia, serif;
+  font-family: var(--font-sans);
   background: white !important;
 }
 
@@ -327,6 +327,12 @@
   pointer-events: none;
   white-space: pre-wrap;
 }
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3, .ProseMirror h4, .ProseMirror h5, .ProseMirror h6 {
+  font-family: var(--font-instrument), Georgia, serif;
+}
+
+.omnidoc-ghost-deletion { background: #ffe4e1; color: #9b3028; text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .comment-thread-mark{background:#f1e4ff;border-bottom:2px solid #9a70d0;cursor:pointer}
 .link-preview-copy strong{display:flex;align-items:center;gap:5px}.link-preview-content>img{width:100px;min-height:96px;object-fit:cover}.link-preview-favicon{width:14px!important;height:14px!important;min-height:14px!important;object-fit:contain!important}
 

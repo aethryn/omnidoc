@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 
 async function member(documentId: string, userId: string) {
-  return prisma.document.findFirst({ where: { id: documentId, OR: [{ userId }, { collaborators: { some: { userId, acceptedAt: { not: null } } } }] }, select: { id: true, userId: true, allowComments: true } });
+  return prisma.document.findFirst({ where: { id: documentId, ...documentAccessWhere(userId) }, select: { id: true, userId: true, allowComments: true } });
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

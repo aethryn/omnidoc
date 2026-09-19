@@ -72,7 +72,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#d8d1c5] bg-[#fffdf8] p-0 sm:max-w-[680px]">
+      <DialogContent className="settings-dialog max-h-[88vh] overflow-y-auto border-[#d8d1c5] bg-[#fffdf8] p-0 sm:max-w-[680px]">
         <DialogHeader className="border-b border-[#e1dbd0] px-7 pb-5 pt-7">
           <DialogTitle className="font-[var(--font-instrument)] text-3xl font-normal">Workspace settings</DialogTitle>
           <DialogDescription>Profile details and private AI provider credentials.</DialogDescription>

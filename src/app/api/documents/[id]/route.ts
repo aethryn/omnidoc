@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deriveDocumentPreview } from "@/lib/document-content";
@@ -25,20 +25,7 @@ export async function GET(
 
     //check if the document exists and the usr has access to it.
     const document = await prisma.document.findFirst({
-      where: {
-        id: documentId,
-        OR: [
-          { userId }, //usr owns the doc
-          {
-            collaborators: {
-              some: {
-                userId,
-                acceptedAt: { not: null }, //user is an accepted collaborator
-              },
-            },
-          },
-        ],
-      },
+      where: { id: documentId, ...documentAccessWhere(userId) },
       include: {
         images: true,
         collaborators: {
@@ -116,21 +103,7 @@ export async function PUT(
     //check if the user has permission to edit
 
     const document = await prisma.document.findFirst({
-      where: {
-        id: documentId,
-        OR: [
-          { userId },
-          {
-            collaborators: {
-              some: {
-                userId,
-                role: { in: ["admin", "editor"] },
-                acceptedAt: { not: null },
-              },
-            },
-          },
-        ],
-      },
+      where: { id: documentId, ...documentAccessWhere(userId, ["admin", "editor"]) },
     });
 
     if (!document) {
@@ -244,21 +217,7 @@ export async function PATCH(
 
         //permission check
         const document = await prisma.document.findFirst({
-            where: {
-                id: documentId,
-                OR: [
-                    { userId},
-                    {
-                        collaborators: {
-                            some: {
-                                userId,
-                                role: { in: ["admin", "editor"]},
-                                acceptedAt: { not: null },
-                            }
-                        }
-                    }
-                ]
-            }
+            where: { id: documentId, ...documentAccessWhere(userId, ["admin", "editor"]) }
         });
 
         if(!document){
