@@ -8,7 +8,7 @@
   "packageManager": "pnpm@11.24.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "ws:dev": "tsx watch websocket-server.ts",
     "ws:start": "tsx websocket-server.ts",
