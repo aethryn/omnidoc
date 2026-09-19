@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { activeCollaboratorWhere, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string; commentId: string }> }) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
   const { id, commentId } = await params;
   const comment = await prisma.documentComment.findFirst({ where: { id: commentId, documentId: id, deletedAt: null }, select: { id: true, userId: true } });
-  const document = await prisma.document.findFirst({ where: { id }, select: { userId: true } });
-  const collaborator = await prisma.documentCollaborators.findFirst({ where: { documentId: id, userId: auth.userId, acceptedAt: { not: null } }, select: { role: true } });
+  const document = await prisma.document.findFirst({ where: { id, ...documentAccessWhere(auth.userId) }, select: { userId: true } });
+  const collaborator = await prisma.documentCollaborators.findFirst({ where: { documentId: id, ...activeCollaboratorWhere(auth.userId) }, select: { role: true } });
   const body = await request.json().catch(() => ({}));
   const resolved = typeof body.resolved === "boolean" ? body.resolved : typeof body.isResolved === "boolean" ? body.isResolved : undefined;
   if (typeof resolved === "boolean") {
@@ -26,7 +26,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!auth.userId) return createAuthErrorResponse(auth);
   const { id, commentId } = await params;
   const comment = await prisma.documentComment.findFirst({ where: { id: commentId, documentId: id, deletedAt: null }, select: { id: true, userId: true } });
-  const document = await prisma.document.findFirst({ where: { id }, select: { userId: true } });
+  const document = await prisma.document.findFirst({ where: { id, ...documentAccessWhere(auth.userId) }, select: { userId: true } });
   if (!comment || !document || (comment.userId !== auth.userId && document.userId !== auth.userId)) return NextResponse.json({ error: "Comment access denied" }, { status: 403 });
   await prisma.documentComment.update({ where: { id: commentId }, data: { deletedAt: new Date(), content: "[deleted]" } });
   return NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { normalizePreviewUrl, previewUrlHash, readLinkPreview } from "@/lib/link-preview";
 
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (cached && cached.expiresAt > new Date()) return NextResponse.json({ ...cached, imageUrl: cached.imageUrl ? `/api/link-preview/media?url=${encodeURIComponent(cached.imageUrl)}` : null, faviconUrl: cached.faviconUrl ? `/api/link-preview/media?url=${encodeURIComponent(cached.faviconUrl)}` : null });
   const documentMatch = url.pathname.match(/^\/document\/([^/]+)$/);
   if (url.origin === request.nextUrl.origin && documentMatch) {
-    const document = await prisma.document.findFirst({ where: { id: documentMatch[1], OR: [{ userId: auth.userId }, { collaborators: { some: { userId: auth.userId, acceptedAt: { not: null } } } }] }, select: { title: true, previewText: true, previewImageUrl: true } });
+    const document = await prisma.document.findFirst({ where: { id: documentMatch[1], ...documentAccessWhere(auth.userId) }, select: { title: true, previewText: true, previewImageUrl: true } });
     if (!document) return NextResponse.json({ error: "Link preview unavailable", code: "NOT_FOUND" }, { status: 404 });
     return NextResponse.json({ url: url.href, title: document.title, description: document.previewText || null, siteName: "Omnidoc", faviconUrl: null, imageUrl: document.previewImageUrl || null, isAvailable: true });
   }

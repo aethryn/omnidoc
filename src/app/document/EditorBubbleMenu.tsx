@@ -63,6 +63,7 @@ export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: Edito
     <BubbleMenu
       editor={editor}
       shouldShow={({editor, view, state, from, to}) => {
+        if (typeof window !== "undefined" && window.matchMedia("(max-width: 720px), (pointer: coarse)").matches) return false;
         //show if text is selected (default behavior) - needed.
         const hasSelection = !state.selection.empty;
 
@@ -244,7 +245,7 @@ export function EditorBubbleMenu({ editor, documentId, ensureDocumentId }: Edito
           onClick={async () => {
             const input = document.createElement('input')
             input.type = 'file'
-            input.accept = 'image/jpeg,image/png,image/webp,image/gif'
+            input.accept = '.jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif'
             
             input.onchange = async (e) => {
               const file = (e.target as HTMLInputElement).files?.[0]

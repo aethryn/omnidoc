@@ -10,6 +10,7 @@ import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
+import { activeCollaboratorWhere, documentAccessWhere } from "@/lib/auth";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { documentContentHash } from "@/lib/document-version";
@@ -30,7 +31,7 @@ const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
 const redisBatchMs = 50;
 type RedisOrigin = { kind: "redis"; id: string; sender: string };
 type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
-type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number>; closed?: boolean };
+type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean };
 type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
 
 const active = new Map<string, ActiveRoom>();
@@ -207,6 +208,25 @@ async function cleanupEmptyRoom(documentId: string) {
   return room.cleanupPromise;
 }
 
+async function expireConnection(documentId: string, connection: Connection) {
+  if (connection.closed || connection.expired) return;
+  connection.expired = true;
+  let persisted = false;
+  for (let attempt = 0; attempt < 3 && !persisted; attempt += 1) {
+    try {
+      await persist(documentId, true);
+      persisted = true;
+    } catch (error) {
+      console.error("Failed to persist document before invitation expiry", documentId, error);
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+  if (connection.ws.readyState === WebSocket.OPEN) {
+    sendApplication(connection.ws, { kind: "access-expired", persisted });
+    connection.ws.close(4003, "Invitation access expired");
+  }
+}
+
 async function persist(documentId: string, forceVersion = false) {
   const room = active.get(documentId);
   if (!room) return;
@@ -368,8 +388,8 @@ wss.on("connection", async (ws, request) => {
   if (authError || !user) return ws.close(1008, "Invalid session");
 
   const document = await prisma.document.findFirst({
-    where: { id: documentId, OR: [{ userId: user.id }, { collaborators: { some: { userId: user.id, acceptedAt: { not: null } } } }] },
-    select: { id: true, userId:true, collaborators:{where:{userId:user.id,acceptedAt:{not:null}},select:{role:true}} },
+    where: { id: documentId, ...documentAccessWhere(user.id) },
+    select: { id: true, userId:true, collaborators:{where:activeCollaboratorWhere(user.id),select:{role:true,accessExpiresAt:true}} },
   });
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (!document) return ws.close(1008, "Document access denied");
@@ -378,11 +398,13 @@ wss.on("connection", async (ws, request) => {
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) { await cleanupEmptyRoom(documentId); return; }
   if (!room) return ws.close(1008, "Document not found");
   const role=document.userId===user.id?"owner":document.collaborators[0]?.role;
-  const entry:Connection = { ws, userId: user.id, canEdit:role!=="viewer", awarenessIds:new Set() };
+  const accessExpiresAt=document.userId===user.id?null:document.collaborators[0]?.accessExpiresAt;
+  const entry:Connection = { ws, userId: user.id, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt };
   ws.off("close", closeHandler);
   closeHandler = () => {
     if (entry.closed) return;
     entry.closed = true;
+    if (entry.expiryTimer) clearTimeout(entry.expiryTimer);
     awarenessProtocol.removeAwarenessStates(room.awareness,Array.from(entry.awarenessIds),entry);
     connections.get(documentId)?.delete(entry);
     void cleanupEmptyRoom(documentId);
@@ -390,6 +412,11 @@ wss.on("connection", async (ws, request) => {
   ws.on("close", closeHandler);
   if (!connections.has(documentId)) connections.set(documentId, new Set());
   connections.get(documentId)!.add(entry);
+  if (accessExpiresAt) {
+    const delay = Math.max(0, accessExpiresAt.getTime() - Date.now());
+    entry.expiryTimer = setTimeout(() => { void expireConnection(documentId, entry); }, delay);
+    entry.expiryTimer.unref();
+  }
 
   const initial = encoding.createEncoder();
   encoding.writeVarUint(initial, messageSync);
@@ -399,7 +426,7 @@ wss.on("connection", async (ws, request) => {
   if(existingIds.length && ws.readyState === WebSocket.OPEN){const awareness=encoding.createEncoder();encoding.writeVarUint(awareness,messageAwareness);encoding.writeVarUint8Array(awareness,awarenessProtocol.encodeAwarenessUpdate(room.awareness,existingIds));ws.send(encoding.toUint8Array(awareness));}
 
   ws.on("message", (raw, isBinary) => {
-    if (entry.closed || ws.readyState !== WebSocket.OPEN || !isBinary || typeof raw === "string") return;
+    if (entry.closed || entry.expired || ws.readyState !== WebSocket.OPEN || !isBinary || typeof raw === "string") return;
     try {
       const decoder = decoding.createDecoder(new Uint8Array(raw as Buffer));
       const type = decoding.readVarUint(decoder);

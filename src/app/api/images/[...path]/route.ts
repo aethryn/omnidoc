@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest } from "@/lib/auth";
+import { documentAccessWhere, getCurrentUserIdFromRequest } from "@/lib/auth";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const auth = await getCurrentUserIdFromRequest(request);
   const path = (await params).path.join("/");
-  const access = auth.userId ? [{ userId: auth.userId }, { collaborators: { some: { userId: auth.userId, acceptedAt: { not: null } } } }] : [];
+  const access = auth.userId ? documentAccessWhere(auth.userId).OR : [];
   const image = await prisma.documentImage.findFirst({
     where: { fileName: path, document: { OR: [...access, { publication: { is: { isActive: true } } }] } },
     select: { mimeType: true, document: { select: { publication: { select: { isActive: true, content: true } } } } },

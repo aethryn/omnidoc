@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { activeCollaboratorConstraint, documentAccessWhere } from "@/lib/auth";
 import DocumentEditorClient, { type InitialDocument } from "../DocumentEditorClient";
 
 export default async function DocumentByIdPage({ params }: { params: Promise<{ id:string }> }) {
@@ -14,12 +15,12 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
   const [user, document] = await Promise.all([
     prisma.user.findUnique({ where:{ id:userId }, select:{ id:true,name:true,avatar:true } }),
     prisma.document.findFirst({
-      where:{ id, OR:[{userId},{collaborators:{some:{userId,acceptedAt:{not:null}}}}] },
+      where:{ id, ...documentAccessWhere(userId) },
       select:{
         id:true,title:true,content:true,yjsState:true,userId:true,status:true,allowComments:true,updatedAt:true,lastEditedAt:true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true,revisionHash:true}},
         user:{select:{id:true,name:true,avatar:true}},
-        collaborators:{where:{acceptedAt:{not:null}},select:{role:true,user:{select:{id:true,name:true,avatar:true}}}},
+        collaborators:{where:activeCollaboratorConstraint(),select:{role:true,user:{select:{id:true,name:true,avatar:true}}}},
       },
     }),
   ]);

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { activeCollaboratorConstraint, documentAccessWhere } from "@/lib/auth";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
@@ -13,12 +14,12 @@ export default async function DashboardPage() {
   const [user, documents] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true, avatar: true } }),
     prisma.document.findMany({
-      where: { OR: [{ userId }, { collaborators: { some: { userId, acceptedAt: { not: null } } } }] },
+      where: documentAccessWhere(userId),
       orderBy: { lastEditedAt: "desc" },
       select: {
         id: true, title: true, userId: true, status:true, previewText:true, previewImageUrl:true, wordCount:true, updatedAt: true, lastEditedAt: true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true}},
-        collaborators: { where: { acceptedAt: { not: null } }, select: { role: true, user: { select: { id: true, name: true, avatar: true } } } },
+        collaborators: { where: activeCollaboratorConstraint(), select: { role: true, user: { select: { id: true, name: true, avatar: true } } } },
       },
     }),
   ]);

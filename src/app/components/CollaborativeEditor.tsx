@@ -28,7 +28,7 @@ import { isPersistedMessage, isPersistFailedMessage, persistenceAckTimeoutMs, pe
 
 export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
 export type CollaborationState = { connectivity: "connecting" | "online" | "offline" | "error"; indexedDbReady: boolean; pendingLocalChanges: boolean; lastPersistedAt: string | null; syncError: string | null; retryAvailable: boolean };
-interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onStateChange?: (state: CollaborationState) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; }
+interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onStateChange?: (state: CollaborationState) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; onAccessExpired?: (persisted: boolean) => void; }
 
 function decodeState(value: string) { const binary = atob(value); return Uint8Array.from(binary, (char) => char.charCodeAt(0)); }
 function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: FormatCommand) {
@@ -41,13 +41,14 @@ function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: F
   if (command === "bullet-list") chain.toggleBulletList().run();
 }
 
-const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, readOnly, user, onStatusChange, onStateChange, onPresenceChange, onContentChange }, ref) {
+const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, readOnly, user, onStatusChange, onStateChange, onPresenceChange, onContentChange, onAccessExpired }, ref) {
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
   const onStatusChangeRef = useRef(onStatusChange);
   const onPresenceChangeRef = useRef(onPresenceChange);
   const onContentChangeRef = useRef(onContentChange);
   const onStateChangeRef = useRef(onStateChange);
+  const onAccessExpiredRef = useRef(onAccessExpired);
   const providerRef = useRef<WebsocketProvider | null>(null);
   const stateRef = useRef<CollaborationState>({ connectivity:"connecting", indexedDbReady:false, pendingLocalChanges:false, lastPersistedAt:null, syncError:null, retryAvailable:false });
   const pendingSequencesRef = useRef(new Set<number>());
@@ -66,6 +67,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   onPresenceChangeRef.current = onPresenceChange;
   onContentChangeRef.current = onContentChange;
   onStateChangeRef.current = onStateChange;
+  onAccessExpiredRef.current = onAccessExpired;
 
   function updateState(patch: Partial<CollaborationState>) {
     stateRef.current = { ...stateRef.current, ...patch };
@@ -164,12 +166,23 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
       nextProvider.awareness.on("change", publishPresence);
       nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); } });
       nextProvider.on("connection-error", () => { updateState({ connectivity:"error", syncError:"CONNECTION_ERROR", retryAvailable:stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.("error"); scheduleRetry(); });
+      nextProvider.on("connection-close", (event) => {
+        if (event?.code !== 4003) return;
+        nextProvider!.shouldConnect = false;
+        updateState({ connectivity:"error", syncError:"ACCESS_EXPIRED", retryAvailable:false });
+        onStatusChangeRef.current?.("error");
+      });
       nextProvider.on("sync", (synced) => { if (synced) flushMarkers(); });
       nextProvider.messageHandlers.push((_encoder, decoder, _provider, _isBc, messageType) => {
         if (messageType !== 4) return;
         try {
           const payload = JSON.parse(decoding.readVarString(decoder)) as Record<string, unknown>;
-          if (isPersistedMessage(payload)) {
+          if (payload.kind === "access-expired") {
+            nextProvider!.shouldConnect = false;
+            nextProvider!.disconnect();
+            updateState({ connectivity:"error", syncError:"ACCESS_EXPIRED", retryAvailable:false });
+            onAccessExpiredRef.current?.(payload.persisted === true);
+          } else if (isPersistedMessage(payload)) {
             const sequence = typeof payload.sequence === "number" ? payload.sequence : undefined;
             const markerId = typeof payload.markerId === "string" ? payload.markerId : undefined;
             if (sequence == null && !markerId) return;
@@ -227,6 +240,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     applySuggestion:(change:EditorSuggestion) => { if(!editor||readOnly)return false; const current=editor.state.doc.textBetween(change.from,change.to," "); if(current!==change.originalText)return false; editor.view.dispatch(editor.state.tr.insertText(change.text,change.from,change.to).setMeta(ghostSuggestionKey,{clear:change.id})); editor.commands.focus(); return true; },
     dismissSuggestion:(id:string) => editor?.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey,{clear:id})),
     runFormat:(command) => { if(editor&&!readOnly)runFormat(editor,command); },
+    insertImage:(image) => { if(!editor||readOnly)return false; editor.chain().focus().setImage({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"} as never).run(); return true; },
     addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
     replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
     retryPersistence: () => retryPending(),

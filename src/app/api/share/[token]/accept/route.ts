@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   try{await prisma.$transaction(async(tx: Prisma.TransactionClient)=>{
     const consumed=await tx.documentShare.updateMany({where:{id:share.id,isActive:true,useCount:share.useCount},data:{useCount:{increment:1}}});
     if(!consumed.count)throw new Error("LINK_CONSUMED");
-    await tx.documentCollaborators.upsert({where:{documentId_userId:{documentId:share.documentId,userId}},update:{role,acceptedAt:new Date(),permissions:share.permissions},create:{documentId:share.documentId,userId,role,permissions:share.permissions,acceptedAt:new Date()}});
+    await tx.documentCollaborators.upsert({where:{documentId_userId:{documentId:share.documentId,userId}},update:{role,acceptedAt:new Date(),permissions:share.permissions,accessExpiresAt:share.expiresAt},create:{documentId:share.documentId,userId,role,permissions:share.permissions,acceptedAt:new Date(),accessExpiresAt:share.expiresAt}});
   });}catch{return NextResponse.json({error:"This share link was just used or revoked. Try again."},{status:409});}
   return NextResponse.redirect(new URL(`/document/${share.documentId}`, request.url));
 }

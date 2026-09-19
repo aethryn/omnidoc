@@ -4,7 +4,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { AlignmentType, Document as WordDocument, Footer, HeadingLevel, ImageRun, Packer, PageNumber, Paragraph, TextRun } from "docx";
 
-import { createAuthErrorResponse, getCurrentUserIdFromRequest } from "@/lib/auth";
+import { createAuthErrorResponse, documentAccessWhere, getCurrentUserIdFromRequest } from "@/lib/auth";
 import { documentPlainText, documentToHtml, documentToMarkdown, parseDocumentContent, type TiptapNode } from "@/lib/document-content";
 import { prisma } from "@/lib/prisma";
 
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!auth.userId) return createAuthErrorResponse(auth);
   const { id } = await params;
   const document = await prisma.document.findFirst({
-    where: { id, OR: [{ userId: auth.userId }, { collaborators: { some: { userId: auth.userId, acceptedAt: { not: null } } } }] },
+    where: { id, ...documentAccessWhere(auth.userId) },
     select: { title: true, content: true, images: { select: { fileUrl: true, fileName: true, mimeType: true } } },
   });
   if (!document) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });

@@ -12,7 +12,7 @@ type Provider = "gemini" | "xai";
 type Config = { provider: Provider; configured: true; keyHint: string; model: string; updatedAt: string };
 type ModelOption = { id: string; imageInput: boolean; imageOutput: boolean };
 
-export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onClose: () => void; user?: { name: string; avatar?: string } }) {
+export function SettingsPanel({ active = true, user, className = "" }: { active?: boolean; user?: { name: string; avatar?: string }; className?: string }) {
   const [name, setName] = useState(user?.name ?? "");
   const [activeProvider, setActiveProvider] = useState<Provider | null>(null);
   const [configs, setConfigs] = useState<Config[]>([]);
@@ -24,7 +24,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
   const [encryptionReady, setEncryptionReady] = useState(true);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!active) return;
     setName(user?.name ?? "");
     setMessage(null);
     fetch("/api/settings/ai", { cache: "no-store" }).then(async (response) => {
@@ -36,7 +36,7 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
       setConfigs(data.providers);
       setSelectedModels((current) => ({ ...current, ...Object.fromEntries(data.providers.map((item: Config) => [item.provider, item.model])) }));
     }).catch((error) => setMessage(error.message));
-  }, [isOpen, user?.name]);
+  }, [active, user?.name]);
 
   async function saveProfile() {
     setBusy("profile"); setMessage(null);
@@ -71,12 +71,11 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto border-[#d8d1c5] bg-[#fffdf8] p-0 sm:max-w-[680px]">
-        <DialogHeader className="border-b border-[#e1dbd0] px-7 pb-5 pt-7">
-          <DialogTitle className="font-[var(--font-instrument)] text-3xl font-normal">Workspace settings</DialogTitle>
-          <DialogDescription>Profile details and private AI provider credentials.</DialogDescription>
-        </DialogHeader>
+    <div className={`bg-[#fffdf8] ${className}`}>
+        <div className="border-b border-[#e1dbd0] px-7 pb-5 pt-7">
+          <h2 className="font-[var(--font-instrument)] text-3xl font-normal">Workspace settings</h2>
+          <p className="mt-2 text-sm text-[#837c72]">Profile details and private AI provider credentials.</p>
+        </div>
         <Tabs defaultValue="profile" className="px-7 pb-7">
           <TabsList className="mt-5 bg-[#eee9df]">
             <TabsTrigger value="profile"><UserIcon /> Profile</TabsTrigger>
@@ -110,7 +109,10 @@ export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onCl
             {message && <p role="status" className="text-xs text-[#6940ab]">{message}</p>}
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+    </div>
   );
+}
+
+export function SettingsModal({ isOpen, onClose, user }: { isOpen: boolean; onClose: () => void; user?: { name: string; avatar?: string } }) {
+  return <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}><DialogContent className="settings-dialog max-h-[88vh] overflow-y-auto border-[#d8d1c5] bg-[#fffdf8] p-0 sm:max-w-[680px]"><DialogHeader className="sr-only"><DialogTitle>Workspace settings</DialogTitle><DialogDescription>Profile details and private AI provider credentials.</DialogDescription></DialogHeader><SettingsPanel active={isOpen} user={user}/></DialogContent></Dialog>;
 }

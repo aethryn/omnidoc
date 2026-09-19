@@ -1,70 +1,18 @@
+/* Mobile-specific overrides that supplement workspace-styles.css */
+/* Drawer bottom-sheet, backdrop, and touch targets are handled in workspace-styles.css */
+
 @media (max-width: 720px) {
-  .history-drawer,
-  .comments-drawer {
-    z-index: 70;
-    top: auto;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: min(88dvh, calc(100dvh - 64px - var(--safe-area-top)));
-    max-height: calc(100dvh - 64px - var(--safe-area-top));
-    border-top: 1px solid #ded8cd;
-    border-right: 0;
-    border-bottom: 0;
-    border-left: 0;
-    border-radius: 18px 18px 0 0;
-    padding-bottom: var(--safe-area-bottom);
-    box-shadow: 0 -14px 45px rgba(51, 37, 28, .18);
-    transform: translateY(105%);
+  .omnidoc-workspace .workspace-rail,
+  .omnidoc-workspace .profile-orb {
+    display: none !important;
   }
 
-  .history-drawer.is-open,
-  .comments-drawer.is-open {
-    transform: translateY(0);
+  .omnidoc-workspace .document-stage {
+    padding-bottom: calc(32px + var(--safe-area-bottom)) !important;
+    scroll-padding-bottom: calc(32px + var(--safe-area-bottom));
   }
 
-  .history-drawer__header,
-  .comments-drawer__header {
-    padding: 15px 18px;
-  }
-
-  .history-checkpoint,
-  .comment-composer {
-    flex-wrap: wrap;
-    padding: 10px 12px;
-  }
-
-  .history-checkpoint input,
-  .comment-composer textarea {
-    width: 100%;
-    min-height: 44px;
-  }
-
-  .history-checkpoint button,
-  .comment-composer button {
-    min-height: 44px;
-    margin-left: auto;
-  }
-
-  .history-drawer__body,
-  .comments-drawer__body {
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .mobile-sheet-backdrop {
-    position: fixed;
-    z-index: 65;
-    inset: 0;
-    display: block;
-    border: 0;
-    background: rgba(38, 31, 24, .28);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .mobile-sheet-backdrop.is-open {
-    opacity: 1;
-    pointer-events: auto;
+  .omnidoc-workspace .paper-editor {
+    padding-bottom: calc(32px + var(--safe-area-bottom)) !important;
   }
 }

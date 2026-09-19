@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createAuthErrorResponse, getCurrentUserIdFromRequest } from "@/lib/auth";
+import { createAuthErrorResponse, documentAccessWhere, getCurrentUserIdFromRequest } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -11,13 +11,7 @@ export async function GET(
 
   const { id: documentId } = await params;
   const document = await prisma.document.findFirst({
-    where: {
-      id: documentId,
-      OR: [
-        { userId: auth.userId },
-        { collaborators: { some: { userId: auth.userId, acceptedAt: { not: null } } } },
-      ],
-    },
+    where: { id: documentId, ...documentAccessWhere(auth.userId) },
     select: {
       images: {
         orderBy: { createdAt: "asc" },
