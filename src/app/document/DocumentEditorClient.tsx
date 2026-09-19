@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, ArrowSquareOutIcon, CaretDownIcon, CheckCircleIcon, ChatCircleDotsIcon, ClockCounterClockwiseIcon, CloudCheckIcon, CopyIcon, DotsThreeIcon, FileDocIcon, FileHtmlIcon, FileMdIcon, FilePdfIcon, FilesIcon, GearSixIcon, GlobeHemisphereWestIcon, ImageIcon, ListBulletsIcon, NotePencilIcon, ShareNetworkIcon, SparkleIcon, TextAlignLeftIcon, TextBIcon, TextItalicIcon, TextUnderlineIcon, TrashIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarSeparator, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import "./print-styles.css";
 import "./workspace-styles.css";
 import "./mobile-overrides.css";
@@ -25,6 +25,7 @@ import { uploadAndInsertImage } from "./image-upload";
 
 const AIAssistantPanel=dynamic(()=>import("./AIAssistantPanel").then((module)=>module.AIAssistantPanel),{ssr:false});
 const SettingsModal=dynamic(()=>import("@/components/setting-modal").then((module)=>module.SettingsModal),{ssr:false});
+const SettingsPanel=dynamic(()=>import("@/components/setting-modal").then((module)=>module.SettingsPanel),{ssr:false});
 const Editor=lazy(()=>import("./editor"));
 const CollaborativeEditor=lazy(()=>import("../components/CollaborativeEditor"));
 const EMPTY_DOCUMENT=JSON.stringify({type:"doc",content:[{type:"paragraph"}]});
@@ -38,6 +39,11 @@ export type InitialDocument={id:string;title:string;content:string;yjsState:stri
 type ShareLink={id:string;role:"viewer"|"editor";expiresAt:string|null;maxUses:number|null;useCount:number;createdAt:string;isActive:boolean};
 
 function initials(name:string){return name.split(/\s+/).map((part)=>part[0]).join("").slice(0,2).toUpperCase();}
+
+function MobileSidebarAction({ icon, children, onClick, disabled }: { icon:ReactNode; children:ReactNode; onClick:()=>void; disabled?:boolean }) {
+  const { setOpenMobile }=useSidebar();
+  return <SidebarMenuButton disabled={disabled} onClick={()=>{setOpenMobile(false);onClick();}} className="h-11 rounded-xl px-3 text-[13px]"><span className="text-[#75688a]">{icon}</span><span>{children}</span></SidebarMenuButton>;
+}
 
 export default function DocumentEditorClient({initialDocument,currentUser}:{initialDocument?:InitialDocument;currentUser:PresenceUser}){
   const router=useRouter();
@@ -61,7 +67,6 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const publishOpen=workspaceUI.modal==="publish";
   const settingsOpen=workspaceUI.modal==="settings";
   const shareOpen=workspaceUI.modal==="share";
-  const mobileMoreOpen=workspaceUI.modal==="more";
   const historyOpen=workspaceUI.sheet==="history";
   const commentsOpen=workspaceUI.sheet==="comments";
   const aiOpen=workspaceUI.sheet==="ai";
@@ -70,7 +75,6 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const setPublishOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("publish",value);
   const setSettingsOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("settings",value);
   const setShareOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("share",value);
-  const setMobileMoreOpen=(value:boolean|((current:boolean)=>boolean))=>setModalOpen("more",value);
   const setHistoryOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("history",value);
   const setCommentsOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("comments",value);
   const setAiOpen=(value:boolean|((current:boolean)=>boolean))=>setSheetOpen("ai",value);
@@ -93,6 +97,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [shareUrl,setShareUrl]=useState("");
   const [shareLinks,setShareLinks]=useState<ShareLink[]>([]);
   const [shareBusy,setShareBusy]=useState(false);
+  const [sidebarSettingsOpen,setSidebarSettingsOpen]=useState(false);
   const [recoveryDraft,setRecoveryDraft]=useState<string|null>(null);
   const readOnly=role==="viewer";
 
@@ -151,7 +156,8 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   async function copyPublication(){const path=publication?.url||(publication?`${window.location.origin}/p/${publication.id}/${publication.slug}`:"");if(!path)return;await navigator.clipboard.writeText(path.startsWith("http")?path:`${window.location.origin}${path}`);toast.success("Public link copied");}
   async function exportDocument(format:"md"|"pdf"|"docx"|"html"){const id=await ensureSaved();const saved=id?await save(id):false;if(!saved||!id){toast.error("Save the document before exporting");return;}setExporting(format);const response=await fetch(`/api/documents/${id}/export?format=${format}`);if(!response.ok){const data=await response.json().catch(()=>({}));toast.error(data.error||"Export could not be created");setExporting(null);return;}const blob=await response.blob();const disposition=response.headers.get("content-disposition")||"";const match=disposition.match(/filename="([^"]+)"/);const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=match?.[1]||`document.${format}`;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);setExporting(null);toast.success(`${format.toUpperCase()} export ready`);}
 
-  async function openShare(){const id=await ensureSaved();if(!id)return;setShareOpen(true);setShareUrl("");const response=await fetch(`/api/documents/${id}/share`,{cache:"no-store"});if(response.ok)setShareLinks(await response.json());}
+  async function loadShareLinks(){const id=await ensureSaved();if(!id)return null;setShareUrl("");const response=await fetch(`/api/documents/${id}/share`,{cache:"no-store"});if(response.ok)setShareLinks(await response.json());return id;}
+  async function openShare(){const id=await loadShareLinks();if(id)setShareOpen(true);}
   async function openComments(){selectionRef.current=editorRef.current?.getSelection()||null;const id=await ensureSaved();if(id)setCommentsOpen(true);}
   async function openHistory(){const id=await ensureSaved();if(id)setHistoryOpen(true);}
   function openOmni(){setOmniSelection(editorRef.current?.getSelection()||null);setPresenceOpen(false);setAiOpen(true);}
@@ -162,9 +168,58 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const savedLabel=isSaving?"Saving…":activeId?(!isOnline||collaborationState.connectivity==="offline"?"Saved locally":collaborationState.connectivity==="connecting"?"Connecting…":collaborationState.syncError?"Couldn’t sync":collaborationState.pendingLocalChanges?"Saving…":"All changes saved"):!isOnline?"Saved locally":dirty?"Saving…":lastSaved?"Saved":"Local draft";
   const publicPath=publication?`/p/${publication.id}/${publication.slug}`:"";
 
-  return <div className="omnidoc-workspace">
+  return <SidebarProvider defaultOpen={false} className="document-sidebar-provider min-h-0">
+    <Sidebar side="left" collapsible="offcanvas" className="border-r border-[#e3ddd3] bg-[#fffdf8]">
+      <SidebarHeader className="border-b border-[#e8e2d8] p-4 pt-[calc(1rem+var(--safe-area-top))]">
+        <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><OmnidocLogo className="h-9 w-9 shrink-0"/><div className="min-w-0"><p className="truncate font-[var(--font-instrument)] text-xl">{documentName}</p><p className="text-[10px] text-[#8c847a]">Document workspace</p></div></div><SidebarTrigger className="h-9 w-9 rounded-full"/></div>
+      </SidebarHeader>
+      <SidebarContent className="bg-[#fffdf8] px-2 py-3">
+        <SidebarGroup>
+          <SidebarGroupLabel className="uppercase tracking-[0.14em] text-[#8d8478]">Workspace</SidebarGroupLabel>
+          <SidebarGroupContent><SidebarMenu>
+            <SidebarMenuItem><MobileSidebarAction icon={<FilesIcon/>} onClick={()=>router.push("/dashboard")}>Documents</MobileSidebarAction></SidebarMenuItem>
+            <SidebarMenuItem><MobileSidebarAction icon={<ChatCircleDotsIcon/>} onClick={()=>void openComments()}>Comments</MobileSidebarAction></SidebarMenuItem>
+            <SidebarMenuItem><MobileSidebarAction icon={<ClockCounterClockwiseIcon/>} onClick={()=>void openHistory()}>History</MobileSidebarAction></SidebarMenuItem>
+            <SidebarMenuItem><MobileSidebarAction icon={<SparkleIcon weight="fill"/>} onClick={openOmni}>Ask Omni</MobileSidebarAction></SidebarMenuItem>
+          </SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarSeparator/>
+        <SidebarGroup>
+          <SidebarGroupLabel className="uppercase tracking-[0.14em] text-[#8d8478]">Document</SidebarGroupLabel>
+          <SidebarGroupContent><SidebarMenu>
+            <SidebarMenuItem><details className="group rounded-xl"><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><DotsThreeIcon className="text-[#75688a]" weight="bold"/><span className="flex-1">Document actions</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="ml-5 grid gap-1 border-l border-[#dfd8ce] py-1 pl-3">
+              <MobileSidebarAction icon={<CloudCheckIcon/>} onClick={()=>void save()}>Save now</MobileSidebarAction>
+              <MobileSidebarAction icon={<NotePencilIcon/>} onClick={()=>window.setTimeout(()=>document.getElementById("document-title")?.focus(),250)}>Rename</MobileSidebarAction>
+            </div></details></SidebarMenuItem>
+            {!readOnly&&<SidebarMenuItem><details className="group rounded-xl" onToggle={(event)=>{if(event.currentTarget.open)void loadShareLinks();}}><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><ShareNetworkIcon className="text-[#75688a]"/><span className="flex-1">Share</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="mx-2 grid gap-2 rounded-xl border border-[#e3ddd3] bg-white/70 p-3">
+              <select className="h-10 rounded-lg border border-[#d8d1c5] bg-white px-2 text-xs" value={shareRole} onChange={(event)=>setShareRole(event.target.value as "viewer"|"editor")}><option value="editor">Can edit</option><option value="viewer">Can view</option></select>
+              <select className="h-10 rounded-lg border border-[#d8d1c5] bg-white px-2 text-xs" value={expiry} onChange={(event)=>setExpiry(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="1440">24 hours</option><option value="10080">7 days</option></select>
+              <input className="h-10 rounded-lg border border-[#d8d1c5] bg-white px-2 text-xs" value={maxUses} onChange={(event)=>setMaxUses(event.target.value)} inputMode="numeric" placeholder="Uses · unlimited"/>
+              <Button size="sm" onClick={()=>void createShare()} disabled={shareBusy} className="rounded-full bg-[#7140cd] text-white hover:bg-[#6032b8]">{shareBusy?"Creating…":"Create invite"}</Button>
+              {shareUrl&&<div className="flex gap-1"><input readOnly value={shareUrl} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-2 text-[10px]"/><Button size="sm" variant="outline" className="rounded-full" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>Copy</Button></div>}
+              {shareLinks.filter((link)=>link.isActive).map((link)=><div key={link.id} className="flex items-center justify-between gap-2 border-t border-[#e9e4da] pt-2 text-[10px]"><span>{link.role} · {link.useCount}{link.maxUses?`/${link.maxUses}`:" uses"}</span><button onClick={()=>void revokeShare(link.id)} className="rounded-full p-2 text-[#9a4139]" aria-label="Revoke link"><TrashIcon/></button></div>)}
+            </div></details></SidebarMenuItem>}
+            {role==="owner"&&status==="COMPLETE"&&<SidebarMenuItem><details className="group rounded-xl"><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><GlobeHemisphereWestIcon className="text-[#75688a]"/><span className="flex-1">{publication?.isActive?"Publication":"Publish"}</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="mx-2 grid gap-2 rounded-xl border border-[#e3ddd3] bg-white/70 p-3 text-xs">
+              <p className="leading-5 text-[#756d63]">{publication?.isActive?hasUnpublishedChanges?"The public page is live. Republish to include your latest changes.":"The public page is up to date.":"Create a read-only public snapshot."}</p>
+              {publication?.isActive&&<div className="flex gap-2"><Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={()=>window.open(publicPath,"_blank","noopener,noreferrer")}>View</Button><Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={()=>void copyPublication()}>Copy link</Button></div>}
+              <Button size="sm" className="rounded-full bg-[#40355f] text-white" onClick={()=>void publish()} disabled={publishBusy||(!hasUnpublishedChanges&&Boolean(publication?.isActive))}>{publishBusy?"Publishing…":publication?.isActive?"Republish":"Publish"}</Button>
+              {publication?.isActive&&<Button size="sm" variant="ghost" className="rounded-full text-[#9a4139]" onClick={()=>void unpublish()} disabled={publishBusy}>Unpublish</Button>}
+            </div></details></SidebarMenuItem>}
+            <SidebarMenuItem><details className="group rounded-xl"><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><FileDocIcon className="text-[#75688a]"/><span className="flex-1">Export</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="ml-5 grid gap-1 border-l border-[#dfd8ce] py-1 pl-3">
+              <MobileSidebarAction icon={<FilePdfIcon/>} onClick={()=>void exportDocument("pdf")} disabled={Boolean(exporting)}>PDF</MobileSidebarAction>
+              <MobileSidebarAction icon={<FileDocIcon/>} onClick={()=>void exportDocument("docx")} disabled={Boolean(exporting)}>DOCX</MobileSidebarAction>
+              <MobileSidebarAction icon={<FileMdIcon/>} onClick={()=>void exportDocument("md")} disabled={Boolean(exporting)}>Markdown</MobileSidebarAction>
+              <MobileSidebarAction icon={<FileHtmlIcon/>} onClick={()=>void exportDocument("html")} disabled={Boolean(exporting)}>HTML</MobileSidebarAction>
+            </div></details></SidebarMenuItem>
+            <SidebarMenuItem><details className="group rounded-xl" onToggle={(event)=>setSidebarSettingsOpen(event.currentTarget.open)}><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><GearSixIcon className="text-[#75688a]"/><span className="flex-1">Settings</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="mx-2 max-h-[65dvh] overflow-y-auto rounded-xl border border-[#e3ddd3] bg-[#fffdf8] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><SettingsPanel active={sidebarSettingsOpen} user={{name:currentUser.name,avatar:currentUser.avatar||undefined}} className="[&>div:first-child]:px-4 [&>div:first-child]:py-4 [&_h2]:text-2xl [&_[role=tablist]]:mx-0 [&_[role=tabpanel]]:px-0"/></div></details></SidebarMenuItem>
+          </SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="border-t border-[#e8e2d8] bg-[#fffdf8] p-4 pb-[calc(1rem+var(--safe-area-bottom))]"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[#352d59] text-xs text-white">{currentUser.avatar?<img src={currentUser.avatar} alt="" className="h-full w-full object-cover"/>:initials(currentUser.name)}</span><div className="min-w-0"><p className="truncate text-xs font-medium">{currentUser.name}</p><p className="text-[10px] text-[#8c847a]">{role==="owner"?"Owner":role}</p></div></div></SidebarFooter>
+    </Sidebar>
+    <div className="omnidoc-workspace">
     <input ref={imageInputRef} className="sr-only" type="file" accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" onChange={(event)=>{const file=event.target.files?.[0];event.target.value="";if(file)void insertImage(file);}} />
-    <header className="workspace-topbar"><div className="workspace-wordmark"><button className="workspace-back-button" onClick={()=>router.push("/dashboard")} aria-label="Back to documents"><ArrowLeftIcon/></button><button className="workspace-logo" onClick={()=>router.push("/dashboard")} aria-label="Back to documents"><OmnidocLogo priority className="workspace-logo-image"/></button><div className="workspace-breadcrumb"><span>Omnidoc</span><span className="workspace-slash">/</span><span className="document-name">{documentName}</span></div></div><div className="topbar-actions">
+    <header className="workspace-topbar"><div className="workspace-wordmark"><SidebarTrigger className="mobile-document-sidebar-trigger h-9 w-9 rounded-full"/><button className="workspace-back-button" onClick={()=>router.push("/dashboard")} aria-label="Back to documents"><ArrowLeftIcon/></button><button className="workspace-logo" onClick={()=>router.push("/dashboard")} aria-label="Back to documents"><OmnidocLogo priority className="workspace-logo-image"/></button><div className="workspace-breadcrumb"><span>Omnidoc</span><span className="workspace-slash">/</span><span className="document-name">{documentName}</span></div></div><div className="topbar-actions">
       <div className={`save-state ${collaborationState.syncError?"is-error":""}`}>{isOnline&&!collaborationState.syncError?<CloudCheckIcon/>:<ClockCounterClockwiseIcon/>}<span className={`save-state__dot ${(dirty||collaborationState.pendingLocalChanges)?"pending":""}`}/>{savedLabel}{collaborationState.retryAvailable&&<button type="button" className="ml-1 rounded border border-[#bdaecb] px-1.5 py-0.5 text-[9px] text-[#694d83] hover:bg-[#eee8f4]" onClick={()=>editorRef.current?.retryPersistence()} aria-label="Retry syncing changes">Retry</button>}</div>
       <Popover open={presenceOpen} onOpenChange={(open)=>{setPresenceOpen(open);if(open)setAiOpen(false);}}><PopoverTrigger asChild><button className="collaborator-tab"><span className="avatar-stack">{livePresence.slice(0,3).map((person,index)=><i key={person.id} className="mini-avatar" style={{background:person.color||colors[index%colors.length]}}>{person.avatar?<img src={person.avatar} alt=""/>:initials(person.name)}</i>)}</span><span>{livePresence.length} here</span></button></PopoverTrigger><PopoverContent align="end" sideOffset={8} className="collaborator-popover"><h3>People in this document</h3>{knownPeople.map((person)=><div className="person-row" key={person.id}><i className="mini-avatar" style={{background:person.color}}>{person.avatar?<img src={person.avatar} alt=""/>:initials(person.name)}</i><div><p>{person.id===currentUser.id?"You":person.name}</p><span>{livePresence.some((live)=>live.id===person.id)?"Active now":person.role||"Collaborator"}</span></div>{livePresence.some((live)=>live.id===person.id)&&<i className="online-dot"/>}</div>)}</PopoverContent></Popover>
       <button className="icon-action topbar-secondary-action" onClick={()=>void openHistory()} aria-label="Open history"><ClockCounterClockwiseIcon/></button><button className="icon-action topbar-secondary-action" onClick={()=>void openComments()} aria-label="Open comments"><ChatCircleDotsIcon/></button><button className="icon-action topbar-secondary-action" onClick={openShare} disabled={readOnly} aria-label="Share document"><ShareNetworkIcon/></button>{role==="owner"&&status==="COMPLETE"&&<button className="icon-action topbar-secondary-action mobile-publish-action" onClick={()=>setPublishOpen(true)} aria-label="Publish document"><GlobeHemisphereWestIcon/></button>}<button className="ai-toggle topbar-secondary-action" onClick={openOmni}><SparkleIcon weight="fill"/><span>Ask Omni</span></button>
@@ -177,21 +232,9 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
       </motion.article></main>
       <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} selection={omniSelection} documentId={activeId} embeddedImageUrls={embeddedImageUrls} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
     </div>
-    <MobileBottomNav
-      className={`document-mobile-nav ${historyOpen || commentsOpen || aiOpen || mobileMoreOpen || shareOpen || publishOpen || settingsOpen ? "is-hidden" : ""}`}
-      ariaLabel="Document tools"
-      items={[
-        {id:"documents",label:"Docs",icon:<FilesIcon/>,onClick:()=>router.push("/dashboard"),active:true},
-        {id:"comments",label:"Comments",icon:<ChatCircleDotsIcon/>,onClick:()=>void openComments()},
-        {id:"history",label:"History",icon:<ClockCounterClockwiseIcon/>,onClick:()=>void openHistory()},
-        {id:"ai",label:"Omni",icon:<SparkleIcon weight="fill"/>,onClick:openOmni},
-        {id:"more",label:"More",icon:<DotsThreeIcon weight="bold"/>,onClick:()=>setMobileMoreOpen(true)},
-      ]}
-    />
     <HistoryDrawer documentId={activeId} open={historyOpen} onClose={()=>setHistoryOpen(false)} editorRef={editorRef} title={documentName} canEdit={!readOnly} canDelete={role==="owner"}/><CommentsDrawer documentId={activeId} open={commentsOpen} onClose={()=>setCommentsOpen(false)} editorRef={editorRef} selectionRef={selectionRef} canResolve={!readOnly} allowComments={Boolean(initialDocument?.allowComments ?? true)} currentUserId={currentUser.id} canModerate={role==="owner"} documentText={content}/>
-    <Dialog open={mobileMoreOpen} onOpenChange={setMobileMoreOpen}><DialogContent className="mobile-more-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl"><DialogHeader><DialogTitle>Document tools</DialogTitle><DialogDescription>Actions for this document.</DialogDescription></DialogHeader><div className="mobile-more-actions"><button onClick={()=>{setMobileMoreOpen(false);void save();}}>Save now</button><button onClick={()=>{setMobileMoreOpen(false);document.getElementById("document-title")?.focus();}}>Rename</button><button onClick={()=>{setMobileMoreOpen(false);void openShare();}} disabled={readOnly}>Share document</button><button onClick={()=>{setMobileMoreOpen(false);setSettingsOpen(true);}}>Settings</button>{role==="owner"&&status==="COMPLETE"&&<button onClick={()=>{setMobileMoreOpen(false);setPublishOpen(true);}}>Publish document</button>}<div className="mobile-more-actions__exports"><button disabled={Boolean(exporting)} onClick={()=>{setMobileMoreOpen(false);void exportDocument("pdf");}}>Export PDF</button><button disabled={Boolean(exporting)} onClick={()=>{setMobileMoreOpen(false);void exportDocument("docx");}}>Export DOCX</button><button disabled={Boolean(exporting)} onClick={()=>{setMobileMoreOpen(false);void exportDocument("md");}}>Export Markdown</button></div></div></DialogContent></Dialog>
     <Dialog open={shareOpen} onOpenChange={setShareOpen}><DialogContent className="share-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl sm:max-w-lg"><DialogHeader><DialogTitle>Invite people</DialogTitle><DialogDescription>Links require Google sign-in. Create a limited editor or viewer invitation.</DialogDescription></DialogHeader><div className="share-options"><select value={shareRole} onChange={(event)=>setShareRole(event.target.value as "viewer"|"editor")}><option value="editor">Can edit</option><option value="viewer">Can view</option></select><select value={expiry} onChange={(event)=>setExpiry(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="1440">24 hours</option><option value="10080">7 days</option></select><input value={maxUses} onChange={(event)=>setMaxUses(event.target.value)} inputMode="numeric" placeholder="Uses · unlimited"/></div><Button onClick={createShare} disabled={shareBusy} className="bg-[#7140cd] text-white hover:bg-[#6032b8]">{shareBusy?"Creating…":"Create invite link"}</Button>{shareUrl&&<div className="flex gap-2"><input readOnly value={shareUrl} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-3 text-xs"/><Button onClick={()=>navigator.clipboard.writeText(shareUrl)}>Copy</Button></div>}<div className="mt-2 border-t border-[#ded8cd] pt-3"><p className="mb-2 text-xs font-semibold">Previous links</p>{shareLinks.length===0?<p className="text-xs text-[#8b847a]">No invitation links yet.</p>:shareLinks.map((link)=><div key={link.id} className="flex items-center justify-between border-b border-[#e9e4da] py-2 text-xs"><span>{link.role} · {link.useCount}{link.maxUses?`/${link.maxUses}`:" uses"} · {link.isActive?"active":"revoked"}</span>{link.isActive&&<button onClick={()=>revokeShare(link.id)} className="rounded p-2 text-[#9a4139]" aria-label="Revoke link"><TrashIcon/></button>}</div>)}</div></DialogContent></Dialog>
     <Dialog open={publishOpen} onOpenChange={setPublishOpen}><DialogContent className="publish-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl sm:max-w-lg"><DialogHeader><DialogTitle>{publication?.isActive?"Your published page":"Publish this document"}</DialogTitle><DialogDescription>{publication?.isActive?hasUnpublishedChanges?"The public snapshot is still live. Publish again when these changes are ready.":"Anyone with this link can read the current snapshot without signing in.":"Publishing creates a stable, read-only snapshot. Future edits stay private until republished."}</DialogDescription></DialogHeader>{publication?.isActive&&<div className="publication-url"><GlobeHemisphereWestIcon/><span>{publicPath}</span><button onClick={()=>void copyPublication()} aria-label="Copy public link"><CopyIcon/></button></div>}<div className="publish-preview"><span>Public reading page</span><h3>{documentName}</h3><p>{editorRef.current?.getPlainText().slice(0,180)||"The document will appear here with its typography, images, and spacing intact."}</p></div><div className="publish-actions">{publication?.isActive&&<><Button variant="outline" onClick={()=>window.open(publicPath,"_blank","noopener,noreferrer")}><ArrowSquareOutIcon/>View live</Button><Button variant="outline" onClick={()=>void unpublish()} disabled={publishBusy}>Unpublish</Button></>}<Button onClick={()=>void publish()} disabled={publishBusy||(!hasUnpublishedChanges&&Boolean(publication?.isActive))} className="bg-[#40355f] text-white hover:bg-[#302747]">{publishBusy?"Publishing…":publication?.isActive?"Republish changes":"Publish document"}</Button></div></DialogContent></Dialog>
     <SettingsModal isOpen={settingsOpen} onClose={()=>setSettingsOpen(false)} user={{name:currentUser.name,avatar:currentUser.avatar||undefined}}/>
-  </div>;
+  </div></SidebarProvider>;
 }

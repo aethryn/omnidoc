@@ -1,53 +1,16 @@
 @media (max-width: 720px) {
-  .mobile-more-dialog,
-  .share-dialog,
-  .publish-dialog,
-  .settings-dialog {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    margin: 0 !important;
-    transform: none !important;
-    translate: none !important;
-    border-radius: 0 !important;
-    padding: calc(20px + var(--safe-area-top)) calc(18px + var(--safe-area-right)) calc(24px + var(--safe-area-bottom)) calc(18px + var(--safe-area-left)) !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-  }
-
-  .mobile-more-dialog::-webkit-scrollbar,
-  .share-dialog::-webkit-scrollbar,
-  .publish-dialog::-webkit-scrollbar,
-  .settings-dialog::-webkit-scrollbar {
-    display: none;
-  }
-
   .omnidoc-workspace .workspace-rail,
   .omnidoc-workspace .profile-orb {
     display: none !important;
   }
 
   .omnidoc-workspace .document-stage {
-    padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px) !important;
-    scroll-padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px);
+    padding-bottom: calc(32px + var(--safe-area-bottom)) !important;
+    scroll-padding-bottom: calc(32px + var(--safe-area-bottom));
   }
 
   .omnidoc-workspace .paper-editor {
-    padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px) !important;
-  }
-
-  .document-mobile-nav {
-    z-index: 80 !important;
-    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-    min-height: calc(var(--mobile-nav-height) + var(--safe-area-bottom)) !important;
-  }
-
-  .document-mobile-nav.is-hidden {
-    display: none !important;
+    padding-bottom: calc(32px + var(--safe-area-bottom)) !important;
   }
 
   .history-drawer,
