@@ -1300,8 +1300,7 @@
   }
 
   .share-dialog,
-  .publish-dialog,
-  .mobile-more-dialog {
+  .publish-dialog {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px) !important;
     max-height: calc(100dvh - 24px - var(--safe-area-top) - var(--safe-area-bottom));
@@ -1309,12 +1308,6 @@
     margin-top: var(--safe-area-top);
     margin-bottom: var(--safe-area-bottom);
     padding: 18px;
-  }
-
-  .mobile-more-dialog {
-    bottom: calc(8px + var(--safe-area-bottom));
-    top: auto;
-    transform: translate(-50%, 0) !important;
   }
 
   .publish-actions {

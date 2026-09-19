@@ -11,6 +11,7 @@
     max-height: 100dvh !important;
     margin: 0 !important;
     transform: none !important;
+    translate: none !important;
     border-radius: 0 !important;
     padding: calc(20px + var(--safe-area-top)) calc(18px + var(--safe-area-right)) calc(24px + var(--safe-area-bottom)) calc(18px + var(--safe-area-left)) !important;
     overflow-y: auto !important;
