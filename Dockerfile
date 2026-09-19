@@ -20,6 +20,7 @@ RUN npx prisma generate
 COPY tsconfig.json ./
 COPY websocket-server.ts ./
 COPY src/lib/prisma.ts ./src/lib/prisma.ts
+COPY src/lib/auth.ts ./src/lib/auth.ts
 COPY src/lib/document-yjs.ts ./src/lib/document-yjs.ts
 COPY src/lib/document-content.ts ./src/lib/document-content.ts
 COPY src/lib/document-version.ts ./src/lib/document-version.ts

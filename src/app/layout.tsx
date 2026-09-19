@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import "./galaxy-button.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const instrumental = localFont({ src: [{ path: "../../public/fonts/InstrumentSerif-Regular.ttf", weight: "400", style: "normal" }, { path: "../../public/fonts/InstrumentSerif-Italic.ttf", weight: "400", style: "italic" }], variable: "--font-instrument-serif" });
@@ -47,10 +46,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${instrumental.variable} ${poppins.variable}`}>
       <body className="min-h-screen antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          {children}
-          <Toaster position="bottom-right" richColors closeButton />
-        </ThemeProvider>
+        {children}
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );
