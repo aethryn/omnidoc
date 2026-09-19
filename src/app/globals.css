@@ -4,9 +4,9 @@
 @theme inline {
   --font-sans: var(--font-poppins), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "Fira Code", "Courier New", monospace;
-  --font-instrument: var(--font-instrument-serif), Georgia, serif;
-  --font-serif: Georgia, serif;
-  --font-heading: Georgia, serif;
+  --font-instrument: var(--font-instrument-serif);
+  --font-serif: var(--font-instrument-serif);
+  --font-heading: var(--font-instrument-serif);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -45,7 +45,7 @@
   --glass-border: rgba(255, 255, 255, 0.2);
   
   --font-sans: var(--font-poppins), "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-serif: var(--font-instrument), Georgia, serif;
+  --font-serif: var(--font-instrument-serif);
   --font-mono: "Fira Code", "Courier New", monospace;
 
   /* Tiptap CSS Variables - Light Mode (preserved for document editor) */
@@ -57,6 +57,10 @@
   --tt-card-bg-color: #ffffff;
   --tt-card-border-color: #e5e7eb;
   --tt-theme-text: #1f2937;
+}
+
+.landing-instrument-serif {
+  font-family: var(--font-instrument-serif);
 }
 
 .dark {

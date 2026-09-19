@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
   const { response, userId } = await updateSession(request);
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
   const isAuthPage = pathname === "/signin" || pathname === "/signup";
+  const isLandingPage = pathname === "/";
 
   if (isProtected && !userId) {
     const url = new URL("/signin", request.url);
@@ -16,9 +17,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAuthPage && userId) return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isLandingPage && userId) return NextResponse.redirect(new URL("/dashboard", request.url));
   return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/document/:path*", "/join/:path*", "/signin", "/signup"],
+  matcher: ["/", "/dashboard/:path*", "/document/:path*", "/join/:path*", "/signin", "/signup"],
 };
