@@ -14,6 +14,8 @@ import type { EditorHandle, EditorSuggestion, FormatCommand } from "./editor-typ
 import "./editor-styles.css";
 import { InteractiveImage } from "./InteractiveImage";
 import { uploadAndInsertImage } from "./image-upload";
+import { LinkPreviewCard } from "./LinkPreviewCard";
+import { CommentThreadExtension } from "./comment-thread-extension";
 
 export interface LocalEditorProps { initialContent?: string; onContentChange?: (json: string) => void; documentId?: string; ensureDocumentId?: () => Promise<string | null>; readOnly?: boolean; }
 
@@ -36,7 +38,7 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
   const content = useMemo(() => parseContent(initialContent), [initialContent]);
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [StarterKit, Underline, Link.configure({ openOnClick:false }), InteractiveImage, TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start with a thought…" }), GhostSuggestionExtension],
+    extensions: [StarterKit, Underline, Link.configure({ openOnClick:false, autolink:true, linkOnPaste:true, validate:(href) => /^https?:\/\//i.test(href) }), CommentThreadExtension, InteractiveImage.configure({ documentId, getDocumentId: ensureDocumentId, editable: !readOnly }), TextAlign.configure({ types:["heading","paragraph"] }), Highlight.configure({ multicolor:true }), Placeholder.configure({ placeholder:"Start with a thought…" }), GhostSuggestionExtension],
     content,
     editable: !readOnly,
     editorProps: {
@@ -78,10 +80,14 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
     },
     dismissSuggestion: (id: string) => editor?.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey, { clear:id })),
     runFormat: (command) => { if (editor && !readOnly) runFormat(editor, command); },
+    addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
+    replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
+    retryPersistence: () => undefined,
+    createCheckpoint: async (description, title) => { if (!documentId) return false; const response = await fetch(`/api/documents/${documentId}/versions`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content: editor ? JSON.stringify(editor.getJSON()) : content, description }) }); return response.ok; },
   }), [content, editor, readOnly]);
 
   if (!editor) return <div className="min-h-[520px]" />;
-  return <div className="w-full max-w-5xl mx-auto light"><div className="rounded-xl !bg-white overflow-hidden" style={{ colorScheme:"light" }}>{!readOnly && <EditorBubbleMenu editor={editor} documentId={documentId} ensureDocumentId={ensureDocumentId} />}<EditorContent editor={editor} className="!bg-white" /></div></div>;
+  return <div className="w-full max-w-5xl mx-auto light"><div className="rounded-xl !bg-white overflow-hidden" style={{ colorScheme:"light" }}>{!readOnly && <EditorBubbleMenu editor={editor} documentId={documentId} ensureDocumentId={ensureDocumentId} />}<EditorContent editor={editor} className="!bg-white" /><LinkPreviewCard editor={editor} /></div></div>;
 });
 
 export default Editor;

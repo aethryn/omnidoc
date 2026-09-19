@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { createAuthErrorResponse, getCurrentUserIdFromRequest } from "@/lib/auth";
 import { deriveDocumentPreview, slugifyDocumentTitle } from "@/lib/document-content";
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const revisionHash = documentRevisionHash(title, content);
   const now = new Date();
 
-  const publication = await prisma.$transaction(async (tx) => {
+  const publication = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.document.update({ where: { id }, data: { title, content, ...preview, lastEditedAt: now } });
     return tx.documentPublication.upsert({
       where: { documentId: id },

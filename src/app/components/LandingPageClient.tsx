@@ -62,7 +62,7 @@ export default function LandingPageClient() {
       style={{ background: "#F5F3EE" }}
     >
       {/* ─── FLOATING NAVBAR ─────────────────────────────────── */}
-      <nav className="fixed left-1/2 -translate-x-1/2 z-50 top-4">
+      <nav className="landing-nav fixed left-1/2 -translate-x-1/2 z-50 top-4">
         <motion.div
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

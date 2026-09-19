@@ -9,12 +9,16 @@ export async function uploadDocumentImage(file: File, getDocumentId: () => Promi
   if (!allowed.has(file.type) || file.size > 5 * 1024 * 1024) throw new Error("Choose a JPEG, PNG, WebP, or GIF up to 5 MB.");
   const documentId = await getDocumentId();
   if (!documentId) throw new Error("Save the document before adding an image.");
+  const controller = new AbortController();
   const toastId = toast.loading(`Uploading ${file.name} · 0%`);
   try {
     return await new Promise<UploadedImage>((resolve, reject) => {
       const request = new XMLHttpRequest();
       request.open("POST", "/api/images/upload");
-      request.upload.onprogress = (event) => { if (event.lengthComputable) toast.loading(`Uploading ${file.name} · ${Math.round((event.loaded / event.total) * 100)}%`, { id: toastId }); };
+      const cancel = () => controller.abort();
+      controller.signal.addEventListener("abort", () => request.abort(), { once: true });
+      toast.loading(`Uploading ${file.name} · 0%`, { id: toastId, action: { label: "Cancel", onClick: cancel } });
+      request.upload.onprogress = (event) => { if (event.lengthComputable) { const progress = Math.round((event.loaded / event.total) * 100); toast.loading(`Uploading ${file.name} · ${progress}%`, { id: toastId, action: { label: "Cancel", onClick: cancel } }); } };
       request.onerror = () => reject(new Error("The image upload was interrupted."));
       request.onabort = () => reject(new Error("The image upload was cancelled."));
       request.onload = () => {
@@ -36,7 +40,8 @@ export async function uploadAndInsertImage(file: File, getDocumentId: () => Prom
     insert(image);
     toast.success("Image added");
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : "The image could not be uploaded.");
+    const message = error instanceof Error ? error.message : "The image could not be uploaded.";
+    toast.error(message, { action: { label: "Retry", onClick: () => { void uploadAndInsertImage(file, getDocumentId, insert); } } });
   }
 }
 

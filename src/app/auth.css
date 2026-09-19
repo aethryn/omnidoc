@@ -144,6 +144,28 @@
   .auth-card h1 { font-size: 30px; }
 }
 
+@media (max-width: 720px) {
+  .auth-page {
+    position: relative;
+    min-height: 100svh;
+    height: auto;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: calc(16px + var(--safe-area-top)) 12px calc(16px + var(--safe-area-bottom));
+  }
+
+  .auth-card {
+    width: min(100%, 460px);
+    max-height: none;
+    margin: auto 0;
+    overflow: visible;
+  }
+
+  .auth-card form {
+    min-width: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-google { transition: none; }
 }

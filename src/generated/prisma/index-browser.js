@@ -201,9 +201,13 @@ exports.Prisma.DocumentImageScalarFieldEnum = {
 exports.Prisma.DocumentVersionScalarFieldEnum = {
   id: 'id',
   documentId: 'documentId',
+  title: 'title',
   content: 'content',
   versionNumber: 'versionNumber',
   changeDescription: 'changeDescription',
+  source: 'source',
+  contentHash: 'contentHash',
+  contributors: 'contributors',
   createdAt: 'createdAt',
   createdBy: 'createdBy'
 };
@@ -224,6 +228,12 @@ exports.Prisma.DocumentCommentScalarFieldEnum = {
   userId: 'userId',
   content: 'content',
   lineNumber: 'lineNumber',
+  parentId: 'parentId',
+  anchorType: 'anchorType',
+  anchorText: 'anchorText',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  deletedAt: 'deletedAt',
   isResolved: 'isResolved',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -291,6 +301,19 @@ exports.Prisma.DocumentActivityScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.LinkPreviewScalarFieldEnum = {
+  urlHash: 'urlHash',
+  url: 'url',
+  title: 'title',
+  description: 'description',
+  siteName: 'siteName',
+  faviconUrl: 'faviconUrl',
+  imageUrl: 'imageUrl',
+  fetchedAt: 'fetchedAt',
+  expiresAt: 'expiresAt',
+  isAvailable: 'isAvailable'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -335,7 +358,8 @@ exports.Prisma.ModelName = {
   DocumentTemplate: 'DocumentTemplate',
   UserSettings: 'UserSettings',
   AIProviderCredential: 'AIProviderCredential',
-  DocumentActivity: 'DocumentActivity'
+  DocumentActivity: 'DocumentActivity',
+  LinkPreview: 'LinkPreview'
 };
 
 /**
