@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeftIcon, ArrowSquareOutIcon, CaretDownIcon, CheckCircleIcon, ChatCircleDotsIcon, ClockCounterClockwiseIcon, CloudCheckIcon, CopyIcon, DotsThreeIcon, FileDocIcon, FileHtmlIcon, FileMdIcon, FilePdfIcon, FilesIcon, GearSixIcon, GlobeHemisphereWestIcon, ImageIcon, ListBulletsIcon, NotePencilIcon, ShareNetworkIcon, SparkleIcon, TextAlignLeftIcon, TextBIcon, TextItalicIcon, TextUnderlineIcon, TrashIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowSquareOutIcon, CaretDownIcon, CheckCircleIcon, CheckIcon, ChatCircleDotsIcon, ClockCounterClockwiseIcon, CloudCheckIcon, CopyIcon, DotsThreeIcon, FileDocIcon, FileHtmlIcon, FileMdIcon, FilePdfIcon, FilesIcon, GearSixIcon, GlobeHemisphereWestIcon, ImageIcon, ListBulletsIcon, NotePencilIcon, ShareNetworkIcon, SparkleIcon, TextAlignLeftIcon, TextBIcon, TextItalicIcon, TextUnderlineIcon, TrashIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import type { CollaborationState, CollaborationStatus } from "../components/CollaborativeEditor";
 import type { EditorHandle, EditorSelection, FormatCommand, PresenceUser } from "./editor-types";
@@ -95,6 +95,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [expiry,setExpiry]=useState("10080");
   const [maxUses,setMaxUses]=useState("");
   const [shareUrl,setShareUrl]=useState("");
+  const [copiedShare,setCopiedShare]=useState(false);
   const [shareLinks,setShareLinks]=useState<ShareLink[]>([]);
   const [shareBusy,setShareBusy]=useState(false);
   const [sidebarSettingsOpen,setSidebarSettingsOpen]=useState(false);
@@ -153,7 +154,55 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   async function changeStatus(next:DocumentStatus){if(role!=="owner"||next===status)return;const id=await ensureSaved();if(!id)return;const previous=status;setStatus(next);const response=await fetch(`/api/documents/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:next})});if(!response.ok){setStatus(previous);toast.error("Document status could not be changed");}else toast.success(next==="COMPLETE"?"Document marked complete":"Returned to working draft");}
   async function publish(){if(role!=="owner")return;const id=await ensureSaved();if(!id)return;setPublishBusy(true);const json=editorRef.current?.getDocumentJSON()||content;const response=await fetch(`/api/documents/${id}/publication`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName,content:json})});const data=await response.json().catch(()=>({}));if(response.ok){setPublication({...data,isActive:true,updatedAt:new Date().toISOString()});setHasUnpublishedChanges(false);setDirty(false);toast.success(publication?"Published page updated":"Document published");}else toast.error(data.error||"Document could not be published");setPublishBusy(false);}
   async function unpublish(){if(!activeId)return;setPublishBusy(true);const response=await fetch(`/api/documents/${activeId}/publication`,{method:"DELETE"});if(response.ok){setPublication((current)=>current?{...current,isActive:false}:current);toast.success("Public page removed");}else toast.error("Document could not be unpublished");setPublishBusy(false);}
-  async function copyPublication(){const path=publication?.url||(publication?`${window.location.origin}/p/${publication.id}/${publication.slug}`:"");if(!path)return;await navigator.clipboard.writeText(path.startsWith("http")?path:`${window.location.origin}${path}`);toast.success("Public link copied");}
+  async function copyToClipboard(text: string) {
+    if (!text) return false;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fall through to legacy clipboard fallback
+    }
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-999999px";
+      textarea.style.top = "-999999px";
+      textarea.setAttribute("readonly", "");
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return Boolean(success);
+    } catch {
+      return false;
+    }
+  }
+
+  async function copyPublication(){
+    const path=publication?.url||(publication?`${window.location.origin}/p/${publication.id}/${publication.slug}`:"");
+    if(!path)return;
+    const target=path.startsWith("http")?path:`${window.location.origin}${path}`;
+    const success=await copyToClipboard(target);
+    if(success)toast.success("Public link copied");
+    else toast.error("Could not copy public link");
+  }
+
+  async function copyShareLink(urlToCopy?: string){
+    const target=urlToCopy||shareUrl;
+    if(!target)return;
+    const success=await copyToClipboard(target);
+    if(success){
+      setCopiedShare(true);
+      window.setTimeout(()=>setCopiedShare(false),2000);
+      toast.success("Invite link copied");
+    } else {
+      toast.error("Could not copy invite link");
+    }
+  }
   async function exportDocument(format:"md"|"pdf"|"docx"|"html"){const id=await ensureSaved();const saved=id?await save(id):false;if(!saved||!id){toast.error("Save the document before exporting");return;}setExporting(format);const response=await fetch(`/api/documents/${id}/export?format=${format}`);if(!response.ok){const data=await response.json().catch(()=>({}));toast.error(data.error||"Export could not be created");setExporting(null);return;}const blob=await response.blob();const disposition=response.headers.get("content-disposition")||"";const match=disposition.match(/filename="([^"]+)"/);const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=match?.[1]||`document.${format}`;link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);setExporting(null);toast.success(`${format.toUpperCase()} export ready`);}
 
   async function loadShareLinks(){const id=await ensureSaved();if(!id)return null;setShareUrl("");const response=await fetch(`/api/documents/${id}/share`,{cache:"no-store"});if(response.ok)setShareLinks(await response.json());return id;}
@@ -196,7 +245,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
               <select className="h-10 rounded-lg border border-[#d8d1c5] bg-white px-2 text-xs" value={expiry} onChange={(event)=>setExpiry(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="1440">24 hours</option><option value="10080">7 days</option></select>
               <input className="h-10 rounded-lg border border-[#d8d1c5] bg-white px-2 text-xs" value={maxUses} onChange={(event)=>setMaxUses(event.target.value)} inputMode="numeric" placeholder="Uses · unlimited"/>
               <Button size="sm" onClick={()=>void createShare()} disabled={shareBusy} className="rounded-full bg-[#7140cd] text-white hover:bg-[#6032b8]">{shareBusy?"Creating…":"Create invite"}</Button>
-              {shareUrl&&<div className="flex gap-1"><input readOnly value={shareUrl} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-2 text-[10px]"/><Button size="sm" variant="outline" className="rounded-full" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>Copy</Button></div>}
+              {shareUrl&&<div className="flex gap-1"><input readOnly value={shareUrl} onClick={(event)=>(event.target as HTMLInputElement).select()} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-2 text-[10px]"/><Button size="sm" variant="outline" type="button" className="rounded-full" onClick={()=>void copyShareLink()}>{copiedShare?<><CheckIcon className="h-3 w-3"/>Copied</>:"Copy"}</Button></div>}
               {shareLinks.filter((link)=>link.isActive).map((link)=><div key={link.id} className="flex items-center justify-between gap-2 border-t border-[#e9e4da] pt-2 text-[10px]"><span>{link.role} · {link.useCount}{link.maxUses?`/${link.maxUses}`:" uses"}</span><button onClick={()=>void revokeShare(link.id)} className="rounded-full p-2 text-[#9a4139]" aria-label="Revoke link"><TrashIcon/></button></div>)}
             </div></details></SidebarMenuItem>}
             {role==="owner"&&status==="COMPLETE"&&<SidebarMenuItem><details className="group rounded-xl"><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><GlobeHemisphereWestIcon className="text-[#75688a]"/><span className="flex-1">{publication?.isActive?"Publication":"Publish"}</span><CaretDownIcon className="transition-transform group-open:rotate-180"/></summary><div className="mx-2 grid gap-2 rounded-xl border border-[#e3ddd3] bg-white/70 p-3 text-xs">
@@ -233,7 +282,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
       <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} selection={omniSelection} documentId={activeId} embeddedImageUrls={embeddedImageUrls} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
     </div>
     <HistoryDrawer documentId={activeId} open={historyOpen} onClose={()=>setHistoryOpen(false)} editorRef={editorRef} title={documentName} canEdit={!readOnly} canDelete={role==="owner"}/><CommentsDrawer documentId={activeId} open={commentsOpen} onClose={()=>setCommentsOpen(false)} editorRef={editorRef} selectionRef={selectionRef} canResolve={!readOnly} allowComments={Boolean(initialDocument?.allowComments ?? true)} currentUserId={currentUser.id} canModerate={role==="owner"} documentText={content}/>
-    <Dialog open={shareOpen} onOpenChange={setShareOpen}><DialogContent className="share-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl sm:max-w-lg"><DialogHeader><DialogTitle>Invite people</DialogTitle><DialogDescription>Links require Google sign-in. Create a limited editor or viewer invitation.</DialogDescription></DialogHeader><div className="share-options"><select value={shareRole} onChange={(event)=>setShareRole(event.target.value as "viewer"|"editor")}><option value="editor">Can edit</option><option value="viewer">Can view</option></select><select value={expiry} onChange={(event)=>setExpiry(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="1440">24 hours</option><option value="10080">7 days</option></select><input value={maxUses} onChange={(event)=>setMaxUses(event.target.value)} inputMode="numeric" placeholder="Uses · unlimited"/></div><Button onClick={createShare} disabled={shareBusy} className="bg-[#7140cd] text-white hover:bg-[#6032b8]">{shareBusy?"Creating…":"Create invite link"}</Button>{shareUrl&&<div className="flex gap-2"><input readOnly value={shareUrl} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-3 text-xs"/><Button onClick={()=>navigator.clipboard.writeText(shareUrl)}>Copy</Button></div>}<div className="mt-2 border-t border-[#ded8cd] pt-3"><p className="mb-2 text-xs font-semibold">Previous links</p>{shareLinks.length===0?<p className="text-xs text-[#8b847a]">No invitation links yet.</p>:shareLinks.map((link)=><div key={link.id} className="flex items-center justify-between border-b border-[#e9e4da] py-2 text-xs"><span>{link.role} · {link.useCount}{link.maxUses?`/${link.maxUses}`:" uses"} · {link.isActive?"active":"revoked"}</span>{link.isActive&&<button onClick={()=>revokeShare(link.id)} className="rounded p-2 text-[#9a4139]" aria-label="Revoke link"><TrashIcon/></button>}</div>)}</div></DialogContent></Dialog>
+    <Dialog open={shareOpen} onOpenChange={setShareOpen}><DialogContent className="share-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl sm:max-w-lg"><DialogHeader><DialogTitle>Invite people</DialogTitle><DialogDescription>Links require Google sign-in. Create a limited editor or viewer invitation.</DialogDescription></DialogHeader><div className="share-options"><select value={shareRole} onChange={(event)=>setShareRole(event.target.value as "viewer"|"editor")}><option value="editor">Can edit</option><option value="viewer">Can view</option></select><select value={expiry} onChange={(event)=>setExpiry(event.target.value)}><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="1440">24 hours</option><option value="10080">7 days</option></select><input value={maxUses} onChange={(event)=>setMaxUses(event.target.value)} inputMode="numeric" placeholder="Uses · unlimited"/></div><Button onClick={createShare} disabled={shareBusy} className="bg-[#7140cd] text-white hover:bg-[#6032b8]">{shareBusy?"Creating…":"Create invite link"}</Button>{shareUrl&&<div className="flex gap-2"><input readOnly value={shareUrl} onClick={(event)=>(event.target as HTMLInputElement).select()} className="min-w-0 flex-1 rounded-lg border bg-[#f7f4ee] px-3 text-xs"/><Button type="button" onClick={()=>void copyShareLink()}>{copiedShare?<><CheckIcon className="h-3.5 w-3.5"/>Copied</>:"Copy"}</Button></div>}<div className="mt-2 border-t border-[#ded8cd] pt-3"><p className="mb-2 text-xs font-semibold">Previous links</p>{shareLinks.length===0?<p className="text-xs text-[#8b847a]">No invitation links yet.</p>:shareLinks.map((link)=><div key={link.id} className="flex items-center justify-between border-b border-[#e9e4da] py-2 text-xs"><span>{link.role} · {link.useCount}{link.maxUses?`/${link.maxUses}`:" uses"} · {link.isActive?"active":"revoked"}</span>{link.isActive&&<button onClick={()=>revokeShare(link.id)} className="rounded p-2 text-[#9a4139]" aria-label="Revoke link"><TrashIcon/></button>}</div>)}</div></DialogContent></Dialog>
     <Dialog open={publishOpen} onOpenChange={setPublishOpen}><DialogContent className="publish-dialog border-[#d8d1c5] bg-[#fffdf8] text-[#29251f] shadow-2xl sm:max-w-lg"><DialogHeader><DialogTitle>{publication?.isActive?"Your published page":"Publish this document"}</DialogTitle><DialogDescription>{publication?.isActive?hasUnpublishedChanges?"The public snapshot is still live. Publish again when these changes are ready.":"Anyone with this link can read the current snapshot without signing in.":"Publishing creates a stable, read-only snapshot. Future edits stay private until republished."}</DialogDescription></DialogHeader>{publication?.isActive&&<div className="publication-url"><GlobeHemisphereWestIcon/><span>{publicPath}</span><button onClick={()=>void copyPublication()} aria-label="Copy public link"><CopyIcon/></button></div>}<div className="publish-preview"><span>Public reading page</span><h3>{documentName}</h3><p>{editorRef.current?.getPlainText().slice(0,180)||"The document will appear here with its typography, images, and spacing intact."}</p></div><div className="publish-actions">{publication?.isActive&&<><Button variant="outline" onClick={()=>window.open(publicPath,"_blank","noopener,noreferrer")}><ArrowSquareOutIcon/>View live</Button><Button variant="outline" onClick={()=>void unpublish()} disabled={publishBusy}>Unpublish</Button></>}<Button onClick={()=>void publish()} disabled={publishBusy||(!hasUnpublishedChanges&&Boolean(publication?.isActive))} className="bg-[#40355f] text-white hover:bg-[#302747]">{publishBusy?"Publishing…":publication?.isActive?"Republish changes":"Publish document"}</Button></div></DialogContent></Dialog>
     <SettingsModal isOpen={settingsOpen} onClose={()=>setSettingsOpen(false)} user={{name:currentUser.name,avatar:currentUser.avatar||undefined}}/>
   </div></SidebarProvider>;
