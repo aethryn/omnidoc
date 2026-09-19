@@ -1,5 +1,4 @@
 .mini-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
-.workspace-back-button { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; color: #625b54; }
 .mobile-document-sidebar-trigger { display: none; }
 .document-sidebar-provider { height: 100dvh; overflow: hidden; }
 .document-sidebar-provider > .omnidoc-workspace { min-width: 0; flex: 1; }
