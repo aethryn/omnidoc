@@ -16,18 +16,12 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Generate Prisma client
 RUN npx prisma generate
 
-# Copy source needed by the WebSocket server
+# Copy the complete server-side library tree. The collaboration server shares
+# authentication, persistence, Supabase, and document helpers with the app;
+# copying the tree keeps new imports from silently missing at runtime.
 COPY tsconfig.json ./
 COPY websocket-server.ts ./
-COPY src/lib/prisma.ts ./src/lib/prisma.ts
-COPY src/lib/auth.ts ./src/lib/auth.ts
-COPY src/lib/document-yjs.ts ./src/lib/document-yjs.ts
-COPY src/lib/document-content.ts ./src/lib/document-content.ts
-COPY src/lib/document-version.ts ./src/lib/document-version.ts
-COPY src/lib/omnidoc-image-extension.ts ./src/lib/omnidoc-image-extension.ts
-COPY src/lib/collaboration-bus.ts ./src/lib/collaboration-bus.ts
-COPY src/lib/websocket-liveness.ts ./src/lib/websocket-liveness.ts
-COPY src/lib/collaboration-persistence.ts ./src/lib/collaboration-persistence.ts
+COPY src/lib ./src/lib
 
 ENV NODE_ENV=production
 ENV PORT=8080
