@@ -178,7 +178,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
       <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} selection={omniSelection} documentId={activeId} embeddedImageUrls={embeddedImageUrls} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
     </div>
     <MobileBottomNav
-      className="document-mobile-nav"
+      className={`document-mobile-nav ${historyOpen || commentsOpen || aiOpen || mobileMoreOpen || shareOpen || publishOpen || settingsOpen ? "is-hidden" : ""}`}
       ariaLabel="Document tools"
       items={[
         {id:"documents",label:"Docs",icon:<FilesIcon/>,onClick:()=>router.push("/dashboard"),active:true},

@@ -1,4 +1,28 @@
 @media (max-width: 720px) {
+  .omnidoc-workspace .workspace-rail,
+  .omnidoc-workspace .profile-orb {
+    display: none !important;
+  }
+
+  .omnidoc-workspace .document-stage {
+    padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px) !important;
+    scroll-padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px);
+  }
+
+  .omnidoc-workspace .paper-editor {
+    padding-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom) + 32px) !important;
+  }
+
+  .document-mobile-nav {
+    z-index: 80 !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    min-height: calc(var(--mobile-nav-height) + var(--safe-area-bottom)) !important;
+  }
+
+  .document-mobile-nav.is-hidden {
+    display: none !important;
+  }
+
   .history-drawer,
   .comments-drawer {
     z-index: 70;
