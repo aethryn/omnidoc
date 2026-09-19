@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
+  ArrowDown as ArrowDownIcon,
+  ArrowRight as ArrowRightIcon,
   ArrowUpRight as ArrowUpRightIcon,
   Sparkle as SparkleIcon,
   GithubLogo as GithubLogoIcon,
@@ -67,17 +69,17 @@ export default function LandingPageClient() {
           initial={{ y: -40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-black/10"
+          className="flex w-max max-w-[calc(100vw-16px)] items-center gap-1 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-black/10"
         >
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-black/5 transition-colors"
+            className="flex shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-black/5 transition-colors"
           >
             <OmnidocLogo
               priority
               className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg"
             />
-            <span className="text-[14px] sm:text-[15px] font-serif">
+            <span className="text-[14px] sm:text-[15px] landing-instrument-serif">
               Omnidoc
             </span>
           </Link>
@@ -101,7 +103,7 @@ export default function LandingPageClient() {
 
           <Link
             href="/signup"
-            className="relative overflow-hidden px-3 sm:px-4 py-1.5 rounded-full text-[12px] sm:text-[13px] font-medium text-white flex items-center gap-1.5 whitespace-nowrap transition-opacity duration-200 hover:opacity-90 active:scale-[0.96]"
+            className="relative shrink-0 overflow-hidden px-3 sm:px-4 py-1.5 rounded-full text-[12px] sm:text-[13px] font-medium text-white flex items-center gap-1.5 whitespace-nowrap transition-opacity duration-200 hover:opacity-90 active:scale-[0.96]"
             style={{
               background:
                 "linear-gradient(180deg, #5B32AB 0%, #352D59 100%)",
@@ -142,7 +144,7 @@ export default function LandingPageClient() {
               ease: [0.22, 1, 0.36, 1],
               delay: 0.4,
             }}
-            className="block text-[clamp(44px,7vw,84px)] font-serif leading-[1.05] tracking-[-0.02em]"
+            className="block text-[clamp(44px,7vw,84px)] landing-instrument-serif leading-[1.05] tracking-[-0.02em]"
           >
             Where good ideas
           </motion.span>
@@ -154,7 +156,7 @@ export default function LandingPageClient() {
               ease: [0.22, 1, 0.36, 1],
               delay: 0.55,
             }}
-            className="block text-[clamp(44px,7vw,84px)] font-serif leading-[1.05] tracking-[-0.02em] text-[#A8A29E]"
+            className="block text-[clamp(44px,7vw,84px)] landing-instrument-serif leading-[1.05] tracking-[-0.02em] text-[#A8A29E]"
           >
             become clear.
           </motion.span>
@@ -196,7 +198,7 @@ export default function LandingPageClient() {
             onClick={(e) => handleAnchor(e, "#product")}
             className="text-[14px] text-[#57534E] hover:text-[#1C1917] transition-colors flex items-center gap-1.5"
           >
-            See how it works <span className="text-lg">↓</span>
+            See how it works <ArrowDownIcon size={16} weight="bold" aria-hidden="true" />
           </a>
         </motion.div>
 
@@ -271,7 +273,7 @@ export default function LandingPageClient() {
           </motion.p>
           <motion.h2
             variants={fadeUp}
-            className="mt-4 font-serif text-[clamp(36px,5.5vw,64px)] leading-[1] tracking-[-0.03em]"
+            className="mt-4 landing-instrument-serif text-[clamp(36px,5.5vw,64px)] leading-[1] tracking-[-0.03em]"
           >
             A document editor with
             <br />
@@ -289,7 +291,7 @@ export default function LandingPageClient() {
             <p className="text-[#7b4ac6] text-[10px] font-bold tracking-[0.15em] uppercase mb-4">
               Everything you need
             </p>
-            <h2 className="font-serif text-[clamp(36px,5.5vw,64px)] leading-[1] tracking-[-0.03em]">
+            <h2 className="landing-instrument-serif text-[clamp(36px,5.5vw,64px)] leading-[1] tracking-[-0.03em]">
               A workspace built for the
               <br />
               <span className="text-[#A8A29E]">way ideas actually move.</span>
@@ -308,7 +310,7 @@ export default function LandingPageClient() {
               <motion.div key={title} variants={fadeUp} className="group flex items-start gap-6 border-t border-[#E7E5E4] py-7 sm:py-9">
                 <span className="mt-1 w-7 shrink-0 text-[13px] tabular-nums text-[#A8A29E]">0{index + 1}</span>
                 <div>
-                  <p className="text-[clamp(18px,2.5vw,26px)] font-serif leading-[1.15] tracking-[-0.02em] group-hover:text-[#57534E] transition-colors duration-300">{title}</p>
+                  <p className="text-[clamp(18px,2.5vw,26px)] landing-instrument-serif leading-[1.15] tracking-[-0.02em] group-hover:text-[#57534E] transition-colors duration-300">{title}</p>
                   <p className="mt-2 text-[14px] text-[#78716C] leading-relaxed max-w-lg">{desc}</p>
                 </div>
               </motion.div>
@@ -328,7 +330,7 @@ export default function LandingPageClient() {
         >
           <motion.p
             variants={fadeUp}
-            className="text-center text-3xl sm:text-5xl font-serif mb-12 sm:mb-16"
+            className="text-center text-3xl sm:text-5xl landing-instrument-serif mb-12 sm:mb-16"
           >
             Stop formatting. Start thinking.
           </motion.p>
@@ -350,7 +352,7 @@ export default function LandingPageClient() {
                   {before}
                 </span>
                 <span className="text-[#78716C] text-[20px] sm:text-[24px] font-light group-hover:translate-x-1 transition-transform duration-300 rotate-90 sm:rotate-0">
-                  →
+                  <ArrowRightIcon size={20} weight="light" aria-hidden="true" />
                 </span>
                 <span className="sm:flex-1 sm:text-left text-[16px] sm:text-[clamp(18px,2.5vw,24px)] font-medium group-hover:text-[#57534E] transition-colors duration-300">
                   {after}
@@ -379,7 +381,7 @@ export default function LandingPageClient() {
           </motion.div>
           <motion.h2
             variants={fadeUp}
-            className="font-serif text-[clamp(42px,6vw,72px)] leading-[0.95] tracking-[-0.03em]"
+            className="landing-instrument-serif text-[clamp(42px,6vw,72px)] leading-[0.95] tracking-[-0.03em]"
           >
             Put the idea on paper.
           </motion.h2>
@@ -406,7 +408,7 @@ export default function LandingPageClient() {
         <div className="max-w-6xl mx-auto flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2.5">
             <OmnidocLogo className="w-6 h-6 rounded-lg" />
-            <span className="text-[14px] font-serif">Omnidoc</span>
+            <span className="text-[14px] landing-instrument-serif">Omnidoc</span>
             <span className="text-[13px] text-[#A8A29E]">
               · Write together, thoughtfully
             </span>
@@ -435,7 +437,7 @@ export default function LandingPageClient() {
       {/* ─── GIANT BRAND TEXT ────────────────────────────────── */}
       <section className="relative overflow-hidden -mt-6">
         <div
-          className="max-w-full whitespace-nowrap text-center font-serif text-[clamp(64px,18vw,500px)] leading-none tracking-[-0.05em] select-none pointer-events-none"
+          className="max-w-full whitespace-nowrap text-center landing-instrument-serif text-[clamp(64px,18vw,500px)] leading-none tracking-[-0.05em] select-none pointer-events-none"
           style={{
             background:
               "linear-gradient(to top, #E7E5E4 0%, #D6D3D1 30%, #A8A29E 60%, #78716C 100%)",
