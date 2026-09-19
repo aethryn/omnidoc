@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["yjs", "y-prosemirror", "@hocuspocus/transformer"],
+  serverExternalPackages: [
+    "@prisma/client",
+    "yjs",
+    "y-prosemirror",
+    "@hocuspocus/transformer",
+  ],
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
   },
