@@ -127,6 +127,14 @@ function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
   ws.send(encoding.toUint8Array(encoder));
 }
 
+function revokeLiveSession(sessionId: string) {
+  liveConnections.forEach((connection) => {
+    if (connection.sessionId !== sessionId || connection.closed || connection.expired) return;
+    connection.expired = true;
+    if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
+  });
+}
+
 async function validateConnectionSession(connection: Connection) {
   if (connection.closed || connection.expired || !connection.sessionId) return;
   const sessions = await prisma.$queryRaw<Array<{ revokedAt: Date | null; expiresAt: Date | null }>>`
@@ -521,6 +529,10 @@ const shutdown = async () => {
   wss.clients.forEach((client) => client.close(1001, "Server restarting"));
   server.close(async () => { await prisma.$disconnect(); process.exit(0); });
 };
+
+void collaborationBus.subscribeSessionRevocations(revokeLiveSession).catch((error) => {
+  console.error("Redis session revocation subscription failed", error instanceof Error ? error.message : error);
+});
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 const cleanupTimer = setInterval(() => { cleanupOrphanImages().catch((error) => console.error("Orphan image cleanup failed", error)); }, orphanCleanupIntervalMs);

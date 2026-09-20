@@ -18,15 +18,27 @@ The Next.js app runs on port 3000 and the collaboration server on port 4000.
 
 ## Deployment
 
-Deploy the collaboration service to Cloud Run from `Dockerfile.ws`. Create an Upstash Redis database and add its TLS `REDIS_URL`, `WS_REDIS_REQUIRED=true`, and the existing Supabase/database variables to the Cloud Run service. Build the image with `gcloud builds submit --tag YOUR_IMAGE --file Dockerfile.ws .`, then deploy it with `--min 0 --max 3 --timeout 900s --concurrency 100 --session-affinity`. Keep end-to-end HTTP/2 disabled. Cloud Run's service URL is the WebSocket endpoint; use it with `wss://` in `NEXT_PUBLIC_WS_URL`.
+Deploy the collaboration service to Cloud Run from `Dockerfile.ws`. The supported deployment path is:
+
+```bash
+APP_URL=https://your-production-domain.example ./rebuild-redeploy.sh
+```
+
+The script runs checks, builds with `cloudbuild.ws.yaml`, loads the deployment values from `.env` (or `ENV_FILE=...`), deploys `omnidoc-ws` in `asia-south1`, verifies `/health` reports Redis ready, and restores the previous revision's traffic if verification fails. Set `SKIP_TESTS=1` only for an intentional emergency deployment, and set `ALLOW_DIRTY=1` only when deploying an uncommitted local tree.
+
+For this side project, the script sends `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `REDIS_URL` directly as Cloud Run environment variables. Keep `.env` local and uncommitted; `.dockerignore` excludes it from Cloud Build, so it is not included in the container image. Do not commit it or paste values directly into the deployment command. This is simpler but less isolated than Secret Manager: anyone with sufficient Cloud Run configuration access may be able to inspect the values.
+
+The Redis value must be a writable TLS `rediss://` URL copied from Upstash. Add the same value as a server-only production environment variable in Vercel because the Next.js API uses Redis for distributed rate limits and sign-out propagation. Never expose `REDIS_URL` to the browser. Keep `WS_REDIS_REQUIRED=true` on Cloud Run. The service remains at one maximum instance until distributed document persistence locking is added.
+
+Cloud Run's service URL is the WebSocket endpoint; use it with `wss://` in the Vercel `NEXT_PUBLIC_WS_URL` variable. Keep end-to-end HTTP/2 disabled. Cloud Run WebSocket requests are subject to the configured 60-minute timeout, so the client must reconnect and resynchronize after timeout or instance changes.
 
 Import the same GitHub repository into Vercel as a Next.js project. Add every frontend variable from `.env.example` to the Production environment. Set `APP_URL` and `NEXT_PUBLIC_APP_URL` to the final HTTPS Vercel or custom-domain URL, and set `NEXT_PUBLIC_WS_URL` to the Cloud Run URL with `wss://`. The included `vercel.json` keeps server functions in Singapore, close to the configured Supabase database.
 
 In Supabase Authentication URL Configuration, set the Site URL to the production site and add `https://your-domain/auth/callback` to the redirect allow list. Keep `http://localhost:3000/**` as an additional development redirect if local sign-in is still needed. Then redeploy Vercel so the final public URLs are embedded in the client bundle.
 
-Run `pnpm run prisma:migrate` before the first production launch and after future schema migrations. Vercel automatically redeploys the production branch after each push; Render does the same for the collaboration service.
+Run `pnpm run prisma:migrate` before the first production launch and after future schema migrations. Vercel automatically redeploys the production branch after each push. The Cloud Run collaboration service is deployed explicitly with `rebuild-redeploy.sh`.
 
-Supabase is the source of truth for Google authentication, Postgres, and private image storage. Provider credentials are encrypted with AES-256-GCM using the server-only `AI_CREDENTIALS_ENCRYPTION_KEY`. Never rotate that key without re-encrypting saved credentials.
+Supabase is the source of truth for Google authentication, Postgres, and private image storage. Provider credentials are encrypted with AES-256-GCM using the server-only `AI_CREDENTIALS_ENCRYPTION_KEY`. Never rotate that key without re-encrypting saved credentials. PostgreSQL remains the source of truth for documents, Yjs snapshots, comments, versions, sessions, and permissions; Redis is used for ephemeral collaboration fanout, rate-limit counters, and session-revocation notifications.
 
 Image uploads use the private `document-images` Storage bucket. The Next.js app needs `SUPABASE_SERVICE_ROLE_KEY` for server-side image processing and delivery, and the collaboration service needs the same server-only variable for its daily orphan-image cleanup. Images removed from documents remain recoverable while referenced by versions or publications, then are cleaned up after 30 days.
 
