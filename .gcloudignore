@@ -1,0 +1,17 @@
+# The WebSocket image only needs the files below. Keep frontend media,
+# checked-out build output, local archives, and all environment files out of
+# the Cloud Build upload context.
+*
+!.gcloudignore
+!cloudbuild.ws.yaml
+!Dockerfile.ws
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.json
+!websocket-server.ts
+!prisma/
+!prisma/**
+!src/
+!src/lib/
+!src/lib/**
