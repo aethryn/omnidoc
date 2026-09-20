@@ -104,6 +104,7 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lastEditedAt DateTime @default(now())
+  versionCounter Int @default(0)
   
   // Relations
   user User @relation("DocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
@@ -121,6 +122,24 @@ model Document {
   @@index([createdAt])
   @@index([updatedAt])
   Room Room[]
+}
+
+model AppSession {
+  id          String   @id
+  userId      String
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([revokedAt])
+}
+
+model RateLimitBucket {
+  id          String   @id
+  count       Int      @default(0)
+  windowStart DateTime
 }
 
 enum DocumentStatus {

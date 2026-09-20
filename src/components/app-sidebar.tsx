@@ -77,7 +77,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<'aside'>) {
   const handleLogout = async () => {
     try {
       await axios.post('/api/auth/signout', {}, { withCredentials: true })
-      router.push('/signin')
+      window.dispatchEvent(new Event('omnidoc:signed-out'))
+      router.replace('/')
     } catch (error) {
       console.error('Logout error:', error)
     }

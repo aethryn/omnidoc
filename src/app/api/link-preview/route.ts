@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { normalizePreviewUrl, previewUrlHash, readLinkPreview } from "@/lib/link-preview";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("link-preview", auth.userId, 30, 60_000);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many preview requests", code: "RATE_LIMITED" }, { status: 429, headers: { "Retry-After": String(rate.retryAfter) } });
   const raw = request.nextUrl.searchParams.get("url");
   if (!raw || raw.length > 4_000) return NextResponse.json({ error: "A valid URL is required", code: "INVALID_URL" }, { status: 400 });
   let url: URL;

@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import "./galaxy-button.css";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionGuard } from "@/components/session-guard";
 
 const instrumental = localFont({ src: [{ path: "../../public/fonts/InstrumentSerif-Regular.ttf", weight: "400", style: "normal" }, { path: "../../public/fonts/InstrumentSerif-Italic.ttf", weight: "400", style: "italic" }], variable: "--font-instrument-serif" });
 const poppins = localFont({ src: [{ path: "../../public/fonts/Poppins-Light.ttf", weight: "300", style: "normal" }, { path: "../../public/fonts/Poppins-Regular.ttf", weight: "400", style: "normal" }, { path: "../../public/fonts/Poppins-Medium.ttf", weight: "500", style: "normal" }, { path: "../../public/fonts/Poppins-SemiBold.ttf", weight: "600", style: "normal" }], variable: "--font-poppins" });
@@ -47,6 +48,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`${instrumental.variable} ${poppins.variable}`}>
       <body className="min-h-screen antialiased">
         {children}
+        <SessionGuard />
         <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>

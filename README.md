@@ -9,8 +9,10 @@ Next.js 16 requires Node.js 20.9 or newer.
 1. Create a Supabase project and enable Google under **Authentication → Providers**.
 2. Create a private Storage bucket named `document-images`.
 3. Copy `.env.example` to `.env.local`, fill in the Supabase values, and generate `AI_CREDENTIALS_ENCRYPTION_KEY` with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"`.
-4. Run `npm install`, `npm run prisma:generate`, and `npm run prisma:migrate`.
-5. Start both services with `npm run dev:all`.
+4. Run `pnpm install`, `pnpm run prisma:generate`, and `pnpm run prisma:migrate`.
+5. Start Redis with `docker run -d --name omnidoc-redis -p 6379:6379 redis:7-alpine` (or `docker start omnidoc-redis` if it already exists).
+6. Start both services with `pnpm run dev:all`. The WebSocket development command loads `.env.local` automatically.
+7. Verify Redis from a second terminal with `curl http://localhost:4000/health`. With `WS_REDIS_REQUIRED=true`, expect `"ok":true` and `"redis":"ready"`.
 
 The Next.js app runs on port 3000 and the collaboration server on port 4000.
 
@@ -22,7 +24,7 @@ Import the same GitHub repository into Vercel as a Next.js project. Add every fr
 
 In Supabase Authentication URL Configuration, set the Site URL to the production site and add `https://your-domain/auth/callback` to the redirect allow list. Keep `http://localhost:3000/**` as an additional development redirect if local sign-in is still needed. Then redeploy Vercel so the final public URLs are embedded in the client bundle.
 
-Run `npm run prisma:migrate` before the first production launch and after future schema migrations. Vercel automatically redeploys the production branch after each push; Render does the same for the collaboration service.
+Run `pnpm run prisma:migrate` before the first production launch and after future schema migrations. Vercel automatically redeploys the production branch after each push; Render does the same for the collaboration service.
 
 Supabase is the source of truth for Google authentication, Postgres, and private image storage. Provider credentials are encrypted with AES-256-GCM using the server-only `AI_CREDENTIALS_ENCRYPTION_KEY`. Never rotate that key without re-encrypting saved credentials.
 

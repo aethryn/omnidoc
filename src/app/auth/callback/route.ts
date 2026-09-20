@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAuth } from "@/lib/auth";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -22,5 +23,6 @@ export async function GET(request: Request) {
       create: { id: user.id, email: user.email || `${user.id}@supabase.local`, name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User", avatar: user.user_metadata?.avatar_url || "vibrent_2.png" },
     });
   }
+  await getCurrentAuth();
   return NextResponse.redirect(new URL(safeNext, url.origin));
 }

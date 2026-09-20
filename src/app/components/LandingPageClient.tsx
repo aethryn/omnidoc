@@ -102,7 +102,8 @@ export default function LandingPageClient() {
           </div>
 
           <Link
-            href="/signup"
+            href="/start"
+            prefetch={false}
             className="relative shrink-0 overflow-hidden px-3 sm:px-4 py-1.5 rounded-full text-[12px] sm:text-[13px] font-medium text-white flex items-center gap-1.5 whitespace-nowrap transition-opacity duration-200 hover:opacity-90 active:scale-[0.96]"
             style={{
               background:
@@ -181,7 +182,8 @@ export default function LandingPageClient() {
           className="relative z-20 flex flex-col sm:flex-row items-center gap-4 mt-8"
         >
           <Link
-            href="/signup"
+            href="/start"
+            prefetch={false}
             className="relative overflow-hidden px-8 py-4 rounded-2xl text-[16px] font-semibold text-white flex items-center gap-3 active:scale-[0.96] transition-transform"
             style={{
               background:
@@ -358,7 +360,8 @@ export default function LandingPageClient() {
           </motion.p>
           <motion.div variants={fadeUp}>
             <Link
-              href="/signup"
+              href="/start"
+              prefetch={false}
               className="inline-flex items-center gap-2 mt-8 px-8 py-4 rounded-2xl text-[15px] font-semibold bg-white text-[#352d59] shadow-lg shadow-black/5 border border-[#E7E5E4] hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-[0.97]"
             >
               Start writing for free

@@ -1,15 +1,12 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { activeCollaboratorConstraint, documentAccessWhere } from "@/lib/auth";
+import { activeCollaboratorConstraint, documentAccessWhere, getCurrentAuth } from "@/lib/auth";
 import DocumentEditorClient, { type InitialDocument } from "../DocumentEditorClient";
 
 export default async function DocumentByIdPage({ params }: { params: Promise<{ id:string }> }) {
   const startedAt = performance.now();
   const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
+  const { userId } = await getCurrentAuth();
   if (!userId) redirect(`/signin?redirect=${encodeURIComponent(`/document/${id}`)}`);
 
   const [user, document] = await Promise.all([

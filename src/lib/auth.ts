@@ -1,20 +1,50 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
-export type AuthResult = { userId?: string; error?: string };
+export type AuthResult = { userId?: string; sessionId?: string; error?: string; code?: "NOT_AUTHENTICATED" | "SESSION_REVOKED" };
 
-export async function getCurrentUserIdFromRequest(_request?: unknown): Promise<AuthResult> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  if (error || !userId) return { error: "Not authenticated" };
-  return { userId };
+type SessionClaim = { sub?: unknown; session_id?: unknown; exp?: unknown };
+
+async function registerOrValidateSession(userId: string, claims: SessionClaim): Promise<AuthResult> {
+  const sessionId = typeof claims.session_id === "string" ? claims.session_id : undefined;
+  if (!sessionId) return { userId };
+
+  // JWT `exp` is the access-token lifetime, not the Supabase session lifetime.
+  // Refreshing a valid Supabase session may issue a new token with a new exp.
+  const expiresAt = null;
+  const existing = await prisma.$queryRaw<Array<{ userId: string; revokedAt: Date | null; expiresAt: Date | null }>>`
+    SELECT "userId", "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${sessionId} LIMIT 1
+  `;
+  if (existing[0] && (existing[0].userId !== userId || existing[0].revokedAt)) {
+    return { error: "Session revoked", code: "SESSION_REVOKED", sessionId };
+  }
+
+  await prisma.$executeRaw`
+    INSERT INTO "AppSession" ("id", "userId", "expiresAt", "lastSeenAt")
+    VALUES (${sessionId}, ${userId}, ${expiresAt}, CURRENT_TIMESTAMP)
+    ON CONFLICT ("id") DO UPDATE SET "lastSeenAt" = CURRENT_TIMESTAMP, "expiresAt" = COALESCE(EXCLUDED."expiresAt", "AppSession"."expiresAt")
+  `;
+  return { userId, sessionId };
 }
 
-export function createAuthErrorResponse(_authResult?: AuthResult): NextResponse {
+export async function getCurrentAuth(): Promise<AuthResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = (data?.claims || {}) as SessionClaim;
+  const userId = typeof claims.sub === "string" ? claims.sub : undefined;
+  if (error || !userId) return { error: "Not authenticated", code: "NOT_AUTHENTICATED" };
+  return registerOrValidateSession(userId, claims);
+}
+
+export async function getCurrentUserIdFromRequest(_request?: unknown): Promise<AuthResult> {
+  return getCurrentAuth();
+}
+
+export function createAuthErrorResponse(authResult?: AuthResult): NextResponse {
   return NextResponse.json(
-    { error: "Not authenticated", code: "NOT_AUTHENTICATED" },
-    { status: 401 }
+    { error: authResult?.error || "Not authenticated", code: authResult?.code || "NOT_AUTHENTICATED" },
+    { status: 401, headers: { "Cache-Control": "no-store" } }
   );
 }
 

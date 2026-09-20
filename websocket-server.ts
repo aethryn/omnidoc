@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { activeCollaboratorWhere, documentAccessWhere } from "@/lib/auth";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
-import { documentContentHash } from "@/lib/document-version";
+import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 import { CollaborationBus, type CollaborationBusMessage } from "@/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
 import type { PersistCheckpoint } from "@/lib/collaboration-persistence";
@@ -31,12 +31,13 @@ const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
 const redisBatchMs = 50;
 type RedisOrigin = { kind: "redis"; id: string; sender: string };
 type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
-type Connection = { ws: WebSocket; userId: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean };
+type Connection = { ws: WebSocket; userId: string; sessionId?: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean };
 type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
 const connections = new Map<string, Set<Connection>>();
+const liveConnections = new Set<Connection>();
 const instanceId = randomUUID();
 const collaborationBus = new CollaborationBus(process.env.REDIS_URL, process.env.WS_REDIS_REQUIRED === "true");
 const supabase = createClient(
@@ -47,11 +48,14 @@ const storageAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
   : null;
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
   if (request.url === "/health") {
     const connectionCount = Array.from(connections.values()).reduce((total, roomConnections) => total + roomConnections.size, 0);
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, redis: collaborationBus.status, redisRooms: collaborationBus.subscribedRooms }));
+    const redisRequired = process.env.WS_REDIS_REQUIRED === "true";
+    const redis = await collaborationBus.ensureConnected();
+    const ok = !redisRequired || redis === "ready";
+    response.writeHead(ok ? 200 : 503, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    response.end(JSON.stringify({ ok, rooms: active.size, connections: connectionCount, redis, redisRequired, redisRooms: collaborationBus.subscribedRooms }));
     return;
   }
   response.writeHead(200, { "Content-Type": "text/plain" });
@@ -70,6 +74,9 @@ const heartbeatTimer = setInterval(() => {
     }
     socket.missedPongs = nextHeartbeatMissCount(socket.missedPongs || 0);
     try { socket.ping(); } catch { socket.terminate(); }
+  });
+  liveConnections.forEach((connection) => {
+    void validateConnectionSession(connection);
   });
 }, websocketHeartbeatIntervalMs);
 heartbeatTimer.unref();
@@ -118,6 +125,29 @@ function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
   encoding.writeVarUint(encoder, messageApplication);
   encoding.writeVarString(encoder, JSON.stringify(payload));
   ws.send(encoding.toUint8Array(encoder));
+}
+
+async function validateConnectionSession(connection: Connection) {
+  if (connection.closed || connection.expired || !connection.sessionId) return;
+  const sessions = await prisma.$queryRaw<Array<{ revokedAt: Date | null; expiresAt: Date | null }>>`
+    SELECT "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${connection.sessionId} LIMIT 1
+  `.catch(() => []);
+  const session = sessions[0];
+  if (!session || session.revokedAt) {
+    connection.expired = true;
+    if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
+  }
+}
+
+function sessionIdFromToken(token: string) {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return undefined;
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { session_id?: unknown };
+    return typeof claims.session_id === "string" ? claims.session_id : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function isConnectionOrigin(origin: unknown): origin is Connection {
@@ -256,11 +286,10 @@ async function persist(documentId: string, forceVersion = false) {
     });
     if (createVersion) {
       try {
-        const latestVersion = await prisma.documentVersion.findFirst({ where: { documentId }, orderBy: { versionNumber: "desc" }, select: { versionNumber: true } });
         const title = checkpoint?.title?.trim() || room.title;
         const contentHash = documentContentHash(title, content);
         const existing = await prisma.documentVersion.findUnique({ where: { documentId_contentHash: { documentId, contentHash } }, select: { id:true, versionNumber:true } });
-        if (!existing) await prisma.documentVersion.create({ data: { documentId, title, content, versionNumber: (latestVersion?.versionNumber || 0) + 1, changeDescription: checkpoint?.description || (forceVersion ? "Collaborative session snapshot" : "Automatic checkpoint"), source: checkpoint?.source || (forceVersion ? "session-close" : "automatic"), contentHash, contributors: Array.from(new Set([room.lastEditorId || room.ownerId, ...requests.map((request) => request.connection.userId)])), createdBy: room.lastEditorId || room.ownerId } });
+        if (!existing) await prisma.documentVersion.create({ data: { documentId, title, content, versionNumber: await allocateDocumentVersionNumber(prisma, documentId), changeDescription: checkpoint?.description || (forceVersion ? "Collaborative session snapshot" : "Automatic checkpoint"), source: checkpoint?.source || (forceVersion ? "session-close" : "automatic"), contentHash, contributors: Array.from(new Set([room.lastEditorId || room.ownerId, ...requests.map((request) => request.connection.userId)])), createdBy: room.lastEditorId || room.ownerId } });
         room.versionRevision = revision;
         room.lastVersionAt = Date.now();
         room.changeStartedAt = undefined;
@@ -379,6 +408,9 @@ wss.on("connection", async (ws, request) => {
   });
 
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
+  const origin = request.headers.origin;
+  const expectedOrigin = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (origin && expectedOrigin && origin !== expectedOrigin) return ws.close(1008, "Origin not allowed");
   const documentId = url.pathname.split("/").filter(Boolean).pop();
   const token = url.searchParams.get("token");
   if (!documentId || !token) return ws.close(1008, "Authentication required");
@@ -386,6 +418,13 @@ wss.on("connection", async (ws, request) => {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (authError || !user) return ws.close(1008, "Invalid session");
+  const sessionId = sessionIdFromToken(token);
+  if (sessionId) {
+    const session = await prisma.$queryRaw<Array<{ revokedAt: Date | null; expiresAt: Date | null }>>`
+      SELECT "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${sessionId} LIMIT 1
+    `;
+    if (session[0]?.revokedAt) return ws.close(1008, "Session revoked");
+  }
 
   const document = await prisma.document.findFirst({
     where: { id: documentId, ...documentAccessWhere(user.id) },
@@ -399,7 +438,7 @@ wss.on("connection", async (ws, request) => {
   if (!room) return ws.close(1008, "Document not found");
   const role=document.userId===user.id?"owner":document.collaborators[0]?.role;
   const accessExpiresAt=document.userId===user.id?null:document.collaborators[0]?.accessExpiresAt;
-  const entry:Connection = { ws, userId: user.id, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt };
+  const entry:Connection = { ws, userId: user.id, sessionId, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt };
   ws.off("close", closeHandler);
   closeHandler = () => {
     if (entry.closed) return;
@@ -407,11 +446,13 @@ wss.on("connection", async (ws, request) => {
     if (entry.expiryTimer) clearTimeout(entry.expiryTimer);
     awarenessProtocol.removeAwarenessStates(room.awareness,Array.from(entry.awarenessIds),entry);
     connections.get(documentId)?.delete(entry);
+    liveConnections.delete(entry);
     void cleanupEmptyRoom(documentId);
   };
   ws.on("close", closeHandler);
   if (!connections.has(documentId)) connections.set(documentId, new Set());
   connections.get(documentId)!.add(entry);
+  liveConnections.add(entry);
   if (accessExpiresAt) {
     const delay = Math.max(0, accessExpiresAt.getTime() - Date.now());
     entry.expiryTimer = setTimeout(() => { void expireConnection(documentId, entry); }, delay);

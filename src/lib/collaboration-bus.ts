@@ -56,6 +56,11 @@ export class CollaborationBus {
     return this.subscriptions.size;
   }
 
+  async ensureConnected() {
+    await this.connect();
+    return this.status;
+  }
+
   private markDegraded(error?: unknown) {
     this._status = "degraded";
     if (error) console.error("Redis collaboration bus unavailable", error instanceof Error ? error.message : error);

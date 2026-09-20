@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { activeCollaboratorConstraint, documentAccessWhere } from "@/lib/auth";
+import { activeCollaboratorConstraint, documentAccessWhere, getCurrentAuth } from "@/lib/auth";
 import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
   const startedAt = performance.now();
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  if (error || !userId) redirect("/signin?redirect=/dashboard");
+  const auth = await getCurrentAuth();
+  const userId = auth.userId;
+  if (!userId) redirect("/signin?redirect=/dashboard");
 
   const [user, documents] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true, avatar: true } }),

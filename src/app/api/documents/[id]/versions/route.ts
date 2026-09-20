@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { activeCollaboratorWhere, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
-import { documentContentHash } from "@/lib/document-version";
+import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 
 async function membership(documentId: string, userId: string) {
   return prisma.document.findFirst({ where: { id: documentId, ...documentAccessWhere(userId) }, select: { id: true, userId: true, title: true, content: true } });
@@ -35,7 +35,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const contentHash = documentContentHash(title, content);
   const existing = await prisma.documentVersion.findUnique({ where: { documentId_contentHash: { documentId: id, contentHash } }, select: { id: true, versionNumber: true } });
   if (existing) return NextResponse.json({ ...existing, deduplicated: true });
-  const latest = await prisma.documentVersion.findFirst({ where: { documentId: id }, orderBy: { versionNumber: "desc" }, select: { versionNumber: true } });
-  const version = await prisma.documentVersion.create({ data: { documentId: id, title, content, versionNumber: (latest?.versionNumber || 0) + 1, changeDescription: description, source: "manual", contentHash, contributors: [auth.userId], createdBy: auth.userId } });
+  const versionNumber = await allocateDocumentVersionNumber(prisma, id);
+  let version;
+  try {
+    version = await prisma.documentVersion.create({ data: { documentId: id, title, content, versionNumber, changeDescription: description, source: "manual", contentHash, contributors: [auth.userId], createdBy: auth.userId } });
+  } catch (error) {
+    const duplicate = await prisma.documentVersion.findUnique({ where: { documentId_contentHash: { documentId: id, contentHash } }, select: { id: true, versionNumber: true } });
+    if (duplicate) return NextResponse.json({ ...duplicate, deduplicated: true });
+    throw error;
+  }
   return NextResponse.json({ id: version.id, versionNumber: version.versionNumber, createdAt: version.createdAt.toISOString() }, { status: 201 });
 }
