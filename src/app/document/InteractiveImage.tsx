@@ -7,15 +7,20 @@ import { toast } from "sonner";
 
 import { OmnidocImage } from "@/lib/omnidoc-image-extension";
 import { uploadDocumentImage } from "./image-upload";
+import { DocumentImageSkeleton } from "@/components/document-loading-skeletons";
 
 type InteractiveImageOptions = { documentId?: string; getDocumentId?: () => Promise<string | null>; editable?: boolean };
 type ImageNodeViewProps = NodeViewProps & { documentId?: string; getDocumentId?: () => Promise<string | null>; editable: boolean };
 
 function ImageNodeView({ node, selected, updateAttributes, editor, getPos, documentId, getDocumentId, editable }: ImageNodeViewProps) {
   const figureRef = useRef<HTMLElement | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [loadedSource, setLoadedSource] = useState<string | null>(null);
+  const [failedSource, setFailedSource] = useState<string | null>(null);
   const [replacing, setReplacing] = useState(false);
   const isEditable = editable !== false;
+  const source = typeof node.attrs.src === "string" ? node.attrs.src : "";
+  const loaded = loadedSource === source;
+  const failed = failedSource === source;
   const width = Number(node.attrs.width) || 100;
   const align = ["left", "center", "right"].includes(node.attrs.align) ? node.attrs.align : "center";
 
@@ -47,7 +52,8 @@ function ImageNodeView({ node, selected, updateAttributes, editor, getPos, docum
     try {
       const image = await uploadDocumentImage(file, getDocumentId || (() => Promise.resolve(documentId || null)));
       updateAttributes({ src: image.fileUrl, alt: node.attrs.alt || image.originalName || "" });
-      setFailed(false);
+      setFailedSource(null);
+      setLoadedSource(null);
       toast.success("Image replaced");
     } catch (error) {
       const message = error instanceof Error ? error.message : "The image could not be replaced.";
@@ -71,7 +77,10 @@ function ImageNodeView({ node, selected, updateAttributes, editor, getPos, docum
     style={{ width: `${width}%` }}
     data-drag-handle
   >
-    {failed ? <div className="image-failed"><ImageBrokenIcon /><span>Image unavailable</span></div> : <img src={node.attrs.src} alt={node.attrs.alt || ""} draggable={false} onError={() => setFailed(true)} />}
+    {failed ? <div className="image-failed"><ImageBrokenIcon /><span>Image unavailable</span></div> : <>
+      {!loaded && <DocumentImageSkeleton />}
+      <img className={loaded ? undefined : "image-loading-target"} src={source} alt={node.attrs.alt || ""} draggable={false} onLoad={() => setLoadedSource(source)} onError={() => setFailedSource(source)} />
+    </>}
     {selected && isEditable && <>
       <div className="image-controls" contentEditable={false}>
         {(["left", "center", "right"] as const).map((value) => <button key={value} className={align === value ? "active" : ""} onClick={() => updateAttributes({ align: value })}>{value}</button>)}
@@ -95,4 +104,3 @@ export const InteractiveImage = OmnidocImage.extend<InteractiveImageOptions>({
     return ReactNodeViewRenderer((props) => <ImageNodeView {...props} documentId={documentId} getDocumentId={getDocumentId} editable={editable !== false} />);
   },
 });
-

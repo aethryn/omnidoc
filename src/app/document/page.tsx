@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentAuth } from "@/lib/auth";
 import DocumentEditorClient from "./DocumentEditorClient";
 
 export default async function NewDocumentPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
+  const { userId } = await getCurrentAuth();
   if (!userId) redirect("/signin?redirect=/document");
   const user = await prisma.user.findUnique({ where:{ id:userId }, select:{ id:true,name:true,avatar:true } });
   if (!user) redirect("/signin?redirect=/document");

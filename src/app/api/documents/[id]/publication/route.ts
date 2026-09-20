@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const body = await request.json().catch(() => ({})) as { title?: unknown; content?: unknown };
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 200) || "Untitled document" : document.title;
-  const content = typeof body.content === "string" ? body.content : document.content;
+  const content = document.content;
   if (content.length > 5_000_000) return NextResponse.json({ error: "Document is too large to publish" }, { status: 413 });
   const preview = deriveDocumentPreview(content);
   const slug = slugifyDocumentTitle(title);

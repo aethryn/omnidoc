@@ -3,7 +3,7 @@ import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorRespon
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deriveDocumentPreview } from "@/lib/document-content";
-import { documentContentHash } from "@/lib/document-version";
+import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 
 export async function GET(
   request: NextRequest,
@@ -113,24 +113,19 @@ export async function PUT(
       );
     }
 
+    if (typeof updateData.content === "string" && document.yjsState) {
+      return NextResponse.json({ error: "Collaborative documents must be updated through the editor connection", code: "COLLABORATIVE_WRITE_REQUIRED" }, { status: 409 });
+    }
+
     //create a version before updating the document if it is being changed
 
     if (updateData.content && updateData.content !== document.content) {
-      const latestVersion = await prisma.documentVersion.findFirst({
-        where: {
-          documentId,
-        },
-        orderBy: {
-          versionNumber: "desc",
-        },
-      });
-
       await prisma.documentVersion.create({
         data: {
           documentId,
           title: document.title,
           content: document.content,
-          versionNumber: (latestVersion?.versionNumber || 0) + 1,
+          versionNumber: await allocateDocumentVersionNumber(prisma, documentId),
           source: "legacy-rest",
           contentHash: documentContentHash(document.title, document.content),
           contributors: [userId],

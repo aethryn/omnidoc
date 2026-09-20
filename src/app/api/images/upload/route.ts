@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import sharp, { type Metadata } from "sharp";
 
 const MAX_SIZE = 500 * 1024;
@@ -11,6 +12,8 @@ const ALLOWED = new Set(["image/jpeg", "image/png", "image/gif"]);
 export async function POST(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("image-upload", auth.userId, 30, 60_000);
+  if (!rate.allowed) return NextResponse.json({ error: "Too many uploads", code: "RATE_LIMITED" }, { status: 429, headers: { "Retry-After": String(rate.retryAfter) } });
   const formData = await request.formData();
   const file = formData.get("file");
   const documentId = String(formData.get("documentId") || "");

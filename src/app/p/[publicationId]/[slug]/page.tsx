@@ -42,7 +42,7 @@ export default async function PublicDocumentPage({ params }: Props) {
   return <main className="public-document-page">
     <header className="public-document-nav">
       <Link href="/" aria-label="Omnidoc home"><OmnidocLogo priority className="public-document-logo" /><span>Omnidoc</span></Link>
-      <Link href="/signup">Start writing <ArrowUpRightIcon /></Link>
+      <Link href="/start" prefetch={false}>Start writing <ArrowUpRightIcon /></Link>
     </header>
     <article className="public-document-paper">
       <div className="public-document-heading">
@@ -55,7 +55,6 @@ export default async function PublicDocumentPage({ params }: Props) {
       </div>
       <div className="public-document-content" dangerouslySetInnerHTML={{ __html: documentToHtml(publication.content) }} />
     </article>
-    <footer className="public-document-footer"><OmnidocLogo /><span>Made for thoughtful work.</span><Link href="/signup">Create a document <ArrowUpRightIcon /></Link></footer>
+    <footer className="public-document-footer"><OmnidocLogo /><span>Made for thoughtful work.</span><Link href="/start" prefetch={false}>Create a document <ArrowUpRightIcon /></Link></footer>
   </main>;
 }
-

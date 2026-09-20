@@ -37,7 +37,7 @@ export default function Navbar() {
         </span>
       </div>
 
-      <button onClick={() => router.push('/signup')} className="px-6 py-2.5 border border-gray-900 rounded-lg text-gray-900 font-medium hover:bg-gray-900 hover:text-white transition-colors">
+      <button onClick={() => router.push('/start')} className="px-6 py-2.5 border border-gray-900 rounded-lg text-gray-900 font-medium hover:bg-gray-900 hover:text-white transition-colors">
         Start Now
       </button>
     </nav>

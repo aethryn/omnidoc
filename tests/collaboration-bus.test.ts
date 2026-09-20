@@ -1,11 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CollaborationBus, collaborationChannel } from "../src/lib/collaboration-bus";
+import { CollaborationBus, collaborationChannel, sessionRevocationChannel } from "../src/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "../src/lib/websocket-liveness";
 
 test("uses isolated channels for each document", () => {
   assert.equal(collaborationChannel("doc-123"), "omnidoc:room:doc-123");
   assert.notEqual(collaborationChannel("doc-123"), collaborationChannel("doc-456"));
+});
+
+test("uses a dedicated control channel for session revocations", () => {
+  assert.equal(sessionRevocationChannel, "omnidoc:control:session-revoked");
+  assert.notEqual(sessionRevocationChannel, collaborationChannel("session-revoked"));
 });
 
 test("does not open Redis when optional configuration is absent", async () => {

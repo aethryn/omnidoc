@@ -3,8 +3,8 @@ services:
     name: omnidoc-collaboration
     runtime: node
     region: singapore
-    buildCommand: npm ci --ignore-scripts && npx prisma generate
-    startCommand: npm run ws:start
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --ignore-scripts && pnpm prisma generate
+    startCommand: pnpm ws:start
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION

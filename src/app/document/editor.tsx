@@ -16,6 +16,7 @@ import { InteractiveImage } from "./InteractiveImage";
 import { uploadAndInsertImage } from "./image-upload";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { CommentThreadExtension } from "./comment-thread-extension";
+import { DocumentTextSkeleton } from "@/components/document-loading-skeletons";
 
 export interface LocalEditorProps { initialContent?: string; onContentChange?: (json: string) => void; documentId?: string; ensureDocumentId?: () => Promise<string | null>; readOnly?: boolean; }
 
@@ -87,7 +88,7 @@ const Editor = forwardRef<EditorHandle, LocalEditorProps>(function Editor({ init
     createCheckpoint: async (description, title) => { if (!documentId) return false; const response = await fetch(`/api/documents/${documentId}/versions`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ title, content: editor ? JSON.stringify(editor.getJSON()) : content, description }) }); return response.ok; },
   }), [content, editor, readOnly]);
 
-  if (!editor) return <div className="min-h-[520px]" />;
+  if (!editor) return <DocumentTextSkeleton />;
   return <div className="w-full max-w-5xl mx-auto light"><div className="rounded-xl !bg-white overflow-hidden" style={{ colorScheme:"light" }}>{!readOnly && <EditorBubbleMenu editor={editor} documentId={documentId} ensureDocumentId={ensureDocumentId} />}<EditorContent editor={editor} className="!bg-white" /><LinkPreviewCard editor={editor} /></div></div>;
 });
 

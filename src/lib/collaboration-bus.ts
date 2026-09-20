@@ -11,8 +11,10 @@ export type CollaborationBusMessage = {
 
 export type CollaborationBusStatus = "disabled" | "connecting" | "ready" | "degraded";
 type MessageHandler = (message: CollaborationBusMessage) => void;
+type SessionRevocationHandler = (sessionId: string) => void;
 
 const channelPrefix = "omnidoc:room:";
+export const sessionRevocationChannel = "omnidoc:control:session-revoked";
 const idleDisconnectMs = 30_000;
 
 export function collaborationChannel(documentId: string) {
@@ -36,6 +38,7 @@ export class CollaborationBus {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempt = 0;
   private readonly subscriptions = new Map<string, Set<MessageHandler>>();
+  private readonly sessionRevocationHandlers = new Set<SessionRevocationHandler>();
   private _status: CollaborationBusStatus;
 
   constructor(private readonly url: string | undefined, private readonly required = false) {
@@ -56,6 +59,15 @@ export class CollaborationBus {
     return this.subscriptions.size;
   }
 
+  private hasSubscriptions() {
+    return this.subscriptions.size > 0 || this.sessionRevocationHandlers.size > 0;
+  }
+
+  async ensureConnected() {
+    await this.connect();
+    return this.status;
+  }
+
   private markDegraded(error?: unknown) {
     this._status = "degraded";
     if (error) console.error("Redis collaboration bus unavailable", error instanceof Error ? error.message : error);
@@ -63,7 +75,7 @@ export class CollaborationBus {
   }
 
   private scheduleReconnect() {
-    if (!this.subscriptions.size || this.reconnectTimer) return;
+    if (!this.hasSubscriptions() || this.reconnectTimer) return;
     const delay = Math.min(30_000, 1_000 * 2 ** Math.min(this.reconnectAttempt++, 5));
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -82,7 +94,7 @@ export class CollaborationBus {
     });
     client.on("error", (error) => this.markDegraded(error));
     client.on("close", () => {
-      if (this.subscriptions.size) this.markDegraded(new Error(`Redis ${role} connection closed`));
+      if (this.hasSubscriptions()) this.markDegraded(new Error(`Redis ${role} connection closed`));
     });
   }
 
@@ -108,6 +120,16 @@ export class CollaborationBus {
       this.attachClientEvents(publisher, "publisher");
       this.attachClientEvents(subscriber, "subscriber");
       subscriber.on("message", (channel, raw) => {
+        if (channel === sessionRevocationChannel) {
+          try {
+            const message = JSON.parse(raw) as { sessionId?: unknown };
+            const sessionId = message.sessionId;
+            if (typeof sessionId === "string") this.sessionRevocationHandlers.forEach((handler) => handler(sessionId));
+          } catch (error) {
+            console.error("Invalid Redis session revocation message", error instanceof Error ? error.message : error);
+          }
+          return;
+        }
         const handlers = this.subscriptions.get(channel);
         if (!handlers) return;
         try {
@@ -141,6 +163,9 @@ export class CollaborationBus {
     for (const channel of this.subscriptions.keys()) {
       await this.subscriber.subscribe(channel).catch((error) => this.markDegraded(error));
     }
+    if (this.sessionRevocationHandlers.size) {
+      await this.subscriber.subscribe(sessionRevocationChannel).catch((error) => this.markDegraded(error));
+    }
   }
 
   async subscribe(documentId: string, handler: MessageHandler) {
@@ -163,7 +188,26 @@ export class CollaborationBus {
       if (current.size) return;
       this.subscriptions.delete(channel);
       if (this.subscriber?.status === "ready") await this.subscriber.unsubscribe(channel).catch((error) => this.markDegraded(error));
-      if (!this.subscriptions.size) {
+      if (!this.hasSubscriptions()) {
+        this.disconnectTimer = setTimeout(() => this.disconnectIfIdle(), idleDisconnectMs);
+        this.disconnectTimer.unref();
+      }
+    };
+  }
+
+  async subscribeSessionRevocations(handler: SessionRevocationHandler) {
+    if (!this.url || this._status === "disabled") return async () => {};
+    this.sessionRevocationHandlers.add(handler);
+    if (this.disconnectTimer) clearTimeout(this.disconnectTimer);
+    await this.connect();
+    if (this.subscriber?.status === "ready") {
+      await this.subscriber.subscribe(sessionRevocationChannel).catch((error) => this.markDegraded(error));
+    }
+
+    return async () => {
+      this.sessionRevocationHandlers.delete(handler);
+      if (!this.hasSubscriptions() && this.subscriber?.status === "ready") {
+        await this.subscriber.unsubscribe(sessionRevocationChannel).catch((error) => this.markDegraded(error));
         this.disconnectTimer = setTimeout(() => this.disconnectIfIdle(), idleDisconnectMs);
         this.disconnectTimer.unref();
       }
@@ -184,7 +228,7 @@ export class CollaborationBus {
   }
 
   private disconnectIfIdle() {
-    if (this.subscriptions.size) return;
+    if (this.hasSubscriptions()) return;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.publisher?.disconnect();
@@ -201,6 +245,7 @@ export class CollaborationBus {
     this.disconnectTimer = null;
     this.reconnectTimer = null;
     this.subscriptions.clear();
+    this.sessionRevocationHandlers.clear();
     this.publisher?.disconnect();
     this.subscriber?.disconnect();
     this.publisher = null;

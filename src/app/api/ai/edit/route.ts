@@ -5,6 +5,7 @@ import { decryptApiKey, ENCRYPTION_KEY_ERROR } from "@/lib/ai/credentials";
 import { describeModel, extractProviderDelta, isAIProvider, providerRequest, type AIInputImage } from "@/lib/ai/providers";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const encoder = new TextEncoder();
 const event = (type: string, value: unknown) => encoder.encode(`event: ${type}\ndata: ${JSON.stringify(value)}\n\n`);
@@ -33,6 +34,10 @@ async function loadImageInputs(documentId: string, imageIds: string[]): Promise<
 export async function POST(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  const rate = await enforceRateLimit("ai-edit", auth.userId, 10, 60_000);
+  if (!rate.allowed) return Response.json({ error: "Too many AI requests. Try again shortly.", code: "RATE_LIMITED" }, { status: 429, headers: { "Retry-After": String(rate.retryAfter) } });
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 150_000) return Response.json({ error: "AI request is too large" }, { status: 413 });
   const body = await request.json().catch(() => ({}));
   const instruction = typeof body.instruction === "string" ? body.instruction.trim().slice(0, 4_000) : "";
   const context = typeof body.context === "string" ? body.context.slice(0, 100_000) : "";

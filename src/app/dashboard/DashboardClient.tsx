@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRightIcon,
@@ -24,6 +24,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { OmnidocLogo } from "@/components/omnidoc-logo";
+import { DashboardDocumentSkeletons } from "@/components/document-loading-skeletons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,6 +78,53 @@ function formatDate(value: string) {
 
 function publicationPath(doc: DashboardDoc) {
   return doc.publication ? `/p/${doc.publication.id}/${doc.publication.slug}` : "";
+}
+
+function imageSourcesForDashboard(user: DashboardUser, documents: DashboardDoc[]) {
+  return Array.from(new Set([
+    user.avatar,
+    ...documents.flatMap((document) => [
+      document.previewImageUrl,
+      ...document.collaborators.map(({ user: collaborator }) => collaborator.avatar),
+    ]),
+  ].filter((value): value is string => Boolean(value && (/^https?:\/\//.test(value) || value.startsWith("/"))))));
+}
+
+function useImagesReady(sources: string[]) {
+  const sourceKey = sources.join("\\n");
+  const [ready, setReady] = useState(() => sources.length === 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!sources.length) {
+      setReady(true);
+      return;
+    }
+
+    setReady(false);
+    const preload = (source: string) => new Promise<void>((resolve) => {
+      const image = new window.Image();
+      const settle = () => resolve();
+      image.onload = settle;
+      image.onerror = settle;
+      image.src = source;
+      if (image.complete) settle();
+    });
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setReady(true);
+    }, 12_000);
+
+    void Promise.all(sources.map(preload)).then(() => {
+      if (!cancelled) setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [sourceKey]);
+
+  return ready;
 }
 
 async function clearDocumentCache(documentId: string) {
@@ -209,6 +257,8 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
   const [creating, startCreating] = useTransition();
   const deleteInFlightRef = useRef<string | null>(null);
+  const dashboardImageSources = useMemo(() => imageSourcesForDashboard(user, initialDocuments), [initialDocuments, user]);
+  const imagesReady = useImagesReady(dashboardImageSources);
 
   const counts = useMemo(() => ({
     all: documents.length,
@@ -269,10 +319,14 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   }
 
   async function signOut() {
-    router.replace("/signin");
-    const { error: logoutError } = await createClient().auth.signOut({ scope: "local" });
-    if (logoutError) toast.error("Signed out locally, but session cleanup failed.");
-    router.refresh();
+    try {
+      await fetch("/api/auth/signout", { method: "POST", credentials: "include", cache: "no-store" });
+      await createClient().auth.signOut({ scope: "local" });
+      window.dispatchEvent(new Event("omnidoc:signed-out"));
+    } finally {
+      router.replace("/");
+      router.refresh();
+    }
   }
 
   return (
@@ -305,7 +359,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
         <section className="mt-10"><div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a759d]">Your library</p><div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1"><h2 className="font-[var(--font-instrument)] text-[34px] font-normal leading-none tracking-[-0.04em] text-[#312c27]">All your work, together.</h2><span className="text-[11px] text-[#9b9288]">{documents.length} {documents.length === 1 ? "document" : "documents"}</span></div></div><label className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-[#ddd6cb] bg-[#fffdf8] px-3.5 text-[#92897f] shadow-[0_4px_12px_rgba(62,50,35,0.025)] transition focus-within:border-[#8d79a5] focus-within:ring-4 focus-within:ring-[#6c5788]/10 xl:w-[300px]"><MagnifyingGlassIcon size={16} /><input className="min-w-0 w-full border-0 bg-transparent text-[11px] text-[#403a35] outline-none placeholder:text-[#a59d93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search documents" aria-label="Search documents" /></label></div>
           <div className="mt-6 flex items-center gap-3"><div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter documents">{filters.map((item) => <button className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-[10px] font-medium transition aria-selected:border-[#d8cce3] aria-selected:bg-[#eee9f5] aria-selected:text-[#4c3d63] aria-selected:shadow-sm border-transparent text-[#81786f] hover:bg-[#f0ebe4]" key={item.id} role="tab" aria-selected={filter === item.id} onClick={() => setFilter(item.id)}>{item.label}<span className="rounded-full bg-[#f2eee7] px-1.5 py-0.5 text-[9px] tabular-nums">{counts[item.id]}</span></button>)}</div><span className="hidden shrink-0 text-[10px] text-[#a0978c] sm:block">Showing {filtered.length}</span></div>
           {error && <div role="alert" className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#f0c8c0] bg-[#fff0ec] px-4 py-3 text-[11px] text-[#95392f]">{error}<button className="min-h-8 underline" onClick={() => setError(null)}>Dismiss</button></div>}
-          <AnimatePresence mode="popLayout"><div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">{filtered.map((doc, index) => <DocumentCard key={doc.id} doc={doc} index={index} reducedMotion={reducedMotion} broken={brokenImages.has(doc.id)} onImageError={() => setBrokenImages((items) => new Set(items).add(doc.id))} onCopyPublicLink={() => void copyPublicLink(doc)} onDelete={() => setDeleteTarget(doc)} router={router} />)}</div>{!filtered.length && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 flex min-h-[300px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d6cec1] bg-[#fffdf8]/60 px-6 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eee9f5] text-[#76648d]"><SparkleIcon size={24} weight="duotone" /></span><h3 className="mt-5 font-[var(--font-instrument)] text-[30px] font-normal tracking-[-0.03em] text-[#403a35]">{query ? "Nothing matches that search" : filter === "all" ? "A clean page is waiting" : `No ${filters.find((item) => item.id === filter)?.label.toLowerCase()} yet`}</h3><p className="mt-2 max-w-sm text-[12px] leading-5 text-[#857c72]">{query ? "Try another title or phrase." : "Start a document and it will appear here as soon as the first thought lands."}</p>{!query && filter === "all" && <button className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#40355f] px-4 text-[11px] font-semibold text-white transition hover:bg-[#33284f]" onClick={createDocument}>Open a blank page <ArrowRightIcon size={14} /></button>}</motion.div>}</AnimatePresence>
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">{imagesReady ? <AnimatePresence mode="popLayout">{filtered.map((doc, index) => <DocumentCard key={doc.id} doc={doc} index={index} reducedMotion={reducedMotion} broken={brokenImages.has(doc.id)} onImageError={() => setBrokenImages((items) => new Set(items).add(doc.id))} onCopyPublicLink={() => void copyPublicLink(doc)} onDelete={() => setDeleteTarget(doc)} router={router} />)}</AnimatePresence> : <DashboardDocumentSkeletons />}</div>{imagesReady && !filtered.length && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 flex min-h-[300px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d6cec1] bg-[#fffdf8]/60 px-6 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eee9f5] text-[#76648d]"><SparkleIcon size={24} weight="duotone" /></span><h3 className="mt-5 font-[var(--font-instrument)] text-[30px] font-normal tracking-[-0.03em] text-[#403a35]">{query ? "Nothing matches that search" : filter === "all" ? "A clean page is waiting" : `No ${filters.find((item) => item.id === filter)?.label.toLowerCase()} yet`}</h3><p className="mt-2 max-w-sm text-[12px] leading-5 text-[#857c72]">{query ? "Try another title or phrase." : "Start a document and it will appear here as soon as the first thought lands."}</p>{!query && filter === "all" && <button className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#40355f] px-4 text-[11px] font-semibold text-white transition hover:bg-[#33284f]" onClick={createDocument}>Open a blank page <ArrowRightIcon size={14} /></button>}</motion.div>}
         </section>
       </div>
 
