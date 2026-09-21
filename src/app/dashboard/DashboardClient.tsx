@@ -36,7 +36,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/client";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 const SettingsModal = dynamic(() => import("@/components/setting-modal").then((module) => module.SettingsModal), { ssr: false });
@@ -321,7 +320,6 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   async function signOut() {
     try {
       await fetch("/api/auth/signout", { method: "POST", credentials: "include", cache: "no-store" });
-      await createClient().auth.signOut({ scope: "local" });
       window.dispatchEvent(new Event("omnidoc:signed-out"));
     } finally {
       router.replace("/");
