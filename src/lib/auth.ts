@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { avatarFromAuthMetadata, nameFromAuthMetadata } from "@/lib/avatar";
 
-export type AuthResult = { userId?: string; sessionId?: string; error?: string; code?: "NOT_AUTHENTICATED" | "SESSION_REVOKED" };
+export type AuthResult = { userId?: string; sessionId?: string; name?: string; email?: string; avatar?: string; error?: string; code?: "NOT_AUTHENTICATED" | "SESSION_REVOKED" };
 
-type SessionClaim = { sub?: unknown; session_id?: unknown; exp?: unknown };
+type SessionClaim = { sub?: unknown; session_id?: unknown; exp?: unknown; email?: unknown; user_metadata?: unknown };
 
 async function registerOrValidateSession(userId: string, claims: SessionClaim): Promise<AuthResult> {
   const sessionId = typeof claims.session_id === "string" ? claims.session_id : undefined;
@@ -34,7 +35,16 @@ export async function getCurrentAuth(): Promise<AuthResult> {
   const claims = (data?.claims || {}) as SessionClaim;
   const userId = typeof claims.sub === "string" ? claims.sub : undefined;
   if (error || !userId) return { error: "Not authenticated", code: "NOT_AUTHENTICATED" };
-  return registerOrValidateSession(userId, claims);
+  const session = await registerOrValidateSession(userId, claims);
+  if (session.error) return session;
+  const avatar = avatarFromAuthMetadata(claims.user_metadata);
+  const name = nameFromAuthMetadata(claims.user_metadata);
+  return {
+    ...session,
+    ...(name ? { name } : {}),
+    ...(typeof claims.email === "string" ? { email: claims.email } : {}),
+    ...(avatar ? { avatar } : {}),
+  };
 }
 
 export async function getCurrentUserIdFromRequest(_request?: unknown): Promise<AuthResult> {

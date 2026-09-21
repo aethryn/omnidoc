@@ -134,6 +134,24 @@
 }
 .auth-switch a { color: #7142bf; font-weight: 650; }
 
+/* Miro-inspired authenticated composition while retaining Omnidoc's brand. */
+.auth-page { background: var(--miro-surface, #f7f8fa); }
+.auth-card {
+  border-color: var(--miro-hairline, #e0e2e8);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(28, 28, 30, 0.1);
+}
+.auth-eyebrow { color: var(--miro-blue, #4262ff); }
+.auth-google {
+  border-radius: 999px;
+  background: var(--miro-ink, #1c1c1e);
+  box-shadow: none;
+}
+.auth-google:hover { background: #303036; }
+.auth-benefits svg { color: var(--miro-blue, #4262ff); }
+.auth-switch a { color: var(--miro-blue, #4262ff); }
+
 /* ─── Responsive ─── */
 @media (max-width: 500px) {
   .auth-page { padding: 12px; }

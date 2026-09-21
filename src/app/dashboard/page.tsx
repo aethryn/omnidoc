@@ -27,5 +27,5 @@ export default async function DashboardPage() {
     console.info(JSON.stringify({ event: "dashboard.load", durationMs: Math.round(performance.now() - startedAt), documentCount: documents.length }));
   }
 
-  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={user} documents={documents.map((doc: typeof documents[number]) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), publication:doc.publication?{...doc.publication,publishedAt:doc.publication.publishedAt.toISOString(),updatedAt:doc.publication.updatedAt.toISOString()}:null, owned: doc.userId === userId }))} />;
+  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={{...user,name:auth.name||user.name,email:auth.email||user.email,avatar:auth.avatar||user.avatar}} documents={documents.map((doc: typeof documents[number]) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), publication:doc.publication?{...doc.publication,publishedAt:doc.publication.publishedAt.toISOString(),updatedAt:doc.publication.updatedAt.toISOString()}:null, owned: doc.userId === userId }))} />;
 }

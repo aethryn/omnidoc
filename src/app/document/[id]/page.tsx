@@ -6,7 +6,8 @@ import DocumentEditorClient, { type InitialDocument } from "../DocumentEditorCli
 export default async function DocumentByIdPage({ params }: { params: Promise<{ id:string }> }) {
   const startedAt = performance.now();
   const { id } = await params;
-  const { userId } = await getCurrentAuth();
+  const auth = await getCurrentAuth();
+  const { userId } = auth;
   if (!userId) redirect(`/signin?redirect=${encodeURIComponent(`/document/${id}`)}`);
 
   const [user, document] = await Promise.all([
@@ -32,5 +33,5 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };
   console.info(JSON.stringify({ event:"document.load", documentId:id, durationMs:Math.round(performance.now()-startedAt) }));
-  return <DocumentEditorClient initialDocument={initialDocument} currentUser={{...user,color:"#7c4dcc",role}} />;
+  return <DocumentEditorClient initialDocument={initialDocument} currentUser={{...user,name:auth.name||user.name,avatar:auth.avatar||user.avatar,color:"#7c4dcc",role}} />;
 }
