@@ -111,6 +111,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [recoveryDraft,setRecoveryDraft]=useState<string|null>(null);
   const readOnly=role==="viewer";
   const realtimeEditorActive=collaborationMode==="realtime"||collaborationMode==="demoting";
+  const coordinationRequired=collaborationEligible||Boolean(initialYjsState);
   realtimeEditorActiveRef.current=realtimeEditorActive;
 
   const presenceUser=useMemo(()=>({...currentUser,color:currentUser.color||colors[0],role}),[currentUser,role]);
@@ -156,7 +157,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   useEffect(()=>{if(!dirty||!activeId||realtimeEditorActive)return;const timer=window.setTimeout(()=>void save(),750);return()=>window.clearTimeout(timer);},[dirty,activeId,realtimeEditorActive]);
 
   useEffect(()=>{
-    if(!activeId||(!collaborationEligible&&!initialYjsState))return;
+    if(!activeId||!coordinationRequired)return;
     let disposed=false;
     const key=`omnidoc:collaboration-session:${activeId}`;
     const stored=typeof window!=="undefined"?window.sessionStorage.getItem(key):null;
@@ -213,7 +214,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     document.addEventListener("visibilitychange",visible);
     window.addEventListener("pagehide",leave);
     return()=>{disposed=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",visible);window.removeEventListener("pagehide",leave);leave();};
-  },[activeId,collaborationEligible,Boolean(initialYjsState)]);
+  },[activeId,collaborationEligible,coordinationRequired]);
 
   async function rename(){if(readOnly)return;const next=documentName.trim()||"Untitled document";setDocumentName(next);if(publication?.isActive)setHasUnpublishedChanges(true);const id=await ensureSaved();if(id)await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:next})});}
   function format(command:FormatCommand){editorRef.current?.runFormat(command);}
