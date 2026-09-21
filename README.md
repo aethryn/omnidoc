@@ -28,7 +28,7 @@ The script runs checks, builds with `cloudbuild.ws.yaml`, loads the deployment v
 
 For this side project, the script sends `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `REDIS_URL` directly as Cloud Run environment variables. Keep `.env` local and uncommitted; `.dockerignore` excludes it from Cloud Build, so it is not included in the container image. Do not commit it or paste values directly into the deployment command. This is simpler but less isolated than Secret Manager: anyone with sufficient Cloud Run configuration access may be able to inspect the values.
 
-The Redis value must be a writable TLS `rediss://` URL copied from Upstash. Add the same value as a server-only production environment variable in Vercel because the Next.js API uses Redis for distributed rate limits and sign-out propagation. Never expose `REDIS_URL` to the browser. Keep `WS_REDIS_REQUIRED=true` on Cloud Run. The service remains at one maximum instance until distributed document persistence locking is added.
+The Redis value must be a writable TLS `rediss://` URL copied from Upstash. Add the same value as a server-only production environment variable in Vercel because the Next.js API uses Redis for distributed rate limits, sign-out propagation, and short-lived collaboration presence. Never expose `REDIS_URL` to the browser. Keep `WS_REDIS_REQUIRED=true` on Cloud Run. The service remains at one maximum instance until distributed document persistence locking is added.
 
 Cloud Run's service URL is the WebSocket endpoint; use it with `wss://` in the Vercel `NEXT_PUBLIC_WS_URL` variable. Keep end-to-end HTTP/2 disabled. Cloud Run WebSocket requests are subject to the configured 60-minute timeout, so the client must reconnect and resynchronize after timeout or instance changes.
 
@@ -42,7 +42,21 @@ Supabase is the source of truth for Google authentication, Postgres, and private
 
 Image uploads use the private `document-images` Storage bucket. The Next.js app needs `SUPABASE_SERVICE_ROLE_KEY` for server-side image processing and delivery, and the collaboration service needs the same server-only variable for its daily orphan-image cleanup. Images removed from documents remain recoverable while referenced by versions or publications, then are cleaned up after 30 days.
 
-Cloud Run WebSocket requests are subject to the configured request timeout, so the client reconnects and resynchronizes after the 15-minute limit. Keep the Redis URL server-only. Add a Google Cloud budget alert and monitor active instances, open requests, timeout disconnects, and Upstash command usage. Keep the Next.js deployment region close to the Supabase database region.
+Private documents use REST autosave and do not open the Cloud Run WebSocket service. Once two authorized browsers are active on an eligible document, each browser sends a small Redis presence heartbeat every five seconds and the editor upgrades to live Yjs collaboration. When the document returns to one active browser, it saves the final Yjs state, disconnects the socket, and returns to REST autosave; Cloud Run can then scale to zero. If Redis presence is unavailable, editing remains local/REST and live collaboration is shown as unavailable.
+
+Cloud Run WebSocket requests are subject to the configured 60-minute request timeout, so the client reconnects and resynchronizes after that limit. Keep the Redis URL server-only. Add a Google Cloud budget alert and monitor active instances, open requests, timeout disconnects, and Upstash command usage. Keep the Next.js deployment region close to the Supabase database region. Cloud Run runtime can scale to zero, but Artifact Registry image storage, Cloud Build, logs, Upstash, and Vercel can still incur small costs; retain the deployed image and two rollback images in Artifact Registry rather than keeping every historical build.
+
+The repository includes `artifact-registry-cleanup.json`, which keeps the three newest `omnidoc-websocket` versions and removes older versions after seven days. Test it before enabling deletion:
+
+```bash
+gcloud artifacts repositories set-cleanup-policies omnidoc \
+  --project=omnidoc-508523 \
+  --location=asia-south1 \
+  --policy=artifact-registry-cleanup.json \
+  --dry-run
+```
+
+Remove `--dry-run` only after confirming the policy in Artifact Registry; cleanup is asynchronous and can take about a day to apply.
 
 Required production variables are documented in `.env.example`. Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
 

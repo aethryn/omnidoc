@@ -16,6 +16,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
       select:{
         id:true,title:true,content:true,yjsState:true,userId:true,status:true,allowComments:true,updatedAt:true,lastEditedAt:true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true,revisionHash:true}},
+        shares:{where:{isActive:true,OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]},select:{id:true},take:1},
         user:{select:{id:true,name:true,avatar:true}},
         collaborators:{where:activeCollaboratorConstraint(),select:{role:true,user:{select:{id:true,name:true,avatar:true}}}},
       },
@@ -27,6 +28,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     id:document.id,title:document.title,content:document.content,role,status:document.status,allowComments:document.allowComments,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
     publication:document.publication?{...document.publication,publishedAt:document.publication.publishedAt.toISOString(),updatedAt:document.publication.updatedAt.toISOString()}:null,
     yjsState:document.yjsState ? Buffer.from(document.yjsState).toString("base64") : null,
+    collaborationEligible:Boolean(document.shares.length || document.collaborators.length),
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };
   console.info(JSON.stringify({ event:"document.load", documentId:id, durationMs:Math.round(performance.now()-startedAt) }));

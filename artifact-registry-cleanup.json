@@ -1,0 +1,19 @@
+[
+  {
+    "name": "delete-old-websocket-images",
+    "action": { "type": "Delete" },
+    "condition": {
+      "tagState": "any",
+      "packageNamePrefixes": ["omnidoc-websocket"],
+      "olderThan": "7d"
+    }
+  },
+  {
+    "name": "keep-three-websocket-images",
+    "action": { "type": "Keep" },
+    "mostRecentVersions": {
+      "packageNamePrefixes": ["omnidoc-websocket"],
+      "keepCount": 3
+    }
+  }
+]

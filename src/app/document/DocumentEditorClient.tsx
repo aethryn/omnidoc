@@ -36,7 +36,7 @@ const colors=["#7c4dcc","#a65e67","#526b8c","#54836d","#b07839"];
 
 type DocumentStatus="WORKING_DRAFT"|"COMPLETE";
 type PublicationSummary={id:string;slug:string;isActive:boolean;publishedAt:string;updatedAt:string;revisionHash?:string;url?:string;hasUnpublishedChanges?:boolean};
-export type InitialDocument={id:string;title:string;content:string;yjsState:string|null;role:string;status:DocumentStatus;allowComments:boolean;updatedAt:string;lastEditedAt:string;publication:PublicationSummary|null;collaborators:Array<{id:string;name:string;avatar:string;role:string}>};
+export type InitialDocument={id:string;title:string;content:string;yjsState:string|null;collaborationEligible:boolean;role:string;status:DocumentStatus;allowComments:boolean;updatedAt:string;lastEditedAt:string;publication:PublicationSummary|null;collaborators:Array<{id:string;name:string;avatar:string;role:string}>};
 type ShareLink={id:string;role:"viewer"|"editor";expiresAt:string|null;maxUses:number|null;useCount:number;createdAt:string;isActive:boolean};
 
 function initials(name:string){return name.split(/\s+/).map((part)=>part[0]).join("").slice(0,2).toUpperCase();}
@@ -61,6 +61,14 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [embeddedImageUrls,setEmbeddedImageUrls]=useState(()=>extractDocumentImageUrls(initialDocument?.content||EMPTY_DOCUMENT));
   const [documentName,setDocumentName]=useState(initialDocument?.title||"Untitled document");
   const [initialYjsState,setInitialYjsState]=useState(initialDocument?.yjsState||null);
+  const [collaborationEligible,setCollaborationEligible]=useState(Boolean(initialDocument?.collaborationEligible));
+  const [collaborationMode,setCollaborationMode]=useState<"local"|"activating"|"realtime"|"demoting">("local");
+  const [collaborationParticipants,setCollaborationParticipants]=useState(1);
+  const [collaborationUnavailable,setCollaborationUnavailable]=useState(false);
+  const collaborationTransitionRef=useRef(false);
+  const browserSessionRef=useRef<string|null>(null);
+  const realtimeEditorActiveRef=useRef(false);
+  const saveRef=useRef<(documentId?:string)=>Promise<boolean>>(async()=>false);
   const [role]=useState(initialDocument?.role||"owner");
   const [status,setStatus]=useState<DocumentStatus>(initialDocument?.status||"WORKING_DRAFT");
   const [publication,setPublication]=useState<PublicationSummary|null>(initialDocument?.publication||null);
@@ -86,8 +94,8 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [isSaving,setIsSaving]=useState(false);
   const [dirty,setDirty]=useState(false);
   const [lastSaved,setLastSaved]=useState(initialDocument?.updatedAt||null);
-  const [collaborationStatus,setCollaborationStatus]=useState<CollaborationStatus>(activeId?"connecting":"local");
-  const [collaborationState,setCollaborationState]=useState<CollaborationState>({connectivity:activeId?"connecting":"online",indexedDbReady:false,pendingLocalChanges:false,lastPersistedAt:initialDocument?.updatedAt||null,syncError:null,retryAvailable:false});
+  const [collaborationStatus,setCollaborationStatus]=useState<CollaborationStatus>("local");
+  const [collaborationState,setCollaborationState]=useState<CollaborationState>({connectivity:"online",indexedDbReady:false,pendingLocalChanges:false,lastPersistedAt:initialDocument?.updatedAt||null,syncError:null,retryAvailable:false});
   const selectionRef=useRef<ReturnType<EditorHandle["getSelection"]>|null>(null);
   const [livePresence,setLivePresence]=useState<PresenceUser[]>([currentUser]);
   const [presenceOpen,setPresenceOpen]=useState(false);
@@ -102,6 +110,8 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   const [sidebarSettingsOpen,setSidebarSettingsOpen]=useState(false);
   const [recoveryDraft,setRecoveryDraft]=useState<string|null>(null);
   const readOnly=role==="viewer";
+  const realtimeEditorActive=collaborationMode==="realtime"||collaborationMode==="demoting";
+  realtimeEditorActiveRef.current=realtimeEditorActive;
 
   const presenceUser=useMemo(()=>({...currentUser,color:currentUser.color||colors[0],role}),[currentUser,role]);
   const knownPeople=useMemo(()=>{const byId=new Map<string,PresenceUser>();(initialDocument?.collaborators||[]).forEach((person,index)=>byId.set(person.id,{...person,color:colors[index%colors.length]}));livePresence.forEach((person)=>byId.set(person.id,person));return Array.from(byId.values());},[initialDocument?.collaborators,livePresence]);
@@ -126,17 +136,14 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     return creationRef.current;
   },[currentUser.id,router]);
 
-  const contentChanged=useCallback((json:string)=>{contentRef.current=json;setContent(json);setEmbeddedImageUrls(extractDocumentImageUrls(json));if(!activeIdRef.current)setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);if(!activeIdRef.current)void ensureSaved(json);},[ensureSaved,publication?.isActive]);
+  const contentChanged=useCallback((json:string)=>{contentRef.current=json;setContent(json);setEmbeddedImageUrls(extractDocumentImageUrls(json));if(!realtimeEditorActive)setDirty(true);if(publication?.isActive)setHasUnpublishedChanges(true);if(!activeIdRef.current)void ensureSaved(json);},[ensureSaved,publication?.isActive,realtimeEditorActive]);
   const handlePresenceChange=useCallback((users:PresenceUser[])=>setLivePresence(Array.from(new Map(users.map((person)=>[person.id,person])).values())),[]);
   const recoverDraft=useCallback(()=>{if(!recoveryDraft)return;contentRef.current=recoveryDraft;setContent(recoveryDraft);setEmbeddedImageUrls(extractDocumentImageUrls(recoveryDraft));setLocalEditorSeed(recoveryDraft);setLocalEditorVersion((version)=>version+1);setRecoveryDraft(null);},[recoveryDraft]);
   const discardRecovery=useCallback(()=>{localStorage.removeItem(recoveryKey(currentUser.id));setRecoveryDraft(null);},[currentUser.id]);
 
   async function save(documentId?:string){
     const id=documentId||await ensureSaved();if(!id||!isOnline)return false;
-    // The websocket server owns persistence for an existing collaborative
-    // document. A REST PUT here would save a stale JSON snapshot and leave the
-    // database's yjsState out of sync with its content column.
-    if(initialDocument?.id||activeId){const acknowledged=await editorRef.current?.createCheckpoint("Manual checkpoint",documentName);if(acknowledged){setDirty(false);setLastSaved(new Date().toISOString());}return Boolean(acknowledged)&&collaborationStatus!=="error";}
+    if(realtimeEditorActive){const acknowledged=await editorRef.current?.createCheckpoint("Manual checkpoint",documentName);if(acknowledged){setDirty(false);setLastSaved(new Date().toISOString());}return Boolean(acknowledged)&&collaborationStatus!=="error";}
     setIsSaving(true);const json=editorRef.current?.getDocumentJSON()||content;
     try {
       const response=await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName,content:json})});
@@ -144,16 +151,74 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
       return response.ok;
     } catch { localStorage.setItem(`document-${id}-backup`,json); return false; } finally { setIsSaving(false); }
   }
+  saveRef.current=save;
 
-  // Collaborative documents are persisted by the websocket room. Sending the
-  // whole JSON document through this legacy REST autosave would race the Yjs
-  // state and overwrite a collaborator's latest changes.
-  useEffect(()=>{if(!dirty||activeId)return;const timer=window.setTimeout(()=>void save(),3000);return()=>window.clearTimeout(timer);},[dirty,activeId]);
+  useEffect(()=>{if(!dirty||!activeId||realtimeEditorActive)return;const timer=window.setTimeout(()=>void save(),750);return()=>window.clearTimeout(timer);},[dirty,activeId,realtimeEditorActive]);
+
+  useEffect(()=>{
+    if(!activeId||(!collaborationEligible&&!initialYjsState))return;
+    let disposed=false;
+    const key=`omnidoc:collaboration-session:${activeId}`;
+    const stored=typeof window!=="undefined"?window.sessionStorage.getItem(key):null;
+    const sessionId=stored||crypto.randomUUID().replace(/-/g,"");
+    browserSessionRef.current=sessionId;
+    if(!stored)window.sessionStorage.setItem(key,sessionId);
+    const request=async(action:"heartbeat"|"leave"|"promote"|"demote")=>{
+      const response=await fetch(`/api/documents/${activeId}/collaboration`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,sessionId}),keepalive:action==="leave"});
+      const payload=await response.json().catch(()=>null) as {mode?:"local"|"activating"|"realtime"|"demoting";participants?:number;leaderId?:string|null;yjsState?:string}|null;
+      if(!response.ok)throw new Error(payload?.mode||"COLLABORATION_UNAVAILABLE");
+      return payload;
+    };
+    const promote=async()=>{
+      if(collaborationTransitionRef.current)return;
+      collaborationTransitionRef.current=true;
+      try{
+        const saved=await saveRef.current();
+        if(!saved)throw new Error("LOCAL_SAVE_FAILED");
+        const payload=await request("promote");
+        if(payload?.mode==="realtime"){
+          if(payload.yjsState)setInitialYjsState(payload.yjsState);
+          setCollaborationMode("realtime");
+          setCollaborationStatus("connecting");
+        }
+      }catch{if(!disposed)setCollaborationUnavailable(true);}finally{collaborationTransitionRef.current=false;}
+    };
+    const demote=async()=>{
+      if(collaborationTransitionRef.current)return;
+      collaborationTransitionRef.current=true;
+      try{
+        if(realtimeEditorActiveRef.current)await editorRef.current?.createCheckpoint("Live collaboration ended",documentNameRef.current);
+        const payload=await request("demote");
+        if(payload?.mode==="local"){
+          setInitialYjsState(null);
+          setCollaborationMode("local");
+          setCollaborationStatus("local");
+          setCollaborationState((state)=>({...state,connectivity:"online",pendingLocalChanges:false,syncError:null,retryAvailable:false}));
+        }
+      }catch{if(!disposed)setCollaborationUnavailable(true);}finally{collaborationTransitionRef.current=false;}
+    };
+    const heartbeat=()=>{void request("heartbeat").then((payload)=>{
+      if(disposed||!payload?.mode)return;
+      setCollaborationUnavailable(false);
+      setCollaborationMode(payload.mode);
+      setCollaborationParticipants(payload.participants||1);
+      if(payload.mode==="local"&&!collaborationEligible)setInitialYjsState(null);
+      if(payload.mode==="activating"&&payload.leaderId===sessionId)void promote();
+      if(payload.mode==="demoting")void demote();
+    }).catch(()=>{if(!disposed){setCollaborationUnavailable(true);if(!realtimeEditorActiveRef.current)setCollaborationMode("local");}});};
+    heartbeat();
+    const interval=window.setInterval(heartbeat,5000);
+    const visible=()=>{if(document.visibilityState==="visible")heartbeat();};
+    const leave=()=>{void request("leave").catch(()=>undefined);};
+    document.addEventListener("visibilitychange",visible);
+    window.addEventListener("pagehide",leave);
+    return()=>{disposed=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",visible);window.removeEventListener("pagehide",leave);leave();};
+  },[activeId,collaborationEligible,Boolean(initialYjsState)]);
 
   async function rename(){if(readOnly)return;const next=documentName.trim()||"Untitled document";setDocumentName(next);if(publication?.isActive)setHasUnpublishedChanges(true);const id=await ensureSaved();if(id)await fetch(`/api/documents/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:next})});}
   function format(command:FormatCommand){editorRef.current?.runFormat(command);}
   async function changeStatus(next:DocumentStatus){if(role!=="owner"||next===status)return;const id=await ensureSaved();if(!id)return;const previous=status;setStatus(next);const response=await fetch(`/api/documents/${id}/status`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:next})});if(!response.ok){setStatus(previous);toast.error("Document status could not be changed");}else toast.success(next==="COMPLETE"?"Document marked complete":"Returned to working draft");}
-  async function publish(){if(role!=="owner")return;const id=await ensureSaved();if(!id)return;setPublishBusy(true);if(activeId&&collaborationStatus!=="error"){const checkpointed=await editorRef.current?.createCheckpoint("Before publishing",documentName);if(!checkpointed){setPublishBusy(false);toast.error("Save the latest changes before publishing");return;}}const response=await fetch(`/api/documents/${id}/publication`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName})});const data=await response.json().catch(()=>({}));if(response.ok){setPublication({...data,isActive:true,updatedAt:new Date().toISOString()});setHasUnpublishedChanges(false);setDirty(false);toast.success(publication?"Published page updated":"Document published");}else toast.error(data.error||"Document could not be published");setPublishBusy(false);}
+  async function publish(){if(role!=="owner")return;const id=await ensureSaved();if(!id)return;setPublishBusy(true);if(realtimeEditorActive&&collaborationStatus!=="error"){const checkpointed=await editorRef.current?.createCheckpoint("Before publishing",documentName);if(!checkpointed){setPublishBusy(false);toast.error("Save the latest changes before publishing");return;}}else if(!await save(id)){setPublishBusy(false);toast.error("Save the latest changes before publishing");return;}const response=await fetch(`/api/documents/${id}/publication`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:documentName})});const data=await response.json().catch(()=>({}));if(response.ok){setPublication({...data,isActive:true,updatedAt:new Date().toISOString()});setHasUnpublishedChanges(false);setDirty(false);toast.success(publication?"Published page updated":"Document published");}else toast.error(data.error||"Document could not be published");setPublishBusy(false);}
   async function unpublish(){if(!activeId)return;setPublishBusy(true);const response=await fetch(`/api/documents/${activeId}/publication`,{method:"DELETE"});if(response.ok){setPublication((current)=>current?{...current,isActive:false}:current);toast.success("Public page removed");}else toast.error("Document could not be unpublished");setPublishBusy(false);}
   async function copyToClipboard(text: string) {
     if (!text) return false;
@@ -212,10 +277,10 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
   async function openHistory(){const id=await ensureSaved();if(id)setHistoryOpen(true);}
   function openOmni(){setOmniSelection(editorRef.current?.getSelection()||null);setPresenceOpen(false);setAiOpen(true);}
   async function insertImage(file: File){await uploadAndInsertImage(file,()=>ensureSaved(),(image)=>editorRef.current?.insertImage(image));}
-  async function createShare(){if(!activeId)return;setShareBusy(true);const response=await fetch(`/api/documents/${activeId}/share`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:shareRole,expiresInMinutes:Number(expiry),maxUses:maxUses?Number(maxUses):null})});if(response.ok){const data=await response.json();setShareUrl(data.url);const list=await fetch(`/api/documents/${activeId}/share`,{cache:"no-store"});if(list.ok)setShareLinks(await list.json());}else toast.error("Invite link could not be created");setShareBusy(false);}
+  async function createShare(){if(!activeId)return;setShareBusy(true);const response=await fetch(`/api/documents/${activeId}/share`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:shareRole,expiresInMinutes:Number(expiry),maxUses:maxUses?Number(maxUses):null})});if(response.ok){const data=await response.json();setShareUrl(data.url);setCollaborationEligible(true);const list=await fetch(`/api/documents/${activeId}/share`,{cache:"no-store"});if(list.ok)setShareLinks(await list.json());}else toast.error("Invite link could not be created");setShareBusy(false);}
   async function revokeShare(shareId:string){if(!activeId)return;await fetch(`/api/documents/${activeId}/share`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({shareId})});setShareLinks((items)=>items.map((item)=>item.id===shareId?{...item,isActive:false}:item));}
 
-  const savedLabel=isSaving?"Saving…":activeId?(!isOnline||collaborationState.connectivity==="offline"?"Saved locally":collaborationState.connectivity==="connecting"?"Connecting…":collaborationState.syncError?"Couldn’t sync":collaborationState.pendingLocalChanges?"Saving…":"All changes saved"):!isOnline?"Saved locally":dirty?"Saving…":lastSaved?"Saved":"Local draft";
+  const savedLabel=isSaving?"Saving…":activeId?(!isOnline||collaborationState.connectivity==="offline"?"Saved locally":collaborationUnavailable?"Live collaboration unavailable":collaborationMode==="activating"?"Connecting live collaboration…":realtimeEditorActive&&collaborationState.connectivity==="connecting"?"Connecting…":realtimeEditorActive&&collaborationState.syncError?"Couldn’t sync":realtimeEditorActive&&collaborationState.pendingLocalChanges?"Saving…":dirty?"Saving…":realtimeEditorActive?`Live · ${collaborationParticipants} here`:"All changes saved"):!isOnline?"Saved locally":dirty?"Saving…":lastSaved?"Saved":"Local draft";
   const publicPath=publication?`/p/${publication.id}/${publication.slug}`:"";
 
   return <SidebarProvider defaultOpen={false} className="document-sidebar-provider min-h-0">
@@ -278,7 +343,7 @@ export default function DocumentEditorClient({initialDocument,currentUser}:{init
     <div className="workspace-body"><nav className="workspace-rail"><div className="rail-stack"><button className="rail-button" onClick={()=>router.push("/dashboard")} aria-label="Back"><ArrowLeftIcon/></button><button className="rail-button active" aria-label="Documents"><FilesIcon/></button><button className="rail-button" onClick={()=>router.push("/document")} aria-label="New document"><NotePencilIcon/></button>{role==="owner"&&status==="COMPLETE"&&<button className={`rail-button publish-rail ${publication?.isActive?"is-live":""}`} onClick={()=>setPublishOpen(true)} aria-label={publication?.isActive?"Manage published page":"Publish document"}><GlobeHemisphereWestIcon/></button>}</div><div className="rail-stack"><button className="rail-button" onClick={()=>setSettingsOpen(true)} aria-label="Settings"><GearSixIcon/></button><span className="profile-orb">{initials(currentUser.name)}</span></div></nav>
       <main className="document-stage printable-content">{!initialDocument&&recoveryDraft&&<div className="recovery-banner" role="status"><div><strong>Unfinished draft found</strong><span>We couldn’t create the document earlier. Recover it here if you want to continue.</span></div><div className="recovery-actions"><button onClick={recoverDraft}>Recover</button><button onClick={discardRecovery}>Discard</button></div></div>}<motion.article className="paper" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{duration:.3}}><div className="paper-header">{role==="owner"?<DropdownMenu><DropdownMenuTrigger asChild><button className={`paper-kicker status-control ${status==="COMPLETE"?"complete":""}`}>{status==="COMPLETE"?<CheckCircleIcon weight="fill"/>:<NotePencilIcon/>}{status==="COMPLETE"?"Complete":"Working draft"}<CaretDownIcon/></button></DropdownMenuTrigger><DropdownMenuContent align="start"><DropdownMenuItem onClick={()=>void changeStatus("WORKING_DRAFT")}><NotePencilIcon/>Working draft</DropdownMenuItem><DropdownMenuItem onClick={()=>void changeStatus("COMPLETE")}><CheckCircleIcon/>Complete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>:<div className={`paper-kicker ${status==="COMPLETE"?"complete":""}`}>{status==="COMPLETE"?<CheckCircleIcon weight="fill"/>:<NotePencilIcon/>}{status==="COMPLETE"?"Complete":"Working draft"}</div>}<input id="document-title" value={documentName} readOnly={readOnly} onChange={(event)=>{documentNameRef.current=event.target.value;setDocumentName(event.target.value);if(publication?.isActive)setHasUnpublishedChanges(true);}} onBlur={()=>void rename()} className="paper-title paper-title-input" aria-label="Document title"/><p className="paper-subtitle">A living document for ideas, decisions, and the details that make them useful.</p><div className="paper-meta"><span>Last edited today</span><span className="paper-meta__line"/><span>{readOnly?"View only":publication?.isActive?(hasUnpublishedChanges?"Published · unpublished changes":"Published and up to date"):"Shared workspace"}</span></div></div>
         <div className="editor-rule"/><div className="editor-toolbar"><div className="toolbar-group"><button className="toolbar-style" disabled={readOnly} onClick={()=>format("paragraph")}>Body <CaretDownIcon/></button><span className="toolbar-divider"/><button className="toolbar-button" disabled={readOnly} onClick={()=>format("bold")}><TextBIcon weight="bold"/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("italic")}><TextItalicIcon/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("underline")}><TextUnderlineIcon/></button><span className="toolbar-divider"/><button className="toolbar-button" disabled={readOnly} onClick={()=>format("align-left")}><TextAlignLeftIcon/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>format("bullet-list")}><ListBulletsIcon/></button><button className="toolbar-button" disabled={readOnly} onClick={()=>imageInputRef.current?.click()} aria-label="Insert image" title="Insert JPEG, PNG, or GIF"><ImageIcon/></button></div><span className="text-[10px] text-[#aaa4ac]">{readOnly?"Viewer access":"Select text, then ask Omni"}</span></div>
-        <div className="paper-editor"><Suspense fallback={<DocumentTextSkeleton />}>{activeId?<CollaborativeEditor key={activeId} ref={editorRef} documentId={activeId} initialState={initialYjsState} readOnly={readOnly} user={presenceUser} onStatusChange={setCollaborationStatus} onStateChange={setCollaborationState} onPresenceChange={handlePresenceChange} onContentChange={contentChanged} onAccessExpired={(persisted)=>{toast.error(persisted?"Your invitation expired. Your saved changes are safe.":"Your invitation expired.");router.replace("/dashboard");}}/>:<Editor key={`local-${localEditorVersion}`} ref={editorRef} initialContent={localEditorSeed} onContentChange={contentChanged} ensureDocumentId={()=>ensureSaved()} readOnly={readOnly}/>}</Suspense></div>
+        <div className="paper-editor"><Suspense fallback={<DocumentTextSkeleton />}>{activeId?(realtimeEditorActive?<CollaborativeEditor key={`realtime-${activeId}`} ref={editorRef} documentId={activeId} initialState={initialYjsState} readOnly={readOnly} user={presenceUser} onStatusChange={setCollaborationStatus} onStateChange={setCollaborationState} onPresenceChange={handlePresenceChange} onContentChange={contentChanged} onAccessExpired={(persisted)=>{toast.error(persisted?"Your invitation expired. Your saved changes are safe.":"Your invitation expired.");router.replace("/dashboard");}}/>:<Editor key={`local-${activeId}-${localEditorVersion}`} ref={editorRef} documentId={activeId} initialContent={content} onContentChange={contentChanged} ensureDocumentId={()=>ensureSaved()} readOnly={readOnly||collaborationMode==="activating"}/>):<Editor key={`local-${localEditorVersion}`} ref={editorRef} initialContent={localEditorSeed} onContentChange={contentChanged} ensureDocumentId={()=>ensureSaved()} readOnly={readOnly}/>}</Suspense></div>
       </motion.article></main>
       <button className={`mobile-sheet-backdrop ${aiOpen?"is-open":""}`} aria-label="Close Omni assistant" tabIndex={aiOpen?0:-1} onClick={()=>setAiOpen(false)}/><AnimatePresence>{aiOpen&&<AIAssistantPanel editorRef={editorRef} selection={omniSelection} documentId={activeId} embeddedImageUrls={embeddedImageUrls} readOnly={readOnly} onOpenSettings={()=>{setAiOpen(false);setSettingsOpen(true)}} onClose={()=>setAiOpen(false)}/>}</AnimatePresence>
     </div>
