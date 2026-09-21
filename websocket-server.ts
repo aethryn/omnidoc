@@ -445,10 +445,14 @@ wss.on("connection", async (ws, request) => {
   try {
     const redis = getRedisClient();
     const status = redis ? await collaborationSessionStatus(redis, documentId) : null;
-    if (!status || status.mode !== "realtime" || status.participants < 2) return ws.close(1013, "Live collaboration is not active");
+    // Promotion is the authoritative hand-off. The independently counted
+    // presence records can briefly lag the state transition, so requiring the
+    // count here rejects both valid clients during the exact moment they are
+    // connecting and sends y-websocket into a reconnect storm.
+    if (!status || status.mode !== "realtime") return ws.close(4004, "Live collaboration is not active");
   } catch (error) {
     console.error("Collaboration session check failed", error instanceof Error ? error.message : error);
-    return ws.close(1013, "Live collaboration is unavailable");
+    return ws.close(4004, "Live collaboration is unavailable");
   }
 
   const room = await loadRoom(documentId);
