@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { activeCollaboratorConstraint, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import * as Y from "yjs";
-import { contentToYDoc } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 
 export async function GET(request: NextRequest){
@@ -63,12 +61,10 @@ export async function POST(request: NextRequest){
         const { title = "Untitled", content = JSON.stringify({type:"doc",content:[{type:"paragraph"}]}), tags = [] } = await request.json();
         const preview = deriveDocumentPreview(content);
 
-        const ydoc = contentToYDoc(content);
         const document = await prisma.document.create({
             data: {
                 title,
                 content,
-                yjsState: Buffer.from(Y.encodeStateAsUpdate(ydoc)),
                 userId,
                 tags,
                 ...preview,

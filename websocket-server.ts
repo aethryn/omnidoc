@@ -15,6 +15,8 @@ import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 import { CollaborationBus, type CollaborationBusMessage } from "@/lib/collaboration-bus";
+import { collaborationSessionStatus } from "@/lib/collaboration-session";
+import { getRedisClient } from "@/lib/redis";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
 import type { PersistCheckpoint } from "@/lib/collaboration-persistence";
 
@@ -440,6 +442,14 @@ wss.on("connection", async (ws, request) => {
   });
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (!document) return ws.close(1008, "Document access denied");
+  try {
+    const redis = getRedisClient();
+    const status = redis ? await collaborationSessionStatus(redis, documentId) : null;
+    if (!status || status.mode !== "realtime" || status.participants < 2) return ws.close(1013, "Live collaboration is not active");
+  } catch (error) {
+    console.error("Collaboration session check failed", error instanceof Error ? error.message : error);
+    return ws.close(1013, "Live collaboration is unavailable");
+  }
 
   const room = await loadRoom(documentId);
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) { await cleanupEmptyRoom(documentId); return; }
