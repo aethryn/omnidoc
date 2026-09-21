@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import http from "http";
-import { randomUUID } from "node:crypto";
 import WebSocket, { WebSocketServer } from "ws";
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
@@ -10,13 +9,12 @@ import * as syncProtocol from "y-protocols/sync";
 import * as awarenessProtocol from "y-protocols/awareness";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
-import { activeCollaboratorWhere, documentAccessWhere } from "@/lib/auth";
+import { activeCollaboratorConstraint, documentAccessWhere } from "@/lib/auth";
 import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
-import { CollaborationBus, type CollaborationBusMessage } from "@/lib/collaboration-bus";
-import { collaborationSessionStatus } from "@/lib/collaboration-session";
-import { getRedisClient } from "@/lib/redis";
+import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
+import { CollaborationBus } from "@/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
 import type { PersistCheckpoint } from "@/lib/collaboration-persistence";
 
@@ -30,17 +28,14 @@ const versionIdleMs = 120_000;
 const versionSnapshotIntervalMs = 15 * 60_000;
 const orphanRetentionMs = 30 * 24 * 60 * 60 * 1000;
 const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
-const redisBatchMs = 50;
-type RedisOrigin = { kind: "redis"; id: string; sender: string };
 type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
 type Connection = { ws: WebSocket; userId: string; sessionId?: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean };
-type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; roomId: string; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void>; redisUnsubscribe?: () => Promise<void>; redisUpdates: Uint8Array[]; redisUpdateTimer?: NodeJS.Timeout };
+type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void> };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
 const connections = new Map<string, Set<Connection>>();
 const liveConnections = new Set<Connection>();
-const instanceId = randomUUID();
 const collaborationBus = new CollaborationBus(process.env.REDIS_URL, process.env.WS_REDIS_REQUIRED === "true");
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,11 +48,9 @@ const storageAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 const server = http.createServer(async (request, response) => {
   if (request.url === "/health") {
     const connectionCount = Array.from(connections.values()).reduce((total, roomConnections) => total + roomConnections.size, 0);
-    const redisRequired = process.env.WS_REDIS_REQUIRED === "true";
     const redis = await collaborationBus.ensureConnected();
-    const ok = !redisRequired || redis === "ready";
-    response.writeHead(ok ? 200 : 503, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    response.end(JSON.stringify({ ok, rooms: active.size, connections: connectionCount, redis, redisRequired, redisRooms: collaborationBus.subscribedRooms }));
+    response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, redis }));
     return;
   }
   response.writeHead(200, { "Content-Type": "text/plain" });
@@ -164,10 +157,6 @@ function isConnectionOrigin(origin: unknown): origin is Connection {
   return Boolean(origin && typeof origin === "object" && "ws" in origin);
 }
 
-function isRedisOrigin(origin: unknown): origin is RedisOrigin {
-  return Boolean(origin && typeof origin === "object" && (origin as RedisOrigin).kind === "redis");
-}
-
 function sendSyncUpdate(documentId: string, update: Uint8Array, except?: WebSocket) {
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, messageSync);
@@ -188,45 +177,6 @@ function sendAwarenessUpdate(documentId: string, update: Uint8Array, except?: We
   });
 }
 
-function transportDecode(value: string) {
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 === 1) throw new Error("Invalid collaboration bus payload");
-  return new Uint8Array(Buffer.from(value, "base64"));
-}
-
-async function flushRedisUpdates(room: ActiveRoom) {
-  if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
-  room.redisUpdateTimer = undefined;
-  const updates = room.redisUpdates.splice(0);
-  if (!updates.length) return;
-  const update = updates.length === 1 ? updates[0] : Y.mergeUpdates(updates);
-  const published = await collaborationBus.publish({ version: 1, id: randomUUID(), sender: instanceId, documentId: room.roomId, kind: "yjs-update", data: Buffer.from(update).toString("base64") });
-  if (!published && collaborationBus.status !== "disabled") console.warn("Redis Yjs update was not published", room.roomId);
-}
-
-function scheduleRedisUpdate(room: ActiveRoom, update: Uint8Array) {
-  room.redisUpdates.push(update);
-  if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
-  room.redisUpdateTimer = setTimeout(() => { flushRedisUpdates(room).catch((error) => console.error("Redis Yjs update failed", error)); }, redisBatchMs);
-  room.redisUpdateTimer.unref();
-}
-
-async function subscribeRoom(room: ActiveRoom) {
-  try {
-    room.redisUnsubscribe = await collaborationBus.subscribe(room.roomId, (message: CollaborationBusMessage) => {
-      if (message.sender === instanceId || message.documentId !== room.roomId) return;
-      try {
-        const update = transportDecode(message.data);
-        if (message.kind === "yjs-update") Y.applyUpdate(room.doc, update, { kind: "redis", id: message.id, sender: message.sender } satisfies RedisOrigin);
-        else awarenessProtocol.applyAwarenessUpdate(room.awareness, update, { kind: "redis", id: message.id, sender: message.sender } satisfies RedisOrigin);
-      } catch (error) {
-        console.error("Invalid collaboration bus update", room.roomId, error instanceof Error ? error.message : error);
-      }
-    });
-  } catch (error) {
-    console.error("Redis room subscription failed", room.roomId, error instanceof Error ? error.message : error);
-  }
-}
-
 async function cleanupEmptyRoom(documentId: string) {
   const room = active.get(documentId);
   if (!room || connections.get(documentId)?.size || room.cleanupPromise) return room?.cleanupPromise;
@@ -234,16 +184,12 @@ async function cleanupEmptyRoom(documentId: string) {
     if (room.saveTimer) clearTimeout(room.saveTimer);
     if (room.versionTimer) clearTimeout(room.versionTimer);
     if (room.persistRetryTimer) clearTimeout(room.persistRetryTimer);
-    if (room.redisUpdateTimer) clearTimeout(room.redisUpdateTimer);
-    await flushRedisUpdates(room).catch((error) => console.error("Final Redis update failed", error));
-    if (room.persistPromise || room.revision > room.persistedRevision || room.pendingRequests.length) await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
+    await persist(documentId, true).catch((error) => console.error("Final Yjs persistence failed", error));
     room.pendingRequests = room.pendingRequests.filter((request) => !request.connection.closed && request.connection.ws.readyState === WebSocket.OPEN);
     const current = active.get(documentId);
     if (current !== room || connections.get(documentId)?.size) return;
     active.delete(documentId);
     connections.delete(documentId);
-    const unsubscribe = room.redisUnsubscribe;
-    if (unsubscribe) await unsubscribe().catch((error) => console.error("Redis room unsubscribe failed", error));
   })().finally(() => { room.cleanupPromise = undefined; });
   return room.cleanupPromise;
 }
@@ -375,7 +321,7 @@ async function loadRoom(documentId: string) {
       if (doc.getXmlFragment("default").length === 0 && document.content) doc = contentToYDoc(document.content);
     }
     const awareness = new awarenessProtocol.Awareness(doc);
-    const room:ActiveRoom = { doc, awareness, roomId: document.id, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, pendingRequests:[], acknowledgedMarkers:new Map(), redisUpdates:[] };
+    const room:ActiveRoom = { doc, awareness, ownerId: document.userId, title:document.title, revision:0, persistedRevision:0, versionRevision:0, pendingRequests:[], acknowledgedMarkers:new Map() };
     active.set(documentId, room);
     doc.on("update", (update: Uint8Array, origin: unknown) => {
       room.revision += 1;
@@ -384,7 +330,6 @@ async function loadRoom(documentId: string) {
       schedulePersist(documentId);
       room.changeStartedAt ||= Date.now();
       scheduleVersion(documentId);
-      if (!isRedisOrigin(origin)) scheduleRedisUpdate(room, update);
       sendSyncUpdate(documentId, update, isConnectionOrigin(origin) ? origin.ws : undefined);
     });
     awareness.on("update", ({added,updated,removed}:{added:number[];updated:number[];removed:number[]}, origin:unknown) => {
@@ -393,10 +338,8 @@ async function loadRoom(documentId: string) {
       if(connection?.awarenessIds){added.concat(updated).forEach((id)=>connection.awarenessIds.add(id));removed.forEach((id)=>connection.awarenessIds.delete(id));}
       if(!changed.length)return;
       const update = awarenessProtocol.encodeAwarenessUpdate(awareness, changed);
-      if (!isRedisOrigin(origin)) void collaborationBus.publish({ version: 1, id: randomUUID(), sender: instanceId, documentId, kind: "awareness", data: Buffer.from(update).toString("base64") });
       sendAwarenessUpdate(documentId, update, connection?.ws);
     });
-    await subscribeRoom(room);
     return room;
   })();
   loadingRooms.set(documentId, promise);
@@ -438,28 +381,23 @@ wss.on("connection", async (ws, request) => {
 
   const document = await prisma.document.findFirst({
     where: { id: documentId, ...documentAccessWhere(user.id) },
-    select: { id: true, userId:true, collaborators:{where:activeCollaboratorWhere(user.id),select:{role:true,accessExpiresAt:true}} },
+    select: {
+      id: true,
+      userId:true,
+      shares:{where:{isActive:true,OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]},select:{id:true},take:1},
+      collaborators:{where:activeCollaboratorConstraint(),select:{userId:true,role:true,accessExpiresAt:true}},
+    },
   });
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (!document) return ws.close(1008, "Document access denied");
-  try {
-    const redis = getRedisClient();
-    const status = redis ? await collaborationSessionStatus(redis, documentId) : null;
-    // Promotion is the authoritative hand-off. The independently counted
-    // presence records can briefly lag the state transition, so requiring the
-    // count here rejects both valid clients during the exact moment they are
-    // connecting and sends y-websocket into a reconnect storm.
-    if (!status || status.mode !== "realtime") return ws.close(4004, "Live collaboration is not active");
-  } catch (error) {
-    console.error("Collaboration session check failed", error instanceof Error ? error.message : error);
-    return ws.close(4004, "Live collaboration is unavailable");
-  }
+  if (!hasRealtimeCollaboration(document)) return ws.close(4004, "Document is not shared");
 
   const room = await loadRoom(documentId);
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) { await cleanupEmptyRoom(documentId); return; }
   if (!room) return ws.close(1008, "Document not found");
-  const role=document.userId===user.id?"owner":document.collaborators[0]?.role;
-  const accessExpiresAt=document.userId===user.id?null:document.collaborators[0]?.accessExpiresAt;
+  const collaborator=document.collaborators.find((member)=>member.userId===user.id);
+  const role=document.userId===user.id?"owner":collaborator?.role;
+  const accessExpiresAt=document.userId===user.id?null:collaborator?.accessExpiresAt;
   const entry:Connection = { ws, userId: user.id, sessionId, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt };
   ws.off("close", closeHandler);
   closeHandler = () => {

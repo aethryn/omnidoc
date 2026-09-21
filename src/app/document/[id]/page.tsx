@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { activeCollaboratorConstraint, documentAccessWhere, getCurrentAuth } from "@/lib/auth";
+import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
 import DocumentEditorClient, { type InitialDocument } from "../DocumentEditorClient";
 
 export default async function DocumentByIdPage({ params }: { params: Promise<{ id:string }> }) {
@@ -29,7 +30,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     id:document.id,title:document.title,content:document.content,role,status:document.status,allowComments:document.allowComments,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
     publication:document.publication?{...document.publication,publishedAt:document.publication.publishedAt.toISOString(),updatedAt:document.publication.updatedAt.toISOString()}:null,
     yjsState:document.yjsState ? Buffer.from(document.yjsState).toString("base64") : null,
-    collaborationEligible:Boolean(document.shares.length || document.collaborators.length),
+    collaborationEligible:hasRealtimeCollaboration(document),
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };
   console.info(JSON.stringify({ event:"document.load", documentId:id, durationMs:Math.round(performance.now()-startedAt) }));

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { activeCollaboratorConstraint, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
+import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
 
 export async function GET(
   request: NextRequest,
@@ -104,6 +105,10 @@ export async function PUT(
 
     const document = await prisma.document.findFirst({
       where: { id: documentId, ...documentAccessWhere(userId, ["admin", "editor"]) },
+      include: {
+        shares: { where:{isActive:true,OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]}, select:{id:true}, take:1 },
+        collaborators: { where:activeCollaboratorConstraint(), select:{id:true}, take:1 },
+      },
     });
 
     if (!document) {
@@ -113,7 +118,8 @@ export async function PUT(
       );
     }
 
-    if (typeof updateData.content === "string" && document.yjsState) {
+    const collaborationEligible = hasRealtimeCollaboration(document);
+    if (typeof updateData.content === "string" && collaborationEligible) {
       return NextResponse.json({ error: "Collaborative documents must be updated through the editor connection", code: "COLLABORATIVE_WRITE_REQUIRED" }, { status: 409 });
     }
 
@@ -142,7 +148,7 @@ export async function PUT(
       },
       data: {
         ...(typeof updateData.title === "string" ? { title: updateData.title.trim().slice(0, 200) || "Untitled document" } : {}),
-        ...(contentUpdate ? { content: contentUpdate, ...deriveDocumentPreview(contentUpdate), lastEditedAt: new Date() } : {}),
+        ...(contentUpdate ? { content: contentUpdate, yjsState: null, ...deriveDocumentPreview(contentUpdate), lastEditedAt: new Date() } : {}),
         updatedAt: new Date(),
       },
       include: {
