@@ -1,8 +1,9 @@
 import { randomBytes, createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { activeCollaboratorConstraint, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 
@@ -44,5 +45,6 @@ export async function DELETE(request:NextRequest,{params}:{params:Promise<{id:st
   const owner=await prisma.document.findFirst({where:{id,userId:auth.userId},select:{id:true}});if(!owner)return NextResponse.json({error:"Only the owner can revoke links"},{status:403});
   if(typeof body.shareId!=="string")return NextResponse.json({error:"A share link is required"},{status:400});
   await prisma.documentShare.updateMany({where:{id:body.shareId,documentId:id},data:{isActive:false}});
-  return NextResponse.json({ok:true});
+  const collaborationEligible=await prisma.document.findUnique({where:{id},select:{shares:{where:{isActive:true,OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]},select:{id:true},take:1},collaborators:{where:activeCollaboratorConstraint(),select:{id:true},take:1}}});
+  return NextResponse.json({ok:true,collaborationEligible:collaborationEligible?hasRealtimeCollaboration(collaborationEligible):false});
 }

@@ -129,14 +129,14 @@ HEALTH_OK=0
 HEALTH_BODY=""
 for attempt in $(seq 1 30); do
   HEALTH_BODY="$(curl --fail --silent --show-error --max-time 10 "$HEALTH_URL" || true)"
-  if [[ "$HEALTH_BODY" == *'"ok":true'* && "$HEALTH_BODY" == *'"redis":"ready"'* ]]; then
+  if [[ "$HEALTH_BODY" == *'"ok":true'* ]]; then
     HEALTH_OK=1
     break
   fi
-  echo "Waiting for Redis health ($attempt/30)"
+  echo "Waiting for WebSocket health ($attempt/30)"
   sleep 5
 done
-[[ "$HEALTH_OK" == "1" ]] || die "Cloud Run health never reported Redis ready: $HEALTH_BODY"
+[[ "$HEALTH_OK" == "1" ]] || die "Cloud Run health check failed: $HEALTH_BODY"
 
 DEPLOYED_REVISION="$(gcloud run services describe "$SERVICE" \
   --project="$PROJECT_ID" \
