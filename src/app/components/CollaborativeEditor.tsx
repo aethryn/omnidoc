@@ -18,13 +18,16 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { createClient } from "@/lib/supabase/client";
 import { EditorBubbleMenu } from "../document/EditorBubbleMenu";
 import { GhostSuggestionExtension, ghostSuggestionKey } from "../document/ghost-suggestion-extension";
-import type { EditorHandle, EditorSuggestion, FormatCommand, PresenceUser } from "../document/editor-types";
+import { resolveBlockRange, type EditorHandle, type EditorSuggestion, type FormatCommand, type PresenceUser } from "../document/editor-types";
 import "../document/editor-styles.css";
 import { InteractiveImage } from "../document/InteractiveImage";
 import { uploadAndInsertImage } from "../document/image-upload";
 import { LinkPreviewCard } from "../document/LinkPreviewCard";
 import { CommentThreadExtension } from "../document/comment-thread-extension";
 import { isPersistedMessage, isPersistFailedMessage, persistenceAckTimeoutMs, persistenceRetryDelay, type PersistMarker } from "@/lib/collaboration-persistence";
+import { looksLikeMarkdown, markdownToTiptap } from "@/lib/markdown-to-tiptap";
+import type { EditorEditSnapshot } from "../document/editor-types";
+import { Fragment, Slice } from "@tiptap/pm/model";
 
 export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
 export type CollaborationState = { connectivity: "connecting" | "online" | "offline" | "error"; indexedDbReady: boolean; pendingLocalChanges: boolean; lastPersistedAt: string | null; syncError: string | null; retryAvailable: boolean };
@@ -226,7 +229,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     onUpdate:({editor:instance})=>onContentChangeRef.current?.(JSON.stringify(instance.getJSON())),
     editorProps:{
       attributes:{ class:"notion-editor focus:outline-none min-h-[520px]" },
-      handlePaste(view,event){const file=Array.from(event.clipboardData?.files||[]).find((item)=>item.type.startsWith("image/"));if(!file||readOnly)return false;void uploadAndInsertImage(file,()=>Promise.resolve(documentId),(image)=>view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"}))));return true;},
+      handlePaste(view,event){const file=Array.from(event.clipboardData?.files||[]).find((item)=>item.type.startsWith("image/"));if(file){if(readOnly)return false;void uploadAndInsertImage(file,()=>Promise.resolve(documentId),(image)=>view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"}))));return true;}const text=event.clipboardData?.getData("text/plain")||"";const html=event.clipboardData?.getData("text/html")||"";if(!readOnly&&text&&!html&&looksLikeMarkdown(text)){event.preventDefault();const content=(markdownToTiptap(text).content||[]).map((node)=>view.state.schema.nodeFromJSON(node));view.dispatch(view.state.tr.replaceSelection(new Slice(Fragment.from(content),0,0)));return true;}return false;},
       handleDrop(view,event){const file=Array.from(event.dataTransfer?.files||[]).find((item)=>item.type.startsWith("image/"));if(!file||readOnly)return false;event.preventDefault();const position=view.posAtCoords({left:event.clientX,top:event.clientY})?.pos;void uploadAndInsertImage(file,()=>Promise.resolve(documentId),(image)=>{const node=view.state.schema.nodes.image.create({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"});view.dispatch(position==null?view.state.tr.replaceSelectionWith(node):view.state.tr.insert(position,node));});return true;},
     },
   // The provider is the only dependency that needs to recreate the editor. The
@@ -237,14 +240,16 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   useImperativeHandle(ref, () => ({
     getDocumentJSON:() => editor ? JSON.stringify(editor.getJSON()) : JSON.stringify({ type:"doc", content:[] }),
     getPlainText:() => editor?.getText() ?? "",
-    getSelection:() => { if (!editor) return {from:0,to:0,text:""}; const {from,to}=editor.state.selection; return {from,to,text:editor.state.doc.textBetween(from,to," ")}; },
+    getSelection:() => { if (!editor) return {from:0,to:0,text:""}; const {from,to}=editor.state.selection; return {from,to,text:editor.state.doc.textBetween(from,to,"\n")}; },
+    getEditSnapshot:():EditorEditSnapshot=>{if(!editor)return{documentJson:JSON.stringify({type:"doc",content:[{type:"paragraph"}]}),blocks:[],selection:{from:0,to:0,text:""},caret:0};const blocks:EditorEditSnapshot["blocks"]=[];editor.state.doc.forEach((node,offset,index)=>blocks.push({id:`block-${index}`,index,text:node.textContent,from:offset,to:offset+node.nodeSize}));const {from,to}=editor.state.selection;return{documentJson:JSON.stringify(editor.getJSON()),blocks,selection:{from,to,text:editor.state.doc.textBetween(from,to,"\n")},caret:from};},
     previewSuggestion:(change:EditorSuggestion) => editor?.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey,{set:change})),
-    applySuggestion:(change:EditorSuggestion) => { if(!editor||readOnly)return false; const current=editor.state.doc.textBetween(change.from,change.to," "); if(current!==change.originalText)return false; editor.view.dispatch(editor.state.tr.insertText(change.text,change.from,change.to).setMeta(ghostSuggestionKey,{clear:change.id})); editor.commands.focus(); return true; },
+    applySuggestion:(change:EditorSuggestion) => { if(!editor||readOnly)return false; let from=change.from;let to=change.to;const current=editor.state.doc.textBetween(from,to,"\n");if(current!==change.originalText){if(change.operation!=="replace-blocks"&&change.operation!=="replace-document")return false;const blocks:EditorEditSnapshot["blocks"]=[];editor.state.doc.forEach((node,offset,index)=>blocks.push({id:`block-${index}`,index,text:node.textContent,from:offset,to:offset+node.nodeSize}));const resolved=resolveBlockRange(blocks,change.originalText);if(!resolved)return false;({from,to}=resolved);}if(change.kind==="delete")editor.commands.deleteRange({from,to});else editor.commands.insertContentAt({from,to},markdownToTiptap(change.markdown??change.text).content||[]);editor.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey,{clear:change.id}));editor.commands.focus();return true; },
     dismissSuggestion:(id:string) => editor?.view.dispatch(editor.state.tr.setMeta(ghostSuggestionKey,{clear:id})),
     runFormat:(command) => { if(editor&&!readOnly)runFormat(editor,command); },
     insertImage:(image) => { if(!editor||readOnly)return false; editor.chain().focus().setImage({src:image.fileUrl,alt:image.originalName||"",width:100,align:"center"} as never).run(); return true; },
     addCommentMark: (threadId, from, to) => { if (editor && !readOnly && to > from) editor.chain().focus().setTextSelection({ from, to }).setMark("commentThread", { threadId }).run(); },
     replaceDocument: (value) => { if (!editor || readOnly) return false; try { editor.commands.setContent(JSON.parse(value)); return true; } catch { return false; } },
+    replaceMarkdown:(markdown,from,to)=>{if(!editor||readOnly)return false;return editor.commands.insertContentAt({from:from??0,to:to??editor.state.doc.content.size},markdownToTiptap(markdown).content||[]);},
     retryPersistence: () => retryPending(),
     createCheckpoint: async (description, title) => {
       if (!provider?.ws || provider.ws.readyState !== WebSocket.OPEN || !editor) return false;

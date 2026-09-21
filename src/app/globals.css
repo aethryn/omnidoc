@@ -58,6 +58,12 @@
   --tt-card-bg-color: #ffffff;
   --tt-card-border-color: #e5e7eb;
   --tt-theme-text: #1f2937;
+
+  --miro-ink: #1c1c1e;
+  --miro-yellow: #ffd02f;
+  --miro-blue: #4262ff;
+  --miro-surface: #f7f8fa;
+  --miro-hairline: #e0e2e8;
 }
 
 .landing-instrument-serif {
@@ -102,6 +108,22 @@
   :focus-visible {
     outline: 2px solid #77659a;
     outline-offset: 3px;
+  }
+
+  .dashboard-page button:not(:disabled),
+  .auth-page button:not(:disabled),
+  .document-sidebar-provider button:not(:disabled) { cursor: pointer; }
+
+  .dashboard-page {
+    --dashboard-surface: var(--miro-surface, #f7f8fa);
+    --dashboard-hairline: var(--miro-hairline, #e0e2e8);
+  }
+  .dashboard-page main { background: var(--dashboard-surface) !important; }
+  .dashboard-page aside,
+  .dashboard-page [data-sidebar="sidebar"] { border-color: var(--dashboard-hairline) !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-spin { animation: none !important; }
   }
   
   /* Prevent horizontal scroll on mobile */

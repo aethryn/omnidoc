@@ -6,6 +6,7 @@ import { describeModel, extractProviderDelta, isAIProvider, providerRequest, typ
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { parseAiEditResult, type AiEditScope } from "@/lib/ai/edit-operation";
 
 const encoder = new TextEncoder();
 const event = (type: string, value: unknown) => encoder.encode(`event: ${type}\ndata: ${JSON.stringify(value)}\n\n`);
@@ -40,10 +41,14 @@ export async function POST(request: NextRequest) {
   if (contentLength > 150_000) return Response.json({ error: "AI request is too large" }, { status: 413 });
   const body = await request.json().catch(() => ({}));
   const instruction = typeof body.instruction === "string" ? body.instruction.trim().slice(0, 4_000) : "";
-  const context = typeof body.context === "string" ? body.context.slice(0, 100_000) : "";
-  const selection = typeof body.selection === "string" ? body.selection.slice(0, 30_000) : "";
+  const scope: AiEditScope = body.scope === "selection" || body.scope === "document" ? body.scope : "auto";
+  const blocks: Array<{ id:string; index:number; text:string }> = Array.isArray(body.blocks) ? body.blocks.filter((block: unknown): block is { id:string; index:number; text:string } => Boolean(block && typeof block === "object" && typeof (block as { id?:unknown }).id === "string" && typeof (block as { index?:unknown }).index === "number" && typeof (block as { text?:unknown }).text === "string")).slice(0, 300).map((block: { id:string; index:number; text:string }) => ({ id:block.id.slice(0, 80), index:block.index, text:block.text.slice(0, 8_000) })) : [];
+  const selection = body.selection && typeof body.selection === "object" ? { text:typeof body.selection.text === "string" ? body.selection.text.slice(0, 30_000) : "", from:Number(body.selection.from) || 0, to:Number(body.selection.to) || 0 } : null;
+  const caret = Number.isSafeInteger(body.caret) ? body.caret : 0;
   const imageIds: string[] = Array.isArray(body.imageIds) ? Array.from(new Set<string>(body.imageIds.filter((value: unknown): value is string => typeof value === "string" && value.length <= 100))).slice(0, maxImages) : [];
   if (!instruction) return Response.json({ error: "An editing instruction is required" }, { status: 400 });
+  if (scope === "selection" && (!selection?.text || selection.to <= selection.from)) return Response.json({ error: "Select text before using the selection target" }, { status: 400 });
+  if (scope !== "document" && !blocks.length) return Response.json({ error: "The editor did not provide document blocks" }, { status: 400 });
   if (Array.isArray(body.imageIds) && body.imageIds.length > maxImages) return Response.json({ error: `Attach up to ${maxImages} images at a time` }, { status: 400 });
   if (imageIds.length && typeof body.documentId !== "string") return Response.json({ error: "Images can only be attached to a document" }, { status: 400 });
   if (body.documentId) {
@@ -65,10 +70,12 @@ export async function POST(request: NextRequest) {
 
   const prompt = [
     "You are an editing assistant inside a collaborative document editor.",
-    "Return only the proposed replacement or insertion text. Do not add commentary, labels, or markdown fences.",
+    "Return only valid JSON matching this schema: {operation:\"replace-selection\"|\"replace-blocks\"|\"insert-at-caret\"|\"replace-document\",startBlockId?:string,endBlockId?:string,expectedText:string,markdown:string}.",
+    "Never return markdown fences or commentary. Use replace-document only when the requested scope is document or the instruction explicitly requests a complete rewrite.",
+    `Requested scope: ${scope}. Caret position: ${caret}.`,
     `Instruction: ${instruction}`,
-    selection ? `Selected text:\n${selection}` : "No text is selected; continue from the document context.",
-    `Document context:\n${context}`,
+    selection?.text ? `Selected text:\n${selection.text}` : "No text is selected.",
+    `Document blocks (choose block IDs only from this list):\n${JSON.stringify(blocks)}`,
     images.length ? `The user attached ${images.length} document image(s). Use them as visual context.` : "No images were attached.",
   ].join("\n\n");
   const controller = new AbortController();
@@ -106,10 +113,15 @@ export async function POST(request: NextRequest) {
               if (!delta || (emitted && delta === emitted)) continue;
               const next = delta.startsWith(emitted) ? delta.slice(emitted.length) : delta;
               emitted += next;
-              if (next) output.enqueue(event("delta", { text: next }));
             } catch { /* ignore provider keepalive events */ }
           }
         }
+        const rawResult = emitted.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+        const result = parseAiEditResult(JSON.parse(rawResult), new Set(blocks.map((block: { id:string }) => block.id)));
+        if (scope === "selection" && result.operation !== "replace-selection") throw new Error("Omni could not produce a selection edit");
+        if (scope === "document" && result.operation !== "replace-document") throw new Error("Omni could not produce a document edit");
+        if (scope !== "document" && result.operation === "replace-document" && !/\b(rewrite|re-write|replace|recreate|redraft|overhaul)\b.*\b(entire|whole|complete|full|document|page)\b/i.test(instruction)) throw new Error("Omni could not produce a whole-document edit for that request");
+        output.enqueue(event("suggestion", result));
         output.enqueue(event("done", { ok: true }));
       } catch (error) {
         output.enqueue(event("error", { error: error instanceof Error ? error.message : "AI request failed" }));

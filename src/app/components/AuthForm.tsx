@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowRightIcon, CheckIcon, GoogleLogoIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CheckIcon, CircleNotchIcon, GoogleLogoIcon } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { OmnidocLogo } from "@/components/omnidoc-logo";
 import "../auth.css";
@@ -53,8 +53,8 @@ export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
 
         {error && <div role="alert" className="auth-error">{error}</div>}
 
-        <button className="auth-google" disabled={loading} onClick={continueWithGoogle}>
-          <GoogleLogoIcon weight="bold" />
+        <button className="auth-google cursor-pointer" aria-busy={loading} disabled={loading} onClick={continueWithGoogle}>
+          {loading ? <CircleNotchIcon className="animate-spin" aria-hidden="true" /> : <GoogleLogoIcon weight="bold" />}
           <span>{loading ? "Opening Google…" : `${isSignup ? "Sign up" : "Sign in"} with Google`}</span>
           <ArrowRightIcon />
         </button>

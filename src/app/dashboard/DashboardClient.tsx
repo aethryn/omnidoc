@@ -9,6 +9,7 @@ import {
   ArrowRightIcon,
   ArrowUpRightIcon,
   CheckCircleIcon,
+  CircleNotchIcon,
   CopyIcon,
   DotsThreeIcon,
   FilePlusIcon,
@@ -255,6 +256,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   const [deleteTarget, setDeleteTarget] = useState<DashboardDoc | null>(null);
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
   const [creating, startCreating] = useTransition();
+  const [signingOut, setSigningOut] = useState(false);
   const deleteInFlightRef = useRef<string | null>(null);
   const dashboardImageSources = useMemo(() => imageSourcesForDashboard(user, initialDocuments), [initialDocuments, user]);
   const imagesReady = useImagesReady(dashboardImageSources);
@@ -318,25 +320,27 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   }
 
   async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
       await fetch("/api/auth/signout", { method: "POST", credentials: "include", cache: "no-store" });
       window.dispatchEvent(new Event("omnidoc:signed-out"));
     } finally {
       router.replace("/");
-      router.refresh();
+      setSigningOut(false);
     }
   }
 
   return (
-    <SidebarProvider defaultOpen={false} className="min-h-screen">
+    <SidebarProvider defaultOpen={false} className="dashboard-page min-h-screen">
       <Sidebar side="left" collapsible="offcanvas" className="border-r border-[#e3ddd3] bg-[#fffdf8] md:hidden">
         <SidebarHeader className="border-b border-[#e8e2d8] p-4 pt-[calc(1rem+var(--safe-area-top))]"><div className="flex items-center justify-between"><Link href="/" className="flex items-center gap-2 font-[var(--font-instrument)] text-xl text-[#302b27]"><OmnidocLogo className="h-9 w-9"/>Omnidoc</Link><SidebarTrigger className="h-9 w-9 rounded-full"/></div></SidebarHeader>
         <SidebarContent className="bg-[#fffdf8] px-2 py-3">
           <SidebarGroup><SidebarGroupLabel className="uppercase tracking-[0.14em] text-[#8d8478]">Workspace</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>
             <SidebarMenuItem><SidebarMenuButton isActive className="h-11 rounded-xl px-3" onClick={()=>router.push("/dashboard")}><FilesIcon/><span>Documents</span><span className="ml-auto text-[10px]">{documents.length}</span></SidebarMenuButton></SidebarMenuItem>
-            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl px-3" onClick={()=>void createDocument()} disabled={creating}><FilePlusIcon/><span>{creating?"Opening…":"New document"}</span></SidebarMenuButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl px-3" onClick={()=>void createDocument()} disabled={creating}>{creating?<CircleNotchIcon className="animate-spin"/>:<FilePlusIcon/>}<span>{creating?"Opening…":"New document"}</span></SidebarMenuButton></SidebarMenuItem>
             <SidebarMenuItem><details className="group rounded-xl" onToggle={(event)=>setSidebarSettingsOpen(event.currentTarget.open)}><summary className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-[13px] hover:bg-sidebar-accent"><GearSixIcon/><span className="flex-1">Settings</span><span className="transition-transform group-open:rotate-180">⌄</span></summary><div className="mx-2 max-h-[65dvh] overflow-y-auto rounded-xl border border-[#e3ddd3] bg-[#fffdf8] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><SettingsPanel active={sidebarSettingsOpen} user={{name:user.name,avatar:user.avatar}} className="[&>div:first-child]:px-4 [&>div:first-child]:py-4 [&_h2]:text-2xl [&_[role=tabpanel]]:px-0"/></div></details></SidebarMenuItem>
-            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl px-3 text-[#8f4039]" onClick={()=>void signOut()}><SignOutIcon/><span>Sign out</span></SidebarMenuButton></SidebarMenuItem>
+            <SidebarMenuItem><SidebarMenuButton className="h-11 rounded-xl px-3 text-[#8f4039]" disabled={signingOut} onClick={()=>void signOut()}>{signingOut?<CircleNotchIcon className="animate-spin"/>:<SignOutIcon/>}<span>{signingOut?"Signing out…":"Sign out"}</span></SidebarMenuButton></SidebarMenuItem>
           </SidebarMenu></SidebarGroupContent></SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="border-t border-[#e8e2d8] bg-[#fffdf8] p-4 pb-[calc(1rem+var(--safe-area-bottom))]"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-[#352d59] text-xs text-white">{user.avatar?.startsWith("http")?<img src={user.avatar} alt="" className="h-full w-full object-cover"/>:initials(user.name)}</span><div className="min-w-0"><p className="truncate text-xs font-medium">{user.name}</p><p className="truncate text-[10px] text-[#8c847a]">{user.email}</p></div></div></SidebarFooter>
@@ -344,7 +348,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
     <main className="min-h-screen min-w-0 flex-1 overflow-x-clip bg-[#f6f3ed] text-[#29251f] md:grid md:grid-cols-[232px_minmax(0,1fr)]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-[#e5dfd5] bg-[#fffdf8] px-5 py-6 md:flex">
         <div className="flex items-center justify-between"><Link href="/" aria-label="Omnidoc home" className="flex items-center gap-2.5 font-[var(--font-instrument)] text-[22px] font-normal tracking-[-0.03em] text-[#302b27] no-underline"><OmnidocLogo priority className="h-8 w-8" />Omnidoc</Link><span className="rounded-full bg-[#f1edf7] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#73618b]">Beta</span></div>
-        <button onClick={createDocument} disabled={creating} className="mt-9 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#40355f] px-3 text-[12px] font-semibold text-white shadow-[0_12px_24px_rgba(64,53,95,0.18)] transition hover:bg-[#33284f] disabled:cursor-wait disabled:opacity-65"><FilePlusIcon size={16} />{creating ? "Opening…" : "New document"}</button>
+        <button onClick={createDocument} disabled={creating} className="mt-9 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#40355f] px-3 text-[12px] font-semibold text-white shadow-[0_12px_24px_rgba(64,53,95,0.18)] transition hover:bg-[#33284f] disabled:cursor-wait disabled:opacity-65">{creating?<CircleNotchIcon size={16} className="animate-spin"/>:<FilePlusIcon size={16} />}{creating ? "Opening…" : "New document"}</button>
         <nav className="mt-8 space-y-1" aria-label="Workspace navigation"><p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#a39a8f]">Workspace</p><button className="flex min-h-11 w-full items-center gap-3 rounded-xl bg-[#f0ebf6] px-3 text-left text-[12px] font-semibold text-[#40355f]" aria-current="page"><FilesIcon className="h-5 w-5" />Documents<span className="ml-auto rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-medium">{documents.length}</span></button><button onClick={() => setFilter("shared")} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] text-[#756d63] transition hover:bg-[#f5f1eb] hover:text-[#40355f]"><UsersThreeIcon size={19} />Shared with me<span className="ml-auto text-[10px] text-[#a39a8f]">{counts.shared}</span></button></nav>
         <div className="mt-auto rounded-2xl border border-[#eee8de] bg-[#faf7f1] p-3.5"><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[#403a35] text-[10px] font-semibold text-white">{user.avatar?.startsWith("http") ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : initials(user.name)}</span><div className="min-w-0"><p className="truncate text-[11px] font-semibold text-[#403a35]">{user.name}</p><p className="mt-0.5 truncate text-[9px] text-[#988f84]">{user.email}</p></div></div><div className="mt-3 flex gap-1 border-t border-[#eae3d9] pt-2"><button onClick={() => setSettingsOpen(true)} className="flex min-h-9 flex-1 items-center gap-2 rounded-lg px-2 text-[10px] text-[#81786f] hover:bg-[#f0ebe4]" aria-label="Settings"><GearSixIcon size={15} />Settings</button><button onClick={signOut} className="grid h-9 w-9 place-items-center rounded-lg text-[#81786f] hover:bg-[#f0ebe4]" aria-label="Sign out"><SignOutIcon size={15} /></button></div></div>
       </aside>

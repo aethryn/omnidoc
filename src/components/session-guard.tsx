@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function SessionGuard() {
   const router = useRouter();
+  const pathname = usePathname();
+  const protectedRoute = pathname === "/dashboard" || pathname === "/document" || pathname.startsWith("/document/");
 
   useEffect(() => {
+    if (!protectedRoute) return;
     let checking = false;
+    let expiring = false;
     let disposed = false;
     const supabase = createClient();
     const expire = async () => {
-      if (disposed) return;
+      if (disposed || expiring) return;
+      expiring = true;
       await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
       if (!disposed) {
-        window.dispatchEvent(new Event("omnidoc:signed-out"));
         router.replace("/");
       }
     };
@@ -32,10 +36,8 @@ export function SessionGuard() {
       }
     };
     const onFocus = () => void check();
-    const onSignedOut = () => void expire();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
-    window.addEventListener("omnidoc:signed-out", onSignedOut);
     const timer = window.setInterval(() => void check(), 30_000);
     void check();
     return () => {
@@ -43,9 +45,8 @@ export function SessionGuard() {
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
-      window.removeEventListener("omnidoc:signed-out", onSignedOut);
     };
-  }, [router]);
+  }, [protectedRoute, router]);
 
   return null;
 }

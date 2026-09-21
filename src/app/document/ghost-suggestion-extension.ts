@@ -6,8 +6,11 @@ import type { EditorSuggestion } from "./editor-types";
 export const ghostSuggestionKey = new PluginKey<DecorationSet>("omnidocGhostSuggestion");
 
 function decoration(doc: Parameters<typeof DecorationSet.create>[0], change: EditorSuggestion) {
+  const decorations = [];
   if (change.kind === "delete" && change.to > change.from) {
-    return DecorationSet.create(doc, [Decoration.inline(change.from, change.to, { class: "omnidoc-ghost-deletion" }, { key: change.id })]);
+    decorations.push(Decoration.inline(change.from, change.to, { class: "omnidoc-ghost-deletion" }, { key: change.id }));
+  } else if (change.to > change.from) {
+    decorations.push(Decoration.inline(change.from, change.to, { class: "omnidoc-ghost-deletion" }, { key: `${change.id}-target` }));
   }
   const position = Math.max(0, Math.min(change.to, doc.content.size));
   const widget = Decoration.widget(position, () => {
@@ -18,7 +21,8 @@ function decoration(doc: Parameters<typeof DecorationSet.create>[0], change: Edi
     span.setAttribute("aria-label", "AI suggestion preview");
     return span;
   }, { side: 1, key: change.id });
-  return DecorationSet.create(doc, [widget]);
+  decorations.push(widget);
+  return DecorationSet.create(doc, decorations);
 }
 
 export const GhostSuggestionExtension = Extension.create({
