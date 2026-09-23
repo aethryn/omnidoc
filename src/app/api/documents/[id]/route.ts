@@ -123,48 +123,25 @@ export async function PUT(
       return NextResponse.json({ error: "Collaborative documents must be updated through the editor connection", code: "COLLABORATIVE_WRITE_REQUIRED" }, { status: 409 });
     }
 
-    //create a version before updating the document if it is being changed
-
-    if (updateData.content && updateData.content !== document.content) {
-      await prisma.documentVersion.create({
-        data: {
-          documentId,
-          title: document.title,
-          content: document.content,
-          versionNumber: await allocateDocumentVersionNumber(prisma, documentId),
-          source: "legacy-rest",
-          contentHash: documentContentHash(document.title, document.content),
-          contributors: [userId],
-          createdBy: userId,
-        },
-      });
-    }
-
-    //update the docunment
+    const contentChanged = typeof updateData.content === "string" && updateData.content !== document.content;
     const contentUpdate = typeof updateData.content === "string" ? updateData.content : null;
-    const updatedDocument = await prisma.document.update({
-      where: {
-        id: documentId,
-      },
-      data: {
-        ...(typeof updateData.title === "string" ? { title: updateData.title.trim().slice(0, 200) || "Untitled document" } : {}),
-        ...(contentUpdate ? { content: contentUpdate, yjsState: null, ...deriveDocumentPreview(contentUpdate), lastEditedAt: new Date() } : {}),
-        updatedAt: new Date(),
-      },
-      include: {
-        images: true,
-        collaborators: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+    const updatedDocument = await prisma.$transaction(async (tx) => {
+      if (contentChanged && contentUpdate !== null) {
+        await tx.documentVersion.create({
+          data:{ documentId, title:document.title, content:document.content, versionNumber:await allocateDocumentVersionNumber(tx, documentId), source:"legacy-rest", contentHash:documentContentHash(document.title, document.content), contributors:[userId], createdBy:userId },
+        });
+        const updated = await tx.document.updateMany({
+          where:{ id:documentId, yjsEpoch:document.yjsEpoch },
+          data:{ content:contentUpdate, yjsState:null, yjsEpoch:{ increment:1 }, ...deriveDocumentPreview(contentUpdate), lastEditedAt:new Date(), updatedAt:new Date(), ...(typeof updateData.title === "string" ? { title:updateData.title.trim().slice(0, 200) || "Untitled document" } : {}) },
+        });
+        if (!updated.count) throw new Error("DOCUMENT_CHANGED");
+      } else {
+        await tx.document.update({ where:{ id:documentId }, data:{ ...(typeof updateData.title === "string" ? { title:updateData.title.trim().slice(0, 200) || "Untitled document" } : {}), updatedAt:new Date() } });
+      }
+      return tx.document.findUnique({
+        where:{ id:documentId },
+        include:{ images:true, collaborators:{ include:{ user:{ select:{ id:true, email:true, name:true } } } } },
+      });
     });
 
     //log the update
@@ -184,7 +161,7 @@ export async function PUT(
     });
     return NextResponse.json(updatedDocument);
   } catch (error) {
-
+    if (error instanceof Error && error.message === "DOCUMENT_CHANGED") return NextResponse.json({ error:"The document became collaborative while saving. Retry in the live editor.", code:"COLLABORATIVE_WRITE_REQUIRED" }, { status:409 });
     console.error("Error updating document: ", error);
     return NextResponse.json(
       { error: "Internal server error" },

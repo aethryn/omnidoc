@@ -16,7 +16,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     prisma.document.findFirst({
       where:{ id, ...documentAccessWhere(userId) },
       select:{
-        id:true,title:true,content:true,yjsState:true,userId:true,status:true,allowComments:true,updatedAt:true,lastEditedAt:true,
+        id:true,title:true,content:true,yjsState:true,yjsEpoch:true,userId:true,status:true,allowComments:true,updatedAt:true,lastEditedAt:true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true,revisionHash:true}},
         shares:{where:{isActive:true,OR:[{expiresAt:null},{expiresAt:{gt:new Date()}}]},select:{id:true},take:1},
         user:{select:{id:true,name:true,avatar:true}},
@@ -30,6 +30,7 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     id:document.id,title:document.title,content:document.content,role,status:document.status,allowComments:document.allowComments,updatedAt:document.updatedAt.toISOString(),lastEditedAt:document.lastEditedAt.toISOString(),
     publication:document.publication?{...document.publication,publishedAt:document.publication.publishedAt.toISOString(),updatedAt:document.publication.updatedAt.toISOString()}:null,
     yjsState:document.yjsState ? Buffer.from(document.yjsState).toString("base64") : null,
+    yjsEpoch:document.yjsEpoch,
     collaborationEligible:hasRealtimeCollaboration(document),
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };

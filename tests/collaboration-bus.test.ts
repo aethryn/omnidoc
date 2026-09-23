@@ -1,32 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CollaborationBus, collaborationChannel, sessionRevocationChannel } from "../src/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "../src/lib/websocket-liveness";
-
-test("uses isolated channels for each document", () => {
-  assert.equal(collaborationChannel("doc-123"), "omnidoc:room:doc-123");
-  assert.notEqual(collaborationChannel("doc-123"), collaborationChannel("doc-456"));
-});
-
-test("uses a dedicated control channel for session revocations", () => {
-  assert.equal(sessionRevocationChannel, "omnidoc:control:session-revoked");
-  assert.notEqual(sessionRevocationChannel, collaborationChannel("session-revoked"));
-});
-
-test("does not open Redis when optional configuration is absent", async () => {
-  const bus = new CollaborationBus(undefined);
-  assert.equal(bus.status, "disabled");
-  const unsubscribe = await bus.subscribe("doc-123", () => undefined);
-  assert.equal(bus.subscribedRooms, 0);
-  assert.equal(await bus.publish({ version:1, id:"event", sender:"instance", documentId:"doc-123", kind:"yjs-update", data:"AA==" }), false);
-  await unsubscribe();
-  await bus.close();
-});
-
-test("requires Redis when multi-instance mode is enabled", () => {
-  assert.throws(() => new CollaborationBus(undefined, true), /REDIS_URL is required/);
-  assert.throws(() => new CollaborationBus("https://example.com", true), /valid redis/);
-});
 
 test("terminates only after two missed heartbeat intervals", () => {
   assert.equal(websocketHeartbeatIntervalMs, 30_000);

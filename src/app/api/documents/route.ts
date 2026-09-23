@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { activeCollaboratorConstraint, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deriveDocumentPreview } from "@/lib/document-content";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest){
     try {
@@ -14,7 +15,6 @@ export async function GET(request: NextRequest){
         }
         
         const userId = authResult.userId;
-
         const documents = await prisma.document.findMany({
             where: documentAccessWhere(userId),
             orderBy: {
@@ -57,6 +57,8 @@ export async function POST(request: NextRequest){
         }
         
         const userId = authResult.userId;
+        const rate = await enforceRateLimit("document-create", userId, 30, 60 * 60_000);
+        if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many documents created. Try again later.");
 
         const { title = "Untitled", content = JSON.stringify({type:"doc",content:[{type:"paragraph"}]}), tags = [] } = await request.json();
         const preview = deriveDocumentPreview(content);
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest){
                 tags,
                 ...preview,
             },
-            select: { id: true, title: true, status: true, updatedAt: true, lastEditedAt: true, yjsState:true }
+            select: { id: true, title: true, status: true, updatedAt: true, lastEditedAt: true, yjsState:true, yjsEpoch:true }
         });
 
         return NextResponse.json({...document,yjsState:document.yjsState?Buffer.from(document.yjsState).toString("base64"):null});

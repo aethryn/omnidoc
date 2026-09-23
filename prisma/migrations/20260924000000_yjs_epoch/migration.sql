@@ -1,0 +1,2 @@
+ALTER TABLE "public"."Document"
+ADD COLUMN "yjsEpoch" INTEGER NOT NULL DEFAULT 0;

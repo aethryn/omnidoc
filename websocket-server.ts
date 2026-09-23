@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import http from "http";
-import WebSocket, { WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer, type RawData } from "ws";
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
 import * as decoding from "lib0/decoding";
@@ -14,9 +14,9 @@ import { contentToYDoc, yDocToContent } from "@/lib/document-yjs";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
-import { CollaborationBus } from "@/lib/collaboration-bus";
 import { nextHeartbeatMissCount, resetHeartbeat, shouldTerminateHeartbeat, websocketHeartbeatIntervalMs } from "@/lib/websocket-liveness";
 import type { PersistCheckpoint } from "@/lib/collaboration-persistence";
+import { consumeHandshakeAttempt, consumeSocketBudget, websocketLimits, type AttemptWindow, type SocketBudget } from "@/lib/websocket-guard";
 
 const PORT = Number(process.env.PORT || process.env.WEBSOCKET_PORT || 4000);
 const HOST = process.env.WEBSOCKET_HOST || "0.0.0.0";
@@ -26,31 +26,26 @@ const messageApplication = 4;
 const persistDebounceMs = 1500;
 const versionIdleMs = 120_000;
 const versionSnapshotIntervalMs = 15 * 60_000;
-const orphanRetentionMs = 30 * 24 * 60 * 60 * 1000;
-const orphanCleanupIntervalMs = 24 * 60 * 60 * 1000;
 type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
-type Connection = { ws: WebSocket; userId: string; sessionId?: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean };
+type Connection = { ws: WebSocket; userId: string; sessionId?: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean; lastActivityAt:number; budget:SocketBudget };
 type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void> };
 
 const active = new Map<string, ActiveRoom>();
 const loadingRooms = new Map<string, Promise<ActiveRoom | null>>();
 const connections = new Map<string, Set<Connection>>();
 const liveConnections = new Set<Connection>();
-const collaborationBus = new CollaborationBus(process.env.REDIS_URL, process.env.WS_REDIS_REQUIRED === "true");
+const handshakeAttempts = new Map<string, AttemptWindow>();
+let pendingHandshakes = 0;
+let sessionValidationInFlight = false;
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
-const storageAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
-  : null;
-
 const server = http.createServer(async (request, response) => {
   if (request.url === "/health") {
     const connectionCount = Array.from(connections.values()).reduce((total, roomConnections) => total + roomConnections.size, 0);
-    const redis = await collaborationBus.ensureConnected();
     response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, redis }));
+    response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, pendingHandshakes }));
     return;
   }
   response.writeHead(200, { "Content-Type": "text/plain" });
@@ -70,50 +65,14 @@ const heartbeatTimer = setInterval(() => {
     socket.missedPongs = nextHeartbeatMissCount(socket.missedPongs || 0);
     try { socket.ping(); } catch { socket.terminate(); }
   });
-  liveConnections.forEach((connection) => {
-    void validateConnectionSession(connection);
-  });
+  void validateActiveSessions();
+  const now = Date.now();
+  connections.forEach((roomConnections, documentId) => roomConnections.forEach((connection) => {
+    if (!connection.closed && !connection.expired && now - connection.lastActivityAt >= websocketLimits.idleTimeoutMs) void closeIdleConnection(documentId, connection);
+  }));
+  handshakeAttempts.forEach((attempt, userId) => { if (now - attempt.windowStartedAt >= 60_000) handshakeAttempts.delete(userId); });
 }, websocketHeartbeatIntervalMs);
 heartbeatTimer.unref();
-
-async function cleanupOrphanImages() {
-  if (!storageAdmin) {
-    console.warn("Skipping orphan image cleanup: SUPABASE_SERVICE_ROLE_KEY is not configured");
-    return;
-  }
-  const cutoff = new Date(Date.now() - orphanRetentionMs);
-  const candidates = await prisma.documentImage.findMany({
-    where: { createdAt: { lt: cutoff } },
-    select: {
-      id: true,
-      fileName: true,
-      document: {
-        select: {
-          content: true,
-          versions: { select: { content: true } },
-          publication: { select: { content: true } },
-        },
-      },
-    },
-  });
-
-  for (const candidate of candidates) {
-    const reference = `/api/images/${candidate.fileName}`;
-    const referenced = [
-      candidate.document.content,
-      ...candidate.document.versions.map((version: { content: string }) => version.content),
-      candidate.document.publication?.content,
-    ].some((content) => content?.includes(reference));
-    if (referenced) continue;
-
-    const { error } = await storageAdmin.storage.from("document-images").remove([candidate.fileName]);
-    if (error) {
-      console.error("Orphan image storage cleanup failed", candidate.fileName, error.message);
-      continue;
-    }
-    await prisma.documentImage.delete({ where: { id: candidate.id } }).catch((error: unknown) => console.error("Orphan image metadata cleanup failed", candidate.fileName, error));
-  }
-}
 
 function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
   const encoder = encoding.createEncoder();
@@ -122,24 +81,34 @@ function sendApplication(ws: WebSocket, payload: Record<string, unknown>) {
   ws.send(encoding.toUint8Array(encoder));
 }
 
-function revokeLiveSession(sessionId: string) {
-  liveConnections.forEach((connection) => {
-    if (connection.sessionId !== sessionId || connection.closed || connection.expired) return;
-    connection.expired = true;
-    if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
-  });
+async function validateActiveSessions() {
+  if (sessionValidationInFlight) return;
+  const sessionIds = Array.from(new Set(Array.from(liveConnections).filter((connection) => !connection.closed && !connection.expired && connection.sessionId).map((connection) => connection.sessionId!)));
+  if (!sessionIds.length) return;
+  sessionValidationInFlight = true;
+  try {
+    const sessions = await prisma.appSession.findMany({ where:{ id:{ in:sessionIds } }, select:{ id:true, revokedAt:true, expiresAt:true } });
+    const valid = new Set(sessions.filter((session) => !session.revokedAt && (!session.expiresAt || session.expiresAt > new Date())).map((session) => session.id));
+    liveConnections.forEach((connection) => {
+      if (!connection.sessionId || valid.has(connection.sessionId) || connection.closed || connection.expired) return;
+      connection.expired = true;
+      if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
+    });
+  } catch (error) {
+    console.error("Session revocation validation failed", error instanceof Error ? error.name : "unknown");
+  } finally { sessionValidationInFlight = false; }
 }
 
-async function validateConnectionSession(connection: Connection) {
-  if (connection.closed || connection.expired || !connection.sessionId) return;
-  const sessions = await prisma.$queryRaw<Array<{ revokedAt: Date | null; expiresAt: Date | null }>>`
-    SELECT "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${connection.sessionId} LIMIT 1
-  `.catch(() => []);
-  const session = sessions[0];
-  if (!session || session.revokedAt) {
-    connection.expired = true;
-    if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
-  }
+function rawMessageSize(raw: RawData) {
+  if (Array.isArray(raw)) return raw.reduce((total, item) => total + item.byteLength, 0);
+  return raw.byteLength;
+}
+
+async function closeIdleConnection(documentId: string, connection: Connection) {
+  if (connection.closed || connection.expired) return;
+  connection.lastActivityAt = Date.now();
+  await persist(documentId, true).catch((error) => console.error("Failed to persist before idle disconnect", documentId, error));
+  if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4005, "Collaboration session idle");
 }
 
 function sessionIdFromToken(token: string) {
@@ -347,12 +316,25 @@ async function loadRoom(documentId: string) {
 }
 
 wss.on("connection", async (ws, request) => {
+  if (liveConnections.size >= websocketLimits.totalConnections) return ws.close(1013, "Server connection limit reached");
+  if (pendingHandshakes >= websocketLimits.pendingHandshakes) return ws.close(1013, "Server authentication capacity reached");
+  pendingHandshakes += 1;
+  let handshakeFinished = false;
+  const finishHandshake = () => {
+    if (handshakeFinished) return;
+    handshakeFinished = true;
+    pendingHandshakes = Math.max(0, pendingHandshakes - 1);
+    clearTimeout(setupTimer);
+  };
+  const reject = (code:number, reason:string) => { finishHandshake(); ws.close(code, reason); };
+  const setupTimer = setTimeout(() => reject(1008, "Authentication timed out"), websocketLimits.setupTimeoutMs);
+  setupTimer.unref();
   const socket = ws as HeartbeatSocket;
   socket.isAlive = true;
   socket.missedPongs = 0;
   ws.on("pong", () => { socket.isAlive = true; socket.missedPongs = resetHeartbeat(); });
   let closedBeforeSetup = false;
-  let closeHandler = () => { closedBeforeSetup = true; };
+  let closeHandler = () => { closedBeforeSetup = true; finishHandshake(); };
   ws.once("close", closeHandler);
   ws.on("error", (error) => {
     console.error("WebSocket error", error instanceof Error ? error.message : error);
@@ -363,20 +345,25 @@ wss.on("connection", async (ws, request) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   const origin = request.headers.origin;
   const expectedOrigin = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-  if (origin && expectedOrigin && origin !== expectedOrigin) return ws.close(1008, "Origin not allowed");
+  if (origin && expectedOrigin && origin !== expectedOrigin) return reject(1008, "Origin not allowed");
   const documentId = url.pathname.split("/").filter(Boolean).pop();
   const token = url.searchParams.get("token");
-  if (!documentId || !token) return ws.close(1008, "Authentication required");
+  if (!documentId || !token) return reject(1008, "Authentication required");
 
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
-  if (authError || !user) return ws.close(1008, "Invalid session");
+  if (authError || !user) return reject(1008, "Invalid session");
+  const attemptResult = consumeHandshakeAttempt(handshakeAttempts.get(user.id), Date.now());
+  handshakeAttempts.set(user.id, attemptResult.attempt);
+  if (!attemptResult.allowed) return reject(1008, "Too many connection attempts");
+  if (Array.from(liveConnections).filter((connection) => connection.userId === user.id && !connection.closed).length >= websocketLimits.connectionsPerUser) return reject(1008, "User connection limit reached");
+  if (liveConnections.size >= websocketLimits.totalConnections) return reject(1013, "Server connection limit reached");
   const sessionId = sessionIdFromToken(token);
   if (sessionId) {
     const session = await prisma.$queryRaw<Array<{ revokedAt: Date | null; expiresAt: Date | null }>>`
       SELECT "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${sessionId} LIMIT 1
     `;
-    if (session[0]?.revokedAt) return ws.close(1008, "Session revoked");
+    if (session[0]?.revokedAt) return reject(1008, "Session revoked");
   }
 
   const document = await prisma.document.findFirst({
@@ -389,16 +376,22 @@ wss.on("connection", async (ws, request) => {
     },
   });
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
-  if (!document) return ws.close(1008, "Document access denied");
-  if (!hasRealtimeCollaboration(document)) return ws.close(4004, "Document is not shared");
+  if (!document) return reject(1008, "Document access denied");
+  if (!hasRealtimeCollaboration(document)) return reject(4004, "Document is not shared");
+  if ((connections.get(documentId)?.size || 0) >= websocketLimits.connectionsPerDocument) return reject(1008, "Document connection limit reached");
 
   const room = await loadRoom(documentId);
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) { await cleanupEmptyRoom(documentId); return; }
-  if (!room) return ws.close(1008, "Document not found");
+  if (!room) return reject(1008, "Document not found");
+  if (liveConnections.size >= websocketLimits.totalConnections || Array.from(liveConnections).filter((connection) => connection.userId === user.id && !connection.closed).length >= websocketLimits.connectionsPerUser || (connections.get(documentId)?.size || 0) >= websocketLimits.connectionsPerDocument) {
+    await cleanupEmptyRoom(documentId);
+    return reject(1013, "Connection limit reached");
+  }
   const collaborator=document.collaborators.find((member)=>member.userId===user.id);
   const role=document.userId===user.id?"owner":collaborator?.role;
   const accessExpiresAt=document.userId===user.id?null:collaborator?.accessExpiresAt;
-  const entry:Connection = { ws, userId: user.id, sessionId, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt };
+  const now = Date.now();
+  const entry:Connection = { ws, userId: user.id, sessionId, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt, lastActivityAt:now, budget:{ windowStartedAt:now, messages:0, bytes:0 } };
   ws.off("close", closeHandler);
   closeHandler = () => {
     if (entry.closed) return;
@@ -413,6 +406,7 @@ wss.on("connection", async (ws, request) => {
   if (!connections.has(documentId)) connections.set(documentId, new Set());
   connections.get(documentId)!.add(entry);
   liveConnections.add(entry);
+  finishHandshake();
   if (accessExpiresAt) {
     const delay = Math.max(0, accessExpiresAt.getTime() - Date.now());
     entry.expiryTimer = setTimeout(() => { void expireConnection(documentId, entry); }, delay);
@@ -429,9 +423,13 @@ wss.on("connection", async (ws, request) => {
   ws.on("message", (raw, isBinary) => {
     if (entry.closed || entry.expired || ws.readyState !== WebSocket.OPEN || !isBinary || typeof raw === "string") return;
     try {
+      const budgetResult = consumeSocketBudget(entry.budget, Date.now(), rawMessageSize(raw));
+      entry.budget = budgetResult.budget;
+      if (!budgetResult.allowed) return ws.close(1008, "Connection message budget exceeded");
       const decoder = decoding.createDecoder(new Uint8Array(raw as Buffer));
       const type = decoding.readVarUint(decoder);
       if (type === messageSync) {
+        entry.lastActivityAt = Date.now();
         const response = encoding.createEncoder();
         encoding.writeVarUint(response, messageSync);
         const syncType=decoding.readVarUint(decoder);
@@ -443,8 +441,10 @@ wss.on("connection", async (ws, request) => {
         awarenessProtocol.applyAwarenessUpdate(room.awareness,decoding.readVarUint8Array(decoder),entry);
       } else if (type === messageApplication) {
         const payload = JSON.parse(decoding.readVarString(decoder)) as { kind?:string; markerId?:string; clientId?:string; sequence?:number; checkpoint?:PersistCheckpoint };
+        if (payload.kind === "active") { entry.lastActivityAt = Date.now(); return; }
         const sequence = payload.sequence;
         if (payload.kind !== "persist-request" || typeof sequence !== "number" || !Number.isSafeInteger(sequence) || sequence < 0 || (payload.checkpoint && !entry.canEdit)) return;
+        entry.lastActivityAt = Date.now();
         const markerId = typeof payload.markerId === "string" ? payload.markerId : `legacy:${entry.userId}:${sequence}`;
         const clientId = typeof payload.clientId === "string" ? payload.clientId : `legacy:${entry.userId}`;
         const previous = room.acknowledgedMarkers.get(markerId);
@@ -474,22 +474,14 @@ wss.on("connection", async (ws, request) => {
 
 const shutdown = async () => {
   clearInterval(heartbeatTimer);
-  clearInterval(cleanupTimer);
   for (const documentId of active.keys()) await persist(documentId).catch(console.error);
   await Promise.all(Array.from(active.keys()).map((documentId) => cleanupEmptyRoom(documentId)));
-  await collaborationBus.close();
   wss.clients.forEach((client) => client.close(1001, "Server restarting"));
   server.close(async () => { await prisma.$disconnect(); process.exit(0); });
 };
 
-void collaborationBus.subscribeSessionRevocations(revokeLiveSession).catch((error) => {
-  console.error("Redis session revocation subscription failed", error instanceof Error ? error.message : error);
-});
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
-const cleanupTimer = setInterval(() => { cleanupOrphanImages().catch((error) => console.error("Orphan image cleanup failed", error)); }, orphanCleanupIntervalMs);
-cleanupTimer.unref();
 server.listen(PORT, HOST, () => {
   console.log(`Omnidoc WebSocket server listening on ${HOST}:${PORT}`);
-  cleanupOrphanImages().catch((error) => console.error("Initial orphan image cleanup failed", error));
 });
