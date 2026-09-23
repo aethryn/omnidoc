@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowUpRight";
 
@@ -10,10 +11,14 @@ import { prisma } from "@/lib/prisma";
 import { publicationUrl } from "@/lib/publication";
 import "./public-document.css";
 
-const getPublication = cache(async (id: string) => prisma.documentPublication.findFirst({
-  where: { id, isActive: true },
-  select: { id: true, slug: true, title: true, content: true, excerpt: true, publishedAt: true, updatedAt: true, document: { select: { user: { select: { name: true, avatar: true } } } } },
-}));
+const getPublication = cache(async (id: string) => unstable_cache(
+  async () => prisma.documentPublication.findFirst({
+    where: { id, isActive: true },
+    select: { id: true, slug: true, title: true, content: true, excerpt: true, publishedAt: true, updatedAt: true, document: { select: { user: { select: { name: true, avatar: true } } } } },
+  }),
+  ["publication", id],
+  { tags:[`publication:${id}`], revalidate:3_600 },
+)());
 
 type Props = { params: Promise<{ publicationId: string; slug: string }> };
 

@@ -2,6 +2,7 @@ export type AIProvider = "gemini" | "xai";
 
 export type AIModelCapabilities = { id: string; imageInput: boolean; imageOutput: boolean };
 export type AIInputImage = { mimeType: "image/jpeg" | "image/png"; data: string };
+export type AIProviderRequest = { trustedInstructions:string; untrustedContext:string; signal:AbortSignal; images?:AIInputImage[]; maxOutputTokens?:number };
 
 export function isAIProvider(value: unknown): value is AIProvider { return value === "gemini" || value === "xai"; }
 
@@ -30,16 +31,25 @@ export async function listProviderModels(provider: AIProvider, apiKey: string): 
   } finally { clearTimeout(timeout); }
 }
 
-export function providerRequest(provider: AIProvider, apiKey: string, model: string, prompt: string, signal: AbortSignal, images: AIInputImage[] = []) {
+export function buildProviderRequestBody(provider: AIProvider, model: string, request: Omit<AIProviderRequest, "signal">) {
+  const images = request.images ?? [];
   if (provider === "gemini") {
-    const parts = [{ text: prompt }, ...images.map((image) => ({ inlineData: { mimeType: image.mimeType, data: image.data } }))];
+    const parts = [{ text: request.untrustedContext }, ...images.map((image) => ({ inlineData: { mimeType: image.mimeType, data: image.data } }))];
+    return { systemInstruction:{ parts:[{ text:request.trustedInstructions }] }, contents:[{ role:"user", parts }], generationConfig:{ maxOutputTokens:request.maxOutputTokens ?? 16_384 } };
+  }
+  const input = images.length ? [{ role:"user", content:[{ type:"input_text", text:request.untrustedContext }, ...images.map((image) => ({ type:"input_image", image_url:`data:${image.mimeType};base64,${image.data}` }))] }] : request.untrustedContext;
+  return { model, instructions:request.trustedInstructions, input, stream:true, store:false, max_output_tokens:request.maxOutputTokens ?? 16_384 };
+}
+
+export function providerRequest(provider: AIProvider, apiKey: string, model: string, request: AIProviderRequest) {
+  const body = buildProviderRequestBody(provider, model, request);
+  if (provider === "gemini") {
     return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model.replace(/^models\//, ""))}:streamGenerateContent?alt=sse`, {
-      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey }, body: JSON.stringify({ contents: [{ role: "user", parts }] }), signal, cache: "no-store",
+      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey }, body: JSON.stringify(body), signal:request.signal, cache: "no-store",
     });
   }
-  const input = images.length ? [{ role: "user", content: [{ type: "input_text", text: prompt }, ...images.map((image) => ({ type: "input_image", image_url: `data:${image.mimeType};base64,${image.data}` }))] }] : prompt;
   return fetch("https://api.x.ai/v1/responses", {
-    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model, input, stream: true, store: false }), signal, cache: "no-store",
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(body), signal:request.signal, cache: "no-store",
   });
 }
 

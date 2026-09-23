@@ -7,11 +7,15 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { parseAiEditResult, type AiEditScope } from "@/lib/ai/edit-operation";
+import { appendProviderOutput, buildUntrustedEditContext, expectedTextForEdit, trustedAiEditInstructions } from "@/lib/ai/edit-guard";
+import { createHash } from "crypto";
 
 const encoder = new TextEncoder();
 const event = (type: string, value: unknown) => encoder.encode(`event: ${type}\ndata: ${JSON.stringify(value)}\n\n`);
 const maxImages = 4;
 const maxImageBytes = 8 * 1024 * 1024;
+const maxProviderOutputCharacters = 120_000;
+const maxProviderOutputTokens = 16_384;
 
 async function loadImageInputs(documentId: string, imageIds: string[]): Promise<AIInputImage[]> {
   const records = await prisma.documentImage.findMany({ where: { documentId, id: { in: imageIds } }, select: { id: true, mimeType: true, fileName: true }, orderBy: { createdAt: "asc" } });
@@ -68,18 +72,12 @@ export async function POST(request: NextRequest) {
     catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Selected images could not be loaded" }, { status: 400 }); }
   }
 
-  const prompt = [
-    "You are an editing assistant inside a collaborative document editor.",
-    "Return only valid JSON matching this schema: {operation:\"replace-selection\"|\"replace-blocks\"|\"insert-at-caret\"|\"replace-document\",startBlockId?:string,endBlockId?:string,expectedText:string,markdown:string}.",
-    "Never return markdown fences or commentary. Use replace-document only when the requested scope is document or the instruction explicitly requests a complete rewrite.",
-    `Requested scope: ${scope}. Caret position: ${caret}.`,
-    `Instruction: ${instruction}`,
-    selection?.text ? `Selected text:\n${selection.text}` : "No text is selected.",
-    `Document blocks (choose block IDs only from this list):\n${JSON.stringify(blocks)}`,
-    images.length ? `The user attached ${images.length} document image(s). Use them as visual context.` : "No images were attached.",
-  ].join("\n\n");
+  const untrustedContext = buildUntrustedEditContext({ instruction, scope, caret, selection, blocks, imageCount:images.length });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45_000);
+  const startedAt = Date.now();
+  const auditUser = createHash("sha256").update(auth.userId).digest("hex").slice(0, 12);
+  const auditDocument = typeof body.documentId === "string" ? createHash("sha256").update(body.documentId).digest("hex").slice(0, 12) : null;
 
   const stream = new ReadableStream({
     async start(output) {
@@ -92,7 +90,7 @@ export async function POST(request: NextRequest) {
             : "This saved API key can no longer be decrypted. Enter the provider key again in Settings.";
           throw new Error(message);
         }
-        const upstream = await providerRequest(provider, apiKey, credential.model, prompt, controller.signal, images);
+        const upstream = await providerRequest(provider, apiKey, credential.model, { trustedInstructions:trustedAiEditInstructions, untrustedContext, signal:controller.signal, images, maxOutputTokens:maxProviderOutputTokens });
         if (!upstream.ok || !upstream.body) throw new Error(upstream.status === 401 || upstream.status === 403 ? "The saved API key was rejected" : `The provider returned ${upstream.status}`);
         const reader = upstream.body.getReader();
         const decoder = new TextDecoder();
@@ -108,12 +106,13 @@ export async function POST(request: NextRequest) {
             if (!line.startsWith("data:")) continue;
             const raw = line.slice(5).trim();
             if (!raw || raw === "[DONE]") continue;
-            try {
-              const delta = extractProviderDelta(provider, JSON.parse(raw));
-              if (!delta || (emitted && delta === emitted)) continue;
-              const next = delta.startsWith(emitted) ? delta.slice(emitted.length) : delta;
-              emitted += next;
-            } catch { /* ignore provider keepalive events */ }
+            let delta = "";
+            try { delta = extractProviderDelta(provider, JSON.parse(raw)); }
+            catch { continue; /* Ignore provider keepalive events. */ }
+            if (!delta || (emitted && delta === emitted)) continue;
+            const next = delta.startsWith(emitted) ? delta.slice(emitted.length) : delta;
+            try { emitted = appendProviderOutput(emitted, next, maxProviderOutputCharacters); }
+            catch (error) { controller.abort(); throw error; }
           }
         }
         const rawResult = emitted.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
@@ -121,9 +120,13 @@ export async function POST(request: NextRequest) {
         if (scope === "selection" && result.operation !== "replace-selection") throw new Error("Omni could not produce a selection edit");
         if (scope === "document" && result.operation !== "replace-document") throw new Error("Omni could not produce a document edit");
         if (scope !== "document" && result.operation === "replace-document" && !/\b(rewrite|re-write|replace|recreate|redraft|overhaul)\b.*\b(entire|whole|complete|full|document|page)\b/i.test(instruction)) throw new Error("Omni could not produce a whole-document edit for that request");
+        const expectedText = expectedTextForEdit(result, blocks, selection);
+        if (expectedText == null || result.expectedText !== expectedText) throw new Error("Omni targeted text that no longer matches the request");
+        console.info(JSON.stringify({ event:"ai.edit", outcome:"success", provider, model:credential.model, user:auditUser, document:auditDocument, instructionCharacters:instruction.length, contextCharacters:untrustedContext.length, images:images.length, outputCharacters:emitted.length, durationMs:Date.now()-startedAt }));
         output.enqueue(event("suggestion", result));
         output.enqueue(event("done", { ok: true }));
       } catch (error) {
+        console.warn(JSON.stringify({ event:"ai.edit", outcome:"failed", provider, model:credential.model, user:auditUser, document:auditDocument, instructionCharacters:instruction.length, contextCharacters:untrustedContext.length, images:images.length, durationMs:Date.now()-startedAt, code:error instanceof SyntaxError?"INVALID_JSON":error instanceof Error?error.name:"UNKNOWN" }));
         output.enqueue(event("error", { error: error instanceof Error ? error.message : "AI request failed" }));
       } finally {
         clearTimeout(timeout);

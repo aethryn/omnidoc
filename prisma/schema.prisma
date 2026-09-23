@@ -87,6 +87,7 @@ model Document {
   title String
   content String @db.Text  // JSON content from Tiptap editor
   yjsState Bytes?          // Persisted Yjs state for collaborative editing
+  yjsEpoch Int @default(0) // Namespaces browser Yjs persistence after canonical resets
   userId String  // Owner of the document
   
   // Document metadata

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -14,7 +15,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     url.searchParams.set("redirect", `/api/share/${encodeURIComponent(token)}/accept`);
     return NextResponse.redirect(url);
   }
-  const share = await prisma.documentShare.findFirst({ where: { shareToken: createHash("sha256").update(token).digest("hex"), isActive: true } });
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const [userRate, tokenRate] = await Promise.all([
+    enforceRateLimit("share-accept-user", String(userId), 20, 60 * 60_000),
+    enforceRateLimit("share-accept-token", tokenHash, 50, 60 * 60_000),
+  ]);
+  const limited = !userRate.allowed ? userRate : !tokenRate.allowed ? tokenRate : null;
+  if (limited) return rateLimitedResponse(limited.retryAfter, "Too many invitation attempts. Try again later.");
+  const share = await prisma.documentShare.findFirst({ where: { shareToken: tokenHash, isActive: true } });
   if (!share) return NextResponse.json({ error: "This share link is invalid or revoked" }, { status: 404 });
   if (share.expiresAt && share.expiresAt <= new Date()) return NextResponse.json({error:"This share link has expired"},{status:410});
   if (share.maxUses !== null && share.useCount >= share.maxUses) return NextResponse.json({error:"This share link has reached its use limit"},{status:410});

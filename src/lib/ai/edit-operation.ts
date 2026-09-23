@@ -11,7 +11,7 @@ export function parseAiEditResult(value: unknown, blockIds: Set<string>): AiEdit
   const expectedText = item.expectedText;
   const markdown = item.markdown;
   if (typeof operation !== "string" || !operations.has(operation as AiEditOperation)) throw new Error("Omni returned an unsupported edit operation");
-  if (typeof expectedText !== "string" || typeof markdown !== "string" || markdown.length > 100_000) throw new Error("Omni returned an invalid edit payload");
+  if (typeof expectedText !== "string" || expectedText.length > 100_000 || typeof markdown !== "string" || markdown.length > 100_000) throw new Error("Omni returned an invalid edit payload");
   const startBlockId = typeof item.startBlockId === "string" ? item.startBlockId : undefined;
   const endBlockId = typeof item.endBlockId === "string" ? item.endBlockId : undefined;
   if (operation === "replace-blocks" && (!startBlockId || !endBlockId || !blockIds.has(startBlockId) || !blockIds.has(endBlockId))) throw new Error("Omni could not identify the requested document section");

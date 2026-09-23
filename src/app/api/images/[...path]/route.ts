@@ -16,7 +16,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const publicImage = publication?.isActive === true && publication.content.includes(`/api/images/${path}`);
   if (!auth.userId && !publicImage) return NextResponse.json({ error: "Image not found" }, { status: 404 });
   const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data, error } = await supabase.storage.from("document-images").download(path);
-  if (error || !data) return NextResponse.json({ error: "Image unavailable" }, { status: 404 });
-  return new NextResponse(data, { headers: { "Content-Type": image.mimeType, "Cache-Control": publicImage ? "public, max-age=300, s-maxage=300" : "private, no-store", "X-Content-Type-Options": "nosniff" } });
+  const { data, error } = await supabase.storage.from("document-images").createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) return NextResponse.json({ error: "Image unavailable" }, { status: 404 });
+  const response = NextResponse.redirect(data.signedUrl, 302);
+  response.headers.set("Cache-Control", publicImage ? "public, max-age=240, s-maxage=240" : "private, no-store");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  return response;
 }

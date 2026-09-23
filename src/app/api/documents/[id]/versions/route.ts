@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { activeCollaboratorWhere, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 async function membership(documentId: string, userId: string) {
   return prisma.document.findFirst({ where: { id: documentId, ...documentAccessWhere(userId) }, select: { id: true, userId: true, title: true, content: true } });
@@ -23,6 +24,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("version-create", auth.userId, 10, 60_000);
+  if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many manual versions. Try again shortly.");
   const { id } = await params;
   const document = await membership(id, auth.userId);
   if (!document) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });

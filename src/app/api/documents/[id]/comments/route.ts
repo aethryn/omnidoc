@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 async function member(documentId: string, userId: string) {
   return prisma.document.findFirst({ where: { id: documentId, ...documentAccessWhere(userId) }, select: { id: true, userId: true, allowComments: true } });
@@ -19,6 +20,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("comment-create", auth.userId, 30, 60_000);
+  if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many comments. Try again shortly.");
   const { id } = await params;
   const document = await member(id, auth.userId);
   if (!document) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });

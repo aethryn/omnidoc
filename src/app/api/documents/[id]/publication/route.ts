@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
@@ -6,6 +6,7 @@ import { createAuthErrorResponse, getCurrentUserIdFromRequest } from "@/lib/auth
 import { deriveDocumentPreview, slugifyDocumentTitle } from "@/lib/document-content";
 import { prisma } from "@/lib/prisma";
 import { documentRevisionHash, publicationUrl } from "@/lib/publication";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 async function ownerDocument(request: NextRequest, id: string) {
   const auth = await getCurrentUserIdFromRequest(request);
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const { auth, document } = await ownerDocument(request, id);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("publication-mutation", auth.userId, 10, 10 * 60_000);
+  if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many publication changes. Try again later.");
   if (!document) return NextResponse.json({ error: "Only the document owner can publish" }, { status: 403 });
   if (document.status !== "COMPLETE") return NextResponse.json({ error: "Mark the document Complete before publishing" }, { status: 409 });
 
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   });
   await prisma.documentActivity.create({ data: { documentId: id, userId: auth.userId, action: document.publication ? "republished" : "published", description: document.publication ? "Published a new snapshot" : "Published document" } });
   revalidatePath(`/p/${publication.id}/${publication.slug}`);
+  revalidateTag(`publication:${publication.id}`, { expire:0 });
   return NextResponse.json({ id: publication.id, slug: publication.slug, publishedAt: publication.publishedAt, url: publicationUrl(request.nextUrl.origin, publication.id, publication.title), hasUnpublishedChanges: false });
 }
 
@@ -70,10 +74,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const { auth, document } = await ownerDocument(request, id);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("publication-mutation", auth.userId, 10, 10 * 60_000);
+  if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many publication changes. Try again later.");
   if (!document) return NextResponse.json({ error: "Only the document owner can unpublish" }, { status: 403 });
   if (!document.publication) return NextResponse.json({ error: "Document has not been published" }, { status: 404 });
   await prisma.documentPublication.update({ where: { documentId: id }, data: { isActive: false } });
   await prisma.documentActivity.create({ data: { documentId: id, userId: auth.userId, action: "unpublished", description: "Removed the public page" } });
   revalidatePath(`/p/${document.publication.id}/${document.publication.slug}`);
+  revalidateTag(`publication:${document.publication.id}`, { expire:0 });
   return new NextResponse(null, { status: 204 });
 }

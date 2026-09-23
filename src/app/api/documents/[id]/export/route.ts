@@ -7,6 +7,7 @@ import { AlignmentType, Document as WordDocument, Footer, HeadingLevel, ImageRun
 import { createAuthErrorResponse, documentAccessWhere, getCurrentUserIdFromRequest } from "@/lib/auth";
 import { documentPlainText, documentToHtml, documentToMarkdown, parseDocumentContent, type TiptapNode } from "@/lib/document-content";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 const formats = new Set(["md", "pdf", "docx", "html"]);
@@ -124,12 +125,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!formats.has(format)) return NextResponse.json({ error: "Choose md, pdf, docx, or html" }, { status: 400 });
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const [burst, hourly] = await Promise.all([
+    enforceRateLimit("document-export-minute", auth.userId, 6, 60_000),
+    enforceRateLimit("document-export-hour", auth.userId, 30, 60 * 60_000),
+  ]);
+  const limited = !burst.allowed ? burst : !hourly.allowed ? hourly : null;
+  if (limited) return rateLimitedResponse(limited.retryAfter, "Too many exports. Try again later.");
   const { id } = await params;
   const document = await prisma.document.findFirst({
     where: { id, ...documentAccessWhere(auth.userId) },
     select: { title: true, content: true, images: { select: { fileUrl: true, fileName: true, mimeType: true } } },
   });
   if (!document) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });
+  if (Buffer.byteLength(document.content, "utf8") > 5_000_000) return NextResponse.json({ error:"Document is too large to export" }, { status:413 });
   const assets = await imageAssets(document.images);
   let body: Buffer;
   let contentType: string;

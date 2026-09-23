@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { encryptApiKey, getCredentialEncryptionStatus } from "@/lib/ai/credentials";
 import { describeModel, isAIProvider, listProviderModels } from "@/lib/ai/providers";
+import { enforceRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
@@ -18,6 +19,8 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await getCurrentUserIdFromRequest(request);
   if (!auth.userId) return createAuthErrorResponse(auth);
+  const rate = await enforceRateLimit("ai-settings-verify", auth.userId, 5, 10 * 60_000);
+  if (!rate.allowed) return rateLimitedResponse(rate.retryAfter, "Too many AI provider checks. Try again later.");
   const body = await request.json().catch(() => ({}));
   if (!isAIProvider(body.provider) || typeof body.apiKey !== "string" || body.apiKey.trim().length < 10) {
     return NextResponse.json({ error: "Choose a provider and enter a valid API key" }, { status: 400 });

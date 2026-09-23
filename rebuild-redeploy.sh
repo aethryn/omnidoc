@@ -45,6 +45,7 @@ require_command gcloud
 require_command git
 require_command pnpm
 require_command curl
+require_command node
 
 if [[ -f "$ENV_FILE" ]]; then
   echo "Loading deployment environment from $ENV_FILE"
@@ -59,7 +60,7 @@ if [[ -n "$APP_URL_OVERRIDE" ]]; then
 fi
 [[ "$APP_URL" == https://* ]] || die "APP_URL must be set to the production HTTPS origin, for example APP_URL=https://app.example.com"
 
-for env_name in DATABASE_URL DIRECT_URL SUPABASE_SERVICE_ROLE_KEY REDIS_URL; do
+for env_name in DATABASE_URL DIRECT_URL SUPABASE_SERVICE_ROLE_KEY; do
   [[ -n "${!env_name:-}" ]] || die "$env_name must be set in $ENV_FILE or the shell environment"
 done
 
@@ -90,6 +91,20 @@ PREVIOUS_REVISION="$(gcloud run services describe "$SERVICE" \
   --format='value(status.latestReadyRevisionName)')"
 [[ -n "$PREVIOUS_REVISION" ]] || die "could not determine the currently serving Cloud Run revision"
 
+CURRENT_SERVICE_URL="$(gcloud run services describe "$SERVICE" \
+  --project="$PROJECT_ID" \
+  --region="$REGION" \
+  --format='value(status.url)')"
+for attempt in $(seq 1 12); do
+  CURRENT_HEALTH="$(curl --fail --silent --show-error --max-time 20 "${CURRENT_SERVICE_URL}/health" || true)"
+  if [[ "$CURRENT_HEALTH" == *'"connections":0'* && ( "$CURRENT_HEALTH" == *'"pendingHandshakes":0'* || "$CURRENT_HEALTH" != *'"pendingHandshakes":'* ) ]]; then
+    break
+  fi
+  [[ "$attempt" != "12" ]] || die "active collaboration sessions remain; retry the deployment after users become idle"
+  echo "Waiting for active collaboration sessions to drain ($attempt/12)"
+  sleep 30
+done
+
 if [[ "$SKIP_TESTS" != "1" ]]; then
   pnpm typecheck
   pnpm test
@@ -111,11 +126,13 @@ gcloud run deploy "$SERVICE" \
   --port=8080 \
   --timeout=3600s \
   --concurrency=100 \
-  --min-instances=0 \
-  --max-instances=1 \
+  --scaling=auto \
+  --min=0 \
+  --max=1 \
   --session-affinity \
   --no-use-http2 \
-  --update-env-vars="APP_URL=${APP_URL},NEXT_PUBLIC_APP_URL=${APP_URL},WS_REDIS_REQUIRED=true,DATABASE_URL=${DATABASE_URL},DIRECT_URL=${DIRECT_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY},REDIS_URL=${REDIS_URL}"
+  --remove-env-vars="REDIS_URL,WS_REDIS_REQUIRED" \
+  --update-env-vars="APP_URL=${APP_URL},NEXT_PUBLIC_APP_URL=${APP_URL},DATABASE_URL=${DATABASE_URL},DIRECT_URL=${DIRECT_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}"
 DEPLOYED=1
 
 SERVICE_URL="$(gcloud run services describe "$SERVICE" \
@@ -142,7 +159,21 @@ DEPLOYED_REVISION="$(gcloud run services describe "$SERVICE" \
   --project="$PROJECT_ID" \
   --region="$REGION" \
   --format='value(status.latestReadyRevisionName)')"
+
+SCALING_JSON="$(gcloud run services describe "$SERVICE" --project="$PROJECT_ID" --region="$REGION" --format=json)"
+node -e '
+const service = JSON.parse(require("fs").readFileSync(0, "utf8"));
+const annotations = { ...(service.metadata?.annotations || {}), ...(service.spec?.template?.metadata?.annotations || {}) };
+const scaling = service.spec?.scaling || service.spec?.template?.scaling || {};
+const min = Number(scaling.minInstanceCount ?? annotations["run.googleapis.com/minScale"] ?? annotations["autoscaling.knative.dev/minScale"] ?? 0);
+const max = Number(scaling.maxInstanceCount ?? annotations["run.googleapis.com/maxScale"] ?? annotations["autoscaling.knative.dev/maxScale"] ?? 0);
+if (min !== 0 || max !== 1) { console.error(`unexpected deployed scaling: min=${min}, max=${max}`); process.exit(1); }
+' <<< "$SCALING_JSON"
+
 DEPLOYED=0
+if [[ "$PREVIOUS_REVISION" != "$DEPLOYED_REVISION" ]]; then
+  gcloud run revisions delete "$PREVIOUS_REVISION" --project="$PROJECT_ID" --region="$REGION" --quiet
+fi
 
 echo "Deployment verified"
 echo "Revision: $DEPLOYED_REVISION"

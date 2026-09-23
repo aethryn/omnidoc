@@ -28,10 +28,11 @@ import { isPersistedMessage, isPersistFailedMessage, persistenceAckTimeoutMs, pe
 import { looksLikeMarkdown, markdownToTiptap } from "@/lib/markdown-to-tiptap";
 import type { EditorEditSnapshot } from "../document/editor-types";
 import { Fragment, Slice } from "@tiptap/pm/model";
+import { collaborationActivitySignalMs, collaborationHiddenIdleMs, collaborationIdleMs, collaborationPendingFlushRetryMs, collaborationPersistenceKey } from "@/lib/collaboration-activity";
 
 export type CollaborationStatus = "local" | "connecting" | "synced" | "offline" | "error";
 export type CollaborationState = { connectivity: "connecting" | "online" | "offline" | "error"; indexedDbReady: boolean; pendingLocalChanges: boolean; lastPersistedAt: string | null; syncError: string | null; retryAvailable: boolean };
-interface Props { documentId: string; initialState?: string | null; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onStateChange?: (state: CollaborationState) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; onAccessExpired?: (persisted: boolean) => void; }
+interface Props { documentId: string; initialState?: string | null; yjsEpoch: number; readOnly?: boolean; user: PresenceUser; onStatusChange?: (status: CollaborationStatus) => void; onStateChange?: (state: CollaborationState) => void; onPresenceChange?: (users: PresenceUser[]) => void; onContentChange?: (content:string) => void; onAccessExpired?: (persisted: boolean) => void; }
 
 function decodeState(value: string) { const binary = atob(value); return Uint8Array.from(binary, (char) => char.charCodeAt(0)); }
 function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: FormatCommand) {
@@ -44,8 +45,12 @@ function runFormat(editor: NonNullable<ReturnType<typeof useEditor>>, command: F
   if (command === "bullet-list") chain.toggleBulletList().run();
 }
 
-const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, readOnly, user, onStatusChange, onStateChange, onPresenceChange, onContentChange, onAccessExpired }, ref) {
-  const ydoc = useMemo(() => new Y.Doc(), [documentId]);
+const CollaborativeEditor = forwardRef<EditorHandle, Props>(function CollaborativeEditor({ documentId, initialState, yjsEpoch, readOnly, user, onStatusChange, onStateChange, onPresenceChange, onContentChange, onAccessExpired }, ref) {
+  const ydoc = useMemo(() => {
+    const next = new Y.Doc();
+    if (initialState) { try { Y.applyUpdate(next, decodeState(initialState)); } catch { /* IndexedDB or the server can still recover the page. */ } }
+    return next;
+  }, [documentId, initialState, yjsEpoch]);
   const [provider, setProvider] = useState<WebsocketProvider | null>(null);
   const onStatusChangeRef = useRef(onStatusChange);
   const onPresenceChangeRef = useRef(onPresenceChange);
@@ -65,6 +70,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   const ackTimerRef = useRef<number | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const persistenceRef = useRef<IndexeddbPersistence | null>(null);
+  const signalActivityRef = useRef<() => void>(() => undefined);
 
   onStatusChangeRef.current = onStatusChange;
   onPresenceChangeRef.current = onPresenceChange;
@@ -77,7 +83,7 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
     onStateChangeRef.current?.(stateRef.current);
   }
 
-  function sendAppMessage(provider: WebsocketProvider, payload: PersistMarker) {
+  function sendAppMessage(provider: WebsocketProvider, payload: PersistMarker | Record<string, unknown>) {
     if (!provider.ws || provider.ws.readyState !== WebSocket.OPEN) return false;
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, 4);
@@ -133,16 +139,16 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   }
 
   useEffect(() => {
-    if (initialState) { try { Y.applyUpdate(ydoc, decodeState(initialState)); } catch { /* IndexedDB can still recover the page. */ } }
-    const persistence = new IndexeddbPersistence(`omnidoc:${documentId}`, ydoc);
+    const persistence = new IndexeddbPersistence(collaborationPersistenceKey(documentId, yjsEpoch), ydoc);
     persistenceRef.current = persistence;
     persistence.on("synced", () => updateState({ indexedDbReady:true }));
     return () => { persistenceRef.current = null; persistence.destroy(); };
-  }, [documentId, initialState, ydoc]);
+  }, [documentId, yjsEpoch, ydoc]);
 
   useEffect(() => {
     const onUpdate = (_update: Uint8Array, origin: unknown) => {
       if (origin === providerRef.current || origin === persistenceRef.current) return;
+      signalActivityRef.current();
       const sequence = ++sequenceRef.current;
       markPending({ kind:"persist-request", markerId:`${clientIdRef.current}:${sequence}`, clientId:clientIdRef.current, sequence });
       if (markerTimerRef.current != null) window.clearTimeout(markerTimerRef.current);
@@ -155,11 +161,65 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
   useEffect(() => {
     let disposed = false;
     let nextProvider: WebsocketProvider | null = null;
+    let idleTimer: number | null = null;
+    let hiddenTimer: number | null = null;
+    let lastActivitySignalAt = 0;
+    const clearLifecycleTimers = () => {
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      if (hiddenTimer != null) window.clearTimeout(hiddenTimer);
+      idleTimer = null;
+      hiddenTimer = null;
+    };
+    const disconnectWhenSettled = () => {
+      if (!nextProvider) return;
+      if (pendingSequencesRef.current.size) {
+        flushMarkers();
+        idleTimer = window.setTimeout(disconnectWhenSettled, collaborationPendingFlushRetryMs);
+        return;
+      }
+      nextProvider.shouldConnect = false;
+      nextProvider.disconnect();
+      updateState({ connectivity:"offline", syncError:null, retryAvailable:false });
+      onStatusChangeRef.current?.("offline");
+    };
+    const scheduleIdleDisconnect = () => {
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(disconnectWhenSettled, collaborationIdleMs);
+    };
+    const signalActivity = () => {
+      if (!nextProvider || document.visibilityState === "hidden") return;
+      if (!nextProvider.shouldConnect || !nextProvider.ws || nextProvider.ws.readyState > WebSocket.OPEN) {
+        nextProvider.shouldConnect = true;
+        nextProvider.connect();
+      }
+      const now = Date.now();
+      if (nextProvider.ws?.readyState === WebSocket.OPEN && now - lastActivitySignalAt >= collaborationActivitySignalMs) {
+        sendAppMessage(nextProvider, { kind:"active" });
+        lastActivitySignalAt = now;
+      }
+      scheduleIdleDisconnect();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        if (idleTimer != null) window.clearTimeout(idleTimer);
+        if (hiddenTimer != null) window.clearTimeout(hiddenTimer);
+        hiddenTimer = window.setTimeout(disconnectWhenSettled, collaborationHiddenIdleMs);
+      } else {
+        if (hiddenTimer != null) window.clearTimeout(hiddenTimer);
+        hiddenTimer = null;
+        signalActivity();
+      }
+    };
+    const onSignedOut = () => {
+      if (!nextProvider) return;
+      nextProvider.shouldConnect = false;
+      nextProvider.disconnect();
+    };
     createClient().auth.getSession().then(({ data }) => {
       if (disposed || !data.session) { if (!disposed) updateState({ connectivity:"error" }); return; }
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
       if (!wsUrl) { updateState({ connectivity:"offline" }); onStatusChangeRef.current?.("offline"); return; }
-      nextProvider = new WebsocketProvider(wsUrl, documentId, ydoc, { params:{ token:data.session.access_token }, connect:true });
+      nextProvider = new WebsocketProvider(wsUrl, documentId, ydoc, { params:{ token:data.session.access_token }, connect:false });
       providerRef.current = nextProvider;
       nextProvider.awareness.setLocalStateField("user", user);
       const publishPresence = () => {
@@ -167,9 +227,15 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
         onPresenceChangeRef.current?.(users);
       };
       nextProvider.awareness.on("change", publishPresence);
-      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); } });
+      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); lastActivitySignalAt = 0; signalActivity(); } });
       nextProvider.on("connection-error", () => { updateState({ connectivity:"error", syncError:"CONNECTION_ERROR", retryAvailable:stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.("error"); scheduleRetry(); });
       nextProvider.on("connection-close", (event) => {
+        if (event?.code === 4005) {
+          nextProvider!.shouldConnect = false;
+          updateState({ connectivity:"offline", syncError:null, retryAvailable:stateRef.current.pendingLocalChanges });
+          onStatusChangeRef.current?.("offline");
+          return;
+        }
         if (![1008, 4001, 4003, 4004].includes(event?.code ?? 0)) return;
         nextProvider!.shouldConnect = false;
         const accessExpired = event?.code === 4003;
@@ -217,8 +283,16 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
       });
       setProvider(nextProvider);
       publishPresence();
+      signalActivityRef.current = signalActivity;
+      window.addEventListener("keydown", signalActivity, { passive:true });
+      window.addEventListener("pointerdown", signalActivity, { passive:true });
+      window.addEventListener("focus", signalActivity, { passive:true });
+      document.addEventListener("selectionchange", signalActivity, { passive:true });
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      window.addEventListener("omnidoc:signed-out", onSignedOut);
+      signalActivity();
     }).catch(() => { if (!disposed) { updateState({ connectivity:"error" }); onStatusChangeRef.current?.("error"); } });
-    return () => { disposed = true; providerRef.current = null; if (ackTimerRef.current != null) window.clearTimeout(ackTimerRef.current); if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current); nextProvider?.destroy(); };
+    return () => { disposed = true; signalActivityRef.current = () => undefined; clearLifecycleTimers(); window.removeEventListener("keydown", signalActivity); window.removeEventListener("pointerdown", signalActivity); window.removeEventListener("focus", signalActivity); document.removeEventListener("selectionchange", signalActivity); document.removeEventListener("visibilitychange", onVisibilityChange); window.removeEventListener("omnidoc:signed-out", onSignedOut); providerRef.current = null; if (ackTimerRef.current != null) window.clearTimeout(ackTimerRef.current); if (retryTimerRef.current != null) window.clearTimeout(retryTimerRef.current); nextProvider?.destroy(); };
   }, [documentId, user, ydoc]);
 
   const editor = useEditor({
