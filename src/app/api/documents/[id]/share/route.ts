@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const document = await prisma.document.findFirst({ where:{ id,userId:auth.userId }, select:{id:true} });
   if(!document)return NextResponse.json({error:"Only the owner can manage links"},{status:403});
-  const links=await prisma.documentShare.findMany({where:{documentId:id},orderBy:{createdAt:"desc"},select:{id:true,permissions:true,expiresAt:true,maxUses:true,useCount:true,createdAt:true,isActive:true}});
+  const links=await prisma.documentShare.findMany({where:{documentId:id},orderBy:{createdAt:"desc"},take:100,select:{id:true,permissions:true,expiresAt:true,maxUses:true,useCount:true,createdAt:true,isActive:true}});
   return NextResponse.json(links.map((link: typeof links[number])=>({...link,role:link.permissions.includes("viewer")?"viewer":"editor"})));
 }
 

@@ -244,10 +244,11 @@ function DocumentCard({
   );
 }
 
-export default function DashboardClient({ user, documents: initialDocuments, greeting }: { user: DashboardUser; documents: DashboardDoc[]; greeting: string }) {
+export default function DashboardClient({ user, documents: initialDocuments, greeting, nextCursor:initialNextCursor }: { user: DashboardUser; documents: DashboardDoc[]; greeting: string; nextCursor:string|null }) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
   const [documents, setDocuments] = useState(initialDocuments);
+  const [nextCursor,setNextCursor]=useState(initialNextCursor);const [loadingMore,setLoadingMore]=useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [error, setError] = useState<string | null>(null);
@@ -260,6 +261,14 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   const deleteInFlightRef = useRef<string | null>(null);
   const dashboardImageSources = useMemo(() => imageSourcesForDashboard(user, initialDocuments), [initialDocuments, user]);
   const imagesReady = useImagesReady(dashboardImageSources);
+  const firstSearchRef=useRef(true);
+
+  useEffect(()=>{
+    if(firstSearchRef.current){firstSearchRef.current=false;return;}
+    const controller=new AbortController();
+    const timer=window.setTimeout(async()=>{setLoadingMore(true);const search=new URLSearchParams({filter});if(query.trim())search.set("q",query.trim());const response=await fetch(`/api/documents?${search}`,{cache:"no-store",signal:controller.signal});const data=await response.json().catch(()=>({}));if(response.ok){setDocuments(data.items||[]);setNextCursor(data.nextCursor||null);}else if(!controller.signal.aborted)setError("Documents could not be filtered.");setLoadingMore(false);},250);
+    return()=>{window.clearTimeout(timer);controller.abort();};
+  },[filter,query]);
 
   const counts = useMemo(() => ({
     all: documents.length,
@@ -281,6 +290,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   function createDocument() {
     startCreating(() => router.push("/document"));
   }
+  async function loadMore(){if(!nextCursor||loadingMore)return;setLoadingMore(true);const search=new URLSearchParams({cursor:nextCursor,filter});if(query.trim())search.set("q",query.trim());const response=await fetch(`/api/documents?${search}`,{cache:"no-store"});const data=await response.json().catch(()=>({}));if(response.ok){setDocuments((items)=>[...items,...(data.items||[])]);setNextCursor(data.nextCursor||null);}else setError("More documents could not be loaded.");setLoadingMore(false);}
 
   async function deleteDocument() {
     if (!deleteTarget || deleteInFlightRef.current) return;
@@ -361,7 +371,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
         <section className="mt-10"><div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a759d]">Your library</p><div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1"><h2 className="font-[var(--font-instrument)] text-[34px] font-normal leading-none tracking-[-0.04em] text-[#312c27]">All your work, together.</h2><span className="text-[11px] text-[#9b9288]">{documents.length} {documents.length === 1 ? "document" : "documents"}</span></div></div><label className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-[#ddd6cb] bg-[#fffdf8] px-3.5 text-[#92897f] shadow-[0_4px_12px_rgba(62,50,35,0.025)] transition focus-within:border-[#8d79a5] focus-within:ring-4 focus-within:ring-[#6c5788]/10 xl:w-[300px]"><MagnifyingGlassIcon size={16} /><input className="min-w-0 w-full border-0 bg-transparent text-[11px] text-[#403a35] outline-none placeholder:text-[#a59d93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search documents" aria-label="Search documents" /></label></div>
           <div className="mt-6 flex items-center gap-3"><div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter documents">{filters.map((item) => <button className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-[10px] font-medium transition aria-selected:border-[#d8cce3] aria-selected:bg-[#eee9f5] aria-selected:text-[#4c3d63] aria-selected:shadow-sm border-transparent text-[#81786f] hover:bg-[#f0ebe4]" key={item.id} role="tab" aria-selected={filter === item.id} onClick={() => setFilter(item.id)}>{item.label}<span className="rounded-full bg-[#f2eee7] px-1.5 py-0.5 text-[9px] tabular-nums">{counts[item.id]}</span></button>)}</div><span className="hidden shrink-0 text-[10px] text-[#a0978c] sm:block">Showing {filtered.length}</span></div>
           {error && <div role="alert" className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#f0c8c0] bg-[#fff0ec] px-4 py-3 text-[11px] text-[#95392f]">{error}<button className="min-h-8 underline" onClick={() => setError(null)}>Dismiss</button></div>}
-          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">{imagesReady ? <AnimatePresence mode="popLayout">{filtered.map((doc, index) => <DocumentCard key={doc.id} doc={doc} index={index} reducedMotion={reducedMotion} broken={brokenImages.has(doc.id)} onImageError={() => setBrokenImages((items) => new Set(items).add(doc.id))} onCopyPublicLink={() => void copyPublicLink(doc)} onDelete={() => setDeleteTarget(doc)} router={router} />)}</AnimatePresence> : <DashboardDocumentSkeletons />}</div>{imagesReady && !filtered.length && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 flex min-h-[300px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d6cec1] bg-[#fffdf8]/60 px-6 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eee9f5] text-[#76648d]"><SparkleIcon size={24} weight="duotone" /></span><h3 className="mt-5 font-[var(--font-instrument)] text-[30px] font-normal tracking-[-0.03em] text-[#403a35]">{query ? "Nothing matches that search" : filter === "all" ? "A clean page is waiting" : `No ${filters.find((item) => item.id === filter)?.label.toLowerCase()} yet`}</h3><p className="mt-2 max-w-sm text-[12px] leading-5 text-[#857c72]">{query ? "Try another title or phrase." : "Start a document and it will appear here as soon as the first thought lands."}</p>{!query && filter === "all" && <button className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#40355f] px-4 text-[11px] font-semibold text-white transition hover:bg-[#33284f]" onClick={createDocument}>Open a blank page <ArrowRightIcon size={14} /></button>}</motion.div>}
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">{imagesReady ? <AnimatePresence mode="popLayout">{filtered.map((doc, index) => <DocumentCard key={doc.id} doc={doc} index={index} reducedMotion={reducedMotion} broken={brokenImages.has(doc.id)} onImageError={() => setBrokenImages((items) => new Set(items).add(doc.id))} onCopyPublicLink={() => void copyPublicLink(doc)} onDelete={() => setDeleteTarget(doc)} router={router} />)}</AnimatePresence> : <DashboardDocumentSkeletons />}</div>{imagesReady&&nextCursor&&<div className="mt-6 text-center"><button className="rounded-xl border border-[#d8d1c5] bg-white px-5 py-3 text-xs" disabled={loadingMore} onClick={()=>void loadMore()}>{loadingMore?"Loading…":"Load more"}</button></div>}{imagesReady && !filtered.length && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 flex min-h-[300px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d6cec1] bg-[#fffdf8]/60 px-6 text-center"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#eee9f5] text-[#76648d]"><SparkleIcon size={24} weight="duotone" /></span><h3 className="mt-5 font-[var(--font-instrument)] text-[30px] font-normal tracking-[-0.03em] text-[#403a35]">{query ? "Nothing matches that search" : filter === "all" ? "A clean page is waiting" : `No ${filters.find((item) => item.id === filter)?.label.toLowerCase()} yet`}</h3><p className="mt-2 max-w-sm text-[12px] leading-5 text-[#857c72]">{query ? "Try another title or phrase." : "Start a document and it will appear here as soon as the first thought lands."}</p>{!query && filter === "all" && <button className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#40355f] px-4 py-3 text-[11px] font-semibold text-white transition hover:bg-[#33284f]" onClick={createDocument}>Open a blank page <ArrowRightIcon size={14} /></button>}</motion.div>}
         </section>
       </div>
 

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { activeCollaboratorConstraint, documentAccessWhere, getCurrentAuth } from "@/lib/auth";
 import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
 import DocumentEditorClient, { type InitialDocument } from "../DocumentEditorClient";
+import { createHash } from "crypto";
 
 export default async function DocumentByIdPage({ params }: { params: Promise<{ id:string }> }) {
   const startedAt = performance.now();
@@ -34,6 +35,6 @@ export default async function DocumentByIdPage({ params }: { params: Promise<{ i
     collaborationEligible:hasRealtimeCollaboration(document),
     collaborators:[{...document.user,role:"owner"},...document.collaborators.map((item: typeof document.collaborators[number])=>({...item.user,role:item.role}))],
   };
-  console.info(JSON.stringify({ event:"document.load", documentId:id, durationMs:Math.round(performance.now()-startedAt) }));
+  console.info(JSON.stringify({ event:"document.load", document:createHash("sha256").update(id).digest("hex").slice(0,12), durationMs:Math.round(performance.now()-startedAt) }));
   return <DocumentEditorClient initialDocument={initialDocument} currentUser={{...user,name:auth.name||user.name,avatar:auth.avatar||user.avatar,color:"#7c4dcc",role}} />;
 }

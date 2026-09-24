@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "documents:backfill-previews": "tsx scripts/backfill-document-previews.ts"
+    "documents:backfill-previews": "tsx scripts/backfill-document-previews.ts",
+    "storage:reconcile": "tsx scripts/reconcile-document-images.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

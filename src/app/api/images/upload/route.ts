@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import sharp, { type Metadata } from "sharp";
+import { documentImagesBucket, enqueueStorageDeletion } from "@/lib/storage-deletion";
 
 const MAX_SIZE = 500 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/gif"]);
@@ -40,8 +41,9 @@ export async function POST(request: NextRequest) {
     const record = await prisma.documentImage.create({ data: { documentId, fileName: storagePath, originalName: file.name.slice(0, 255), fileUrl: `/api/images/${storagePath}`, fileSize: output.byteLength, mimeType: outputMime, width: outputMetadata.width, height: outputMetadata.height } });
     return NextResponse.json(record, { status: 201 });
   } catch (databaseError) {
-    await supabase.storage.from("document-images").remove([storagePath]);
-    console.error("Image record creation failed", databaseError);
+    const { error:cleanupError }=await supabase.storage.from(documentImagesBucket).remove([storagePath]);
+    if(cleanupError)await enqueueStorageDeletion(documentImagesBucket,storagePath,"upload-rollback",documentId);
+    console.error("image.record_create_failed", { code:databaseError instanceof Error?databaseError.name:"UNKNOWN", cleanupQueued:Boolean(cleanupError) });
     return NextResponse.json({ error: "Image upload could not be completed" }, { status: 500 });
   }
 }

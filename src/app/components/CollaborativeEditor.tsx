@@ -223,11 +223,12 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
       providerRef.current = nextProvider;
       nextProvider.awareness.setLocalStateField("user", user);
       const publishPresence = () => {
+        if (nextProvider?.wsconnected !== true) { onPresenceChangeRef.current?.([]); return; }
         const users = Array.from(nextProvider!.awareness.getStates().values()).map((state) => state.user).filter(Boolean) as PresenceUser[];
         onPresenceChangeRef.current?.(users);
       };
       nextProvider.awareness.on("change", publishPresence);
-      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); lastActivitySignalAt = 0; signalActivity(); } });
+      nextProvider.on("status", ({ status }) => { const next = status === "connected" ? "online" : status === "connecting" ? "connecting" : "offline"; updateState({ connectivity:next, syncError: next === "online" ? stateRef.current.syncError : stateRef.current.pendingLocalChanges ? "CONNECTION_LOST" : null, retryAvailable: next !== "online" && stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.(next === "online" ? "synced" : next === "connecting" ? "connecting" : "offline"); publishPresence(); if (next === "online") { pendingSinceRef.current ||= Date.now(); flushMarkers(); lastActivitySignalAt = 0; signalActivity(); } });
       nextProvider.on("connection-error", () => { updateState({ connectivity:"error", syncError:"CONNECTION_ERROR", retryAvailable:stateRef.current.pendingLocalChanges }); onStatusChangeRef.current?.("error"); scheduleRetry(); });
       nextProvider.on("connection-close", (event) => {
         if (event?.code === 4005) {
@@ -236,10 +237,10 @@ const CollaborativeEditor = forwardRef<EditorHandle, Props>(function Collaborati
           onStatusChangeRef.current?.("offline");
           return;
         }
-        if (![1008, 4001, 4003, 4004].includes(event?.code ?? 0)) return;
+        if (![1008, 4001, 4003, 4004, 4401, 4403, 4404].includes(event?.code ?? 0)) return;
         nextProvider!.shouldConnect = false;
-        const accessExpired = event?.code === 4003;
-        const sessionRevoked = event?.code === 4001;
+        const accessExpired = event?.code === 4003 || event?.code === 4403;
+        const sessionRevoked = event?.code === 4001 || event?.code === 4401;
         updateState({ connectivity:"error", syncError:accessExpired?"ACCESS_EXPIRED":sessionRevoked?"SESSION_REVOKED":"COLLABORATION_UNAVAILABLE", retryAvailable:false });
         onStatusChangeRef.current?.("error");
       });

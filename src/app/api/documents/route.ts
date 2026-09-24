@@ -15,11 +15,14 @@ export async function GET(request: NextRequest){
         }
         
         const userId = authResult.userId;
+        const cursor=request.nextUrl.searchParams.get("cursor");
+        const query=request.nextUrl.searchParams.get("q")?.trim().slice(0,100);
+        const filter=request.nextUrl.searchParams.get("filter")||"all";
         const documents = await prisma.document.findMany({
-            where: documentAccessWhere(userId),
-            orderBy: {
-                updatedAt: "desc",
-            },
+            where: {AND:[documentAccessWhere(userId),query?{OR:[{title:{contains:query,mode:"insensitive"}},{previewText:{contains:query,mode:"insensitive"}}]}:{},filter==="draft"?{status:"WORKING_DRAFT"}:filter==="complete"?{status:"COMPLETE"}:filter==="published"?{publication:{is:{isActive:true}}}:filter==="shared"?{userId:{not:userId}}:{}]},
+            orderBy: [{lastEditedAt:"desc"},{id:"desc"}],
+            take:31,
+            ...(cursor?{cursor:{id:cursor},skip:1}:{}),
             select: {
                 id: true,
                 title: true,
@@ -35,7 +38,8 @@ export async function GET(request: NextRequest){
             }
         });
 
-        return NextResponse.json(documents); 
+        const hasMore=documents.length>30;const items=documents.slice(0,30).map((document)=>({...document,owned:document.userId===userId}));
+        return NextResponse.json({items,nextCursor:hasMore?items.at(-1)?.id||null:null});
     } catch (error) {
         console.error("Error fetching documents: ", error);
         return NextResponse.json({
