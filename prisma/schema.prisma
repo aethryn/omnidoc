@@ -122,6 +122,7 @@ model Document {
   @@index([tags])
   @@index([createdAt])
   @@index([updatedAt])
+  @@index([lastEditedAt, id])
   Room Room[]
 }
 
@@ -135,12 +136,31 @@ model AppSession {
 
   @@index([userId])
   @@index([revokedAt])
+  @@index([lastSeenAt])
 }
 
 model RateLimitBucket {
   id          String   @id
   count       Int      @default(0)
   windowStart DateTime
+
+  @@index([windowStart])
+}
+
+model StorageDeletionJob {
+  id               String   @id @default(cuid())
+  bucket           String
+  objectPath       String
+  reason           String
+  retryCount       Int      @default(0)
+  nextAttemptAt    DateTime @default(now())
+  lastErrorCode    String?
+  sourceDocumentId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([bucket, objectPath])
+  @@index([nextAttemptAt, id])
 }
 
 enum DocumentStatus {
@@ -215,6 +235,8 @@ model DocumentCollaborators {
   invitedAt DateTime @default(now())
   acceptedAt DateTime?
   accessExpiresAt DateTime?
+  revokedAt DateTime?
+  revokedBy String?
   
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -223,6 +245,7 @@ model DocumentCollaborators {
   @@index([documentId])
   @@index([userId])
   @@index([documentId, accessExpiresAt])
+  @@index([documentId, revokedAt])
 }
 
 model DocumentComment {

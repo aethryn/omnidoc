@@ -13,8 +13,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   if (!await member(id, auth.userId)) return NextResponse.json({ error: "Document not found or access denied" }, { status: 404 });
   const filter = request.nextUrl.searchParams.get("filter") || "open";
-  const threads = await prisma.documentComment.findMany({ where: { documentId: id, parentId: null, deletedAt: null, ...(filter === "resolved" ? { isResolved: true } : filter === "open" ? { isResolved: false } : {}) }, orderBy: { createdAt: "asc" }, include: { user: { select: { id: true, name: true, avatar: true } }, replies: { where: { deletedAt: null }, orderBy: { createdAt: "asc" }, include: { user: { select: { id: true, name: true, avatar: true } } } } } });
-  return NextResponse.json(threads.map((thread: any) => ({ ...thread, createdAt: thread.createdAt.toISOString(), updatedAt: thread.updatedAt.toISOString(), resolvedAt: thread.resolvedAt?.toISOString() || null, replies: thread.replies.map((reply: any) => ({ ...reply, createdAt: reply.createdAt.toISOString(), updatedAt: reply.updatedAt.toISOString() })) })));
+  const cursor=request.nextUrl.searchParams.get("cursor");
+  const threads = await prisma.documentComment.findMany({ where: { documentId: id, parentId: null, deletedAt: null, ...(filter === "resolved" ? { isResolved: true } : filter === "open" ? { isResolved: false } : {}) }, orderBy: [{createdAt:"asc"},{id:"asc"}], take:51, ...(cursor?{cursor:{id:cursor},skip:1}:{}), include: { user: { select: { id: true, name: true, avatar: true } }, replies: { where: { deletedAt: null }, orderBy: { createdAt: "asc" }, take:100, include: { user: { select: { id: true, name: true, avatar: true } } } } } });
+  const hasMore=threads.length>50;const page=threads.slice(0,50);
+  return NextResponse.json({items:page.map((thread: any) => ({ ...thread, createdAt: thread.createdAt.toISOString(), updatedAt: thread.updatedAt.toISOString(), resolvedAt: thread.resolvedAt?.toISOString() || null, replies: thread.replies.map((reply: any) => ({ ...reply, createdAt: reply.createdAt.toISOString(), updatedAt: reply.updatedAt.toISOString() })) })),nextCursor:hasMore?page.at(-1)?.id||null:null});
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

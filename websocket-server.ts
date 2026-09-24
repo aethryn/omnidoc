@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import http from "http";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 import WebSocket, { WebSocketServer, type RawData } from "ws";
 import * as Y from "yjs";
 import * as encoding from "lib0/encoding";
@@ -26,8 +27,9 @@ const messageApplication = 4;
 const persistDebounceMs = 1500;
 const versionIdleMs = 120_000;
 const versionSnapshotIntervalMs = 15 * 60_000;
+const diagnosticId=(value:string)=>createHash("sha256").update(value).digest("hex").slice(0,12);
 type PersistRequest = { connection: Connection; markerId: string; clientId: string; sequence: number; revision: number; checkpoint?: PersistCheckpoint };
-type Connection = { ws: WebSocket; userId: string; sessionId?: string; canEdit: boolean; awarenessIds: Set<number>; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean; lastActivityAt:number; budget:SocketBudget };
+type Connection = { connectionId:string; documentId:string; ws: WebSocket; userId: string; sessionId?: string; role:string; canEdit: boolean; awarenessIds: Set<number>; connectedAt:number; accessExpiresAt?: Date | null; expiryTimer?: NodeJS.Timeout; closed?: boolean; expired?: boolean; lastActivityAt:number; budget:SocketBudget };
 type ActiveRoom = { doc: Y.Doc; awareness: awarenessProtocol.Awareness; ownerId: string; title:string; lastEditorId?: string; revision: number; persistedRevision: number; versionRevision?: number; lastVersionAt?: number; changeStartedAt?: number; snapshotRequested?: boolean; pendingRequests:PersistRequest[]; acknowledgedMarkers: Map<string, { revision:number; persistedAt:string }>; saveTimer?: NodeJS.Timeout; versionTimer?: NodeJS.Timeout; persistRetryTimer?: NodeJS.Timeout; persistRetryAttempt?: number; persistPromise?: Promise<void>; cleanupPromise?: Promise<void> };
 
 const active = new Map<string, ActiveRoom>();
@@ -41,12 +43,46 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
+function validControlSecret(value:string|undefined) {
+  const expected=process.env.WS_CONTROL_SECRET;
+  if(!expected||!value?.startsWith("Bearer "))return false;
+  const received=Buffer.from(value.slice(7));const wanted=Buffer.from(expected);
+  return received.length===wanted.length&&timingSafeEqual(received,wanted);
+}
+
+async function closeConnection(connection:Connection,code:number,reason:string) {
+  await persist(connection.documentId,true).catch(()=>undefined);
+  if(connection.ws.readyState===WebSocket.OPEN)connection.ws.close(code,reason);else connection.ws.terminate();
+}
+
 const server = http.createServer(async (request, response) => {
   if (request.url === "/health") {
     const connectionCount = Array.from(connections.values()).reduce((total, roomConnections) => total + roomConnections.size, 0);
     response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     response.end(JSON.stringify({ ok: true, rooms: active.size, connections: connectionCount, pendingHandshakes }));
     return;
+  }
+  if(request.url?.startsWith("/control/")){
+    if(!validControlSecret(request.headers.authorization)){response.writeHead(401,{"Content-Type":"application/json","Cache-Control":"no-store"});response.end(JSON.stringify({error:"Not authorized"}));return;}
+    const url=new URL(request.url,"http://localhost");
+    if(request.method==="GET"&&url.pathname==="/control/rooms"){
+      const rooms=Array.from(active.entries()).map(([documentId,room])=>({documentId,ownerId:room.ownerId,connections:Array.from(connections.get(documentId)||[]).filter((item)=>!item.closed).map((item)=>({connectionId:item.connectionId,userId:item.userId,documentId,role:item.role,connectedAt:new Date(item.connectedAt).toISOString(),lastActivityAt:new Date(item.lastActivityAt).toISOString()}))}));
+      response.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});response.end(JSON.stringify({rooms}));return;
+    }
+    const roomMatch=url.pathname.match(/^\/control\/rooms\/([^/]+)\/(persist|drain)$/);
+    if(request.method==="POST"&&roomMatch){
+      const documentId=decodeURIComponent(roomMatch[1]);const room=active.get(documentId);
+      if(room)await persist(documentId,true);
+      if(roomMatch[2]==="drain")await Promise.all(Array.from(connections.get(documentId)||[]).map((item)=>closeConnection(item,4404,"Document unavailable")));
+      response.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});response.end(JSON.stringify({ok:true,active:Boolean(room)}));return;
+    }
+    const connectionMatch=url.pathname.match(/^\/control\/connections\/([^/]+)\/disconnect$/);
+    if(request.method==="POST"&&connectionMatch){const connection=Array.from(liveConnections).find((item)=>item.connectionId===decodeURIComponent(connectionMatch[1]));if(connection)await closeConnection(connection,4401,"Session revoked");response.writeHead(200,{"Content-Type":"application/json"});response.end(JSON.stringify({ok:true,found:Boolean(connection)}));return;}
+    const revokeMatch=url.pathname.match(/^\/control\/connections\/([^/]+)\/revoke$/);
+    if(request.method==="POST"&&revokeMatch){const connection=Array.from(liveConnections).find((item)=>item.connectionId===decodeURIComponent(revokeMatch[1]));if(connection?.sessionId)await prisma.appSession.updateMany({where:{id:connection.sessionId,userId:connection.userId},data:{revokedAt:new Date()}});if(connection)await closeConnection(connection,4401,"Session revoked");response.writeHead(200,{"Content-Type":"application/json"});response.end(JSON.stringify({ok:true,found:Boolean(connection)}));return;}
+    const userMatch=url.pathname.match(/^\/control\/rooms\/([^/]+)\/users\/([^/]+)\/disconnect$/);
+    if(request.method==="POST"&&userMatch){const documentId=decodeURIComponent(userMatch[1]);const userId=decodeURIComponent(userMatch[2]);const targets=Array.from(connections.get(documentId)||[]).filter((item)=>item.userId===userId);await Promise.all(targets.map((item)=>closeConnection(item,4403,"Document access revoked")));response.writeHead(200,{"Content-Type":"application/json"});response.end(JSON.stringify({ok:true,count:targets.length}));return;}
+    response.writeHead(404,{"Content-Type":"application/json"});response.end(JSON.stringify({error:"Not found"}));return;
   }
   response.writeHead(200, { "Content-Type": "text/plain" });
   response.end("Omnidoc collaboration server\n");
@@ -70,6 +106,11 @@ const heartbeatTimer = setInterval(() => {
   connections.forEach((roomConnections, documentId) => roomConnections.forEach((connection) => {
     if (!connection.closed && !connection.expired && now - connection.lastActivityAt >= websocketLimits.idleTimeoutMs) void closeIdleConnection(documentId, connection);
   }));
+  active.forEach((room,documentId)=>{
+    const owned=new Set(Array.from(connections.get(documentId)||[]).filter((item)=>!item.closed).flatMap((item)=>Array.from(item.awarenessIds)));
+    const unknown=Array.from(room.awareness.getStates().keys()).filter((id)=>!owned.has(id));
+    if(unknown.length)awarenessProtocol.removeAwarenessStates(room.awareness,unknown,"orphan-sweep");
+  });
   handshakeAttempts.forEach((attempt, userId) => { if (now - attempt.windowStartedAt >= 60_000) handshakeAttempts.delete(userId); });
 }, websocketHeartbeatIntervalMs);
 heartbeatTimer.unref();
@@ -92,7 +133,7 @@ async function validateActiveSessions() {
     liveConnections.forEach((connection) => {
       if (!connection.sessionId || valid.has(connection.sessionId) || connection.closed || connection.expired) return;
       connection.expired = true;
-      if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4001, "Session revoked");
+      if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4401, "Session revoked");
     });
   } catch (error) {
     console.error("Session revocation validation failed", error instanceof Error ? error.name : "unknown");
@@ -107,7 +148,7 @@ function rawMessageSize(raw: RawData) {
 async function closeIdleConnection(documentId: string, connection: Connection) {
   if (connection.closed || connection.expired) return;
   connection.lastActivityAt = Date.now();
-  await persist(documentId, true).catch((error) => console.error("Failed to persist before idle disconnect", documentId, error));
+  await persist(documentId, true).catch((error) => console.error("collaboration.idle_persist_failed", { document:diagnosticId(documentId), code:error instanceof Error?error.name:"UNKNOWN" }));
   if (connection.ws.readyState === WebSocket.OPEN) connection.ws.close(4005, "Collaboration session idle");
 }
 
@@ -159,6 +200,8 @@ async function cleanupEmptyRoom(documentId: string) {
     if (current !== room || connections.get(documentId)?.size) return;
     active.delete(documentId);
     connections.delete(documentId);
+    room.awareness.destroy();
+    room.doc.destroy();
   })().finally(() => { room.cleanupPromise = undefined; });
   return room.cleanupPromise;
 }
@@ -172,13 +215,13 @@ async function expireConnection(documentId: string, connection: Connection) {
       await persist(documentId, true);
       persisted = true;
     } catch (error) {
-      console.error("Failed to persist document before invitation expiry", documentId, error);
+      console.error("collaboration.expiry_persist_failed", { document:diagnosticId(documentId), code:error instanceof Error?error.name:"UNKNOWN" });
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
     }
   }
   if (connection.ws.readyState === WebSocket.OPEN) {
     sendApplication(connection.ws, { kind: "access-expired", persisted });
-    connection.ws.close(4003, "Invitation access expired");
+    connection.ws.close(4403, "Invitation access expired");
   }
 }
 
@@ -377,7 +420,7 @@ wss.on("connection", async (ws, request) => {
   });
   if (closedBeforeSetup || ws.readyState !== WebSocket.OPEN) return;
   if (!document) return reject(1008, "Document access denied");
-  if (!hasRealtimeCollaboration(document)) return reject(4004, "Document is not shared");
+  if (!hasRealtimeCollaboration(document)) return reject(4404, "Document is not shared");
   if ((connections.get(documentId)?.size || 0) >= websocketLimits.connectionsPerDocument) return reject(1008, "Document connection limit reached");
 
   const room = await loadRoom(documentId);
@@ -391,7 +434,7 @@ wss.on("connection", async (ws, request) => {
   const role=document.userId===user.id?"owner":collaborator?.role;
   const accessExpiresAt=document.userId===user.id?null:collaborator?.accessExpiresAt;
   const now = Date.now();
-  const entry:Connection = { ws, userId: user.id, sessionId, canEdit:role!=="viewer", awarenessIds:new Set(), accessExpiresAt, lastActivityAt:now, budget:{ windowStartedAt:now, messages:0, bytes:0 } };
+  const entry:Connection = { connectionId:randomUUID(), documentId, ws, userId: user.id, sessionId, role:role||"viewer", canEdit:role!=="viewer", awarenessIds:new Set(), connectedAt:now, accessExpiresAt, lastActivityAt:now, budget:{ windowStartedAt:now, messages:0, bytes:0 } };
   ws.off("close", closeHandler);
   closeHandler = () => {
     if (entry.closed) return;

@@ -60,14 +60,17 @@ if [[ -n "$APP_URL_OVERRIDE" ]]; then
 fi
 [[ "$APP_URL" == https://* ]] || die "APP_URL must be set to the production HTTPS origin, for example APP_URL=https://app.example.com"
 
-for env_name in DATABASE_URL DIRECT_URL SUPABASE_SERVICE_ROLE_KEY; do
+for env_name in DATABASE_URL DIRECT_URL SUPABASE_SERVICE_ROLE_KEY WS_CONTROL_SECRET; do
   [[ -n "${!env_name:-}" ]] || die "$env_name must be set in $ENV_FILE or the shell environment"
 done
 
 ACTIVE_ACCOUNT="$(gcloud auth list --filter='status:ACTIVE' --format='value(account)' | head -n 1)"
 [[ -n "$ACTIVE_ACCOUNT" ]] || die "gcloud has no active authenticated account"
 
-[[ "$(git rev-parse --show-toplevel)" == "$ROOT_DIR" ]] || die "script must run from the repository root"
+# `ROOT_DIR` is resolved by Bash/MSYS while Git for Windows may print a
+# Windows-style path (for example C:/...). Validate the repository through
+# Git itself instead of comparing those two path representations.
+git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "script must run from the repository root"
 if [[ "$ALLOW_DIRTY" != "1" ]] && [[ -n "$(git status --porcelain)" ]]; then
   die "working tree is dirty; commit changes first or rerun with ALLOW_DIRTY=1"
 fi
@@ -132,7 +135,7 @@ gcloud run deploy "$SERVICE" \
   --session-affinity \
   --no-use-http2 \
   --remove-env-vars="REDIS_URL,WS_REDIS_REQUIRED" \
-  --update-env-vars="APP_URL=${APP_URL},NEXT_PUBLIC_APP_URL=${APP_URL},DATABASE_URL=${DATABASE_URL},DIRECT_URL=${DIRECT_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}"
+  --update-env-vars="APP_URL=${APP_URL},NEXT_PUBLIC_APP_URL=${APP_URL},DATABASE_URL=${DATABASE_URL},DIRECT_URL=${DIRECT_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY},WS_CONTROL_SECRET=${WS_CONTROL_SECRET}"
 DEPLOYED=1
 
 SERVICE_URL="$(gcloud run services describe "$SERVICE" \

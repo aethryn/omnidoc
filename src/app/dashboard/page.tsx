@@ -14,6 +14,7 @@ export default async function DashboardPage() {
     prisma.document.findMany({
       where: documentAccessWhere(userId),
       orderBy: { lastEditedAt: "desc" },
+      take:31,
       select: {
         id: true, title: true, userId: true, status:true, previewText:true, previewImageUrl:true, wordCount:true, updatedAt: true, lastEditedAt: true,
         publication:{select:{id:true,slug:true,isActive:true,publishedAt:true,updatedAt:true}},
@@ -27,5 +28,6 @@ export default async function DashboardPage() {
     console.info(JSON.stringify({ event: "dashboard.load", durationMs: Math.round(performance.now() - startedAt), documentCount: documents.length }));
   }
 
-  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={{...user,name:auth.name||user.name,email:auth.email||user.email,avatar:auth.avatar||user.avatar}} documents={documents.map((doc: typeof documents[number]) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), publication:doc.publication?{...doc.publication,publishedAt:doc.publication.publishedAt.toISOString(),updatedAt:doc.publication.updatedAt.toISOString()}:null, owned: doc.userId === userId }))} />;
+  const hasMore=documents.length>30;const page=documents.slice(0,30);
+  return <DashboardClient greeting={new Date().getUTCHours() < 12 ? "morning" : "to see you"} user={{...user,name:auth.name||user.name,email:auth.email||user.email,avatar:auth.avatar||user.avatar}} documents={page.map((doc: typeof documents[number]) => ({ ...doc, updatedAt: doc.updatedAt.toISOString(), lastEditedAt: doc.lastEditedAt.toISOString(), publication:doc.publication?{...doc.publication,publishedAt:doc.publication.publishedAt.toISOString(),updatedAt:doc.publication.updatedAt.toISOString()}:null, owned: doc.userId === userId }))} nextCursor={hasMore?page.at(-1)?.id||null:null} />;
 }

@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { activeCollaboratorConstraint, documentAccessWhere, getCurrentUserIdFromRequest, createAuthErrorResponse } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { deriveDocumentPreview } from "@/lib/document-content";
 import { allocateDocumentVersionNumber, documentContentHash } from "@/lib/document-version";
 import { hasRealtimeCollaboration } from "@/lib/collaboration-eligibility";
+import { deleteQueuedStorageObjects, documentImagesBucket } from "@/lib/storage-deletion";
+import { drainRoom } from "@/lib/ws-control";
 
 export async function GET(
   request: NextRequest,
@@ -12,7 +13,6 @@ export async function GET(
 ) {
   try {
     const { id: documentId } = await params;
-    console.log("Params documentId: ", documentId);
 
     const authResult = await getCurrentUserIdFromRequest(request);
     
@@ -21,8 +21,6 @@ export async function GET(
     }
     
     const userId = authResult.userId;
-    console.log("User ID: ", userId);
-    console.log("Document ID: ", documentId);
 
     //check if the document exists and the usr has access to it.
     const document = await prisma.document.findFirst({
@@ -147,18 +145,6 @@ export async function PUT(
     //log the update
     // console.log("Document updated: ", updatedDocument);
 
-    await prisma.documentActivity.create({
-      data: {
-        documentId,
-        userId,
-        action: "edited",
-        description: "Document content updated",
-        metadata: {
-          fieldsChanged: Object.keys(updateData),
-          timestamp: new Date().toISOString(),
-        },
-      },
-    });
     return NextResponse.json(updatedDocument);
   } catch (error) {
     if (error instanceof Error && error.message === "DOCUMENT_CHANGED") return NextResponse.json({ error:"The document became collaborative while saving. Retry in the live editor.", code:"COLLABORATIVE_WRITE_REQUIRED" }, { status:409 });
@@ -264,21 +250,22 @@ export async function DELETE(
             })
         }
 
-        if (document.images.length) {
-          const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-          const { error: storageError } = await supabase.storage.from("document-images").remove(document.images.map((image: typeof document.images[number]) => image.fileName));
-          if (storageError) console.error("Failed to remove document images", storageError.message);
+        const drained=await drainRoom(documentId).catch(()=>({ok:false,configured:true}));
+        if (!drained.ok) {
+          return NextResponse.json({ error:"Active collaboration could not be safely persisted. Try again shortly.", code:"ROOM_DRAIN_FAILED" }, { status:503, headers:{ "Retry-After":"10" } });
         }
 
-        //delete the document
-        await prisma.document.delete({
-            where: {
-                id: documentId,
-            }
+        const paths=document.images.map((image: typeof document.images[number])=>image.fileName);
+        const jobs=await prisma.$transaction(async(tx)=>{
+          if(paths.length)await tx.storageDeletionJob.createMany({data:paths.map((objectPath)=>({bucket:documentImagesBucket,objectPath,reason:"document-deleted",sourceDocumentId:documentId})),skipDuplicates:true});
+          await tx.document.delete({where:{id:documentId}});
+          return paths.length?tx.storageDeletionJob.findMany({where:{bucket:documentImagesBucket,objectPath:{in:paths}},select:{id:true}}):[];
         });
+        const cleanup=await deleteQueuedStorageObjects(jobs.map((job)=>job.id)).catch(()=>({deleted:0,pending:jobs.length}));
 
         return NextResponse.json({
-            message: "Document deleted successfully"
+            message: "Document deleted successfully",
+            cleanupPending: cleanup.pending > 0,
         }, {
             status: 200
         })

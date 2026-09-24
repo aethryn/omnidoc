@@ -14,18 +14,25 @@ async function registerOrValidateSession(userId: string, claims: SessionClaim): 
   // JWT `exp` is the access-token lifetime, not the Supabase session lifetime.
   // Refreshing a valid Supabase session may issue a new token with a new exp.
   const expiresAt = null;
-  const existing = await prisma.$queryRaw<Array<{ userId: string; revokedAt: Date | null; expiresAt: Date | null }>>`
-    SELECT "userId", "revokedAt", "expiresAt" FROM "AppSession" WHERE "id" = ${sessionId} LIMIT 1
+  const rows = await prisma.$queryRaw<Array<{ userId: string; revokedAt: Date | null }>>`
+    WITH inserted AS (
+      INSERT INTO "AppSession" ("id", "userId", "expiresAt", "lastSeenAt")
+      VALUES (${sessionId}, ${userId}, ${expiresAt}, CURRENT_TIMESTAMP)
+      ON CONFLICT ("id") DO NOTHING
+      RETURNING "userId", "revokedAt"
+    ), touched AS (
+      UPDATE "AppSession" SET "lastSeenAt"=CURRENT_TIMESTAMP
+      WHERE "id"=${sessionId} AND "userId"=${userId} AND "revokedAt" IS NULL AND "lastSeenAt" < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+      RETURNING "userId", "revokedAt"
+    )
+    SELECT "userId", "revokedAt" FROM inserted
+    UNION ALL SELECT "userId", "revokedAt" FROM touched
+    UNION ALL SELECT "userId", "revokedAt" FROM "AppSession" WHERE "id"=${sessionId}
+    LIMIT 1
   `;
-  if (existing[0] && (existing[0].userId !== userId || existing[0].revokedAt)) {
+  if (rows[0] && (rows[0].userId !== userId || rows[0].revokedAt)) {
     return { error: "Session revoked", code: "SESSION_REVOKED", sessionId };
   }
-
-  await prisma.$executeRaw`
-    INSERT INTO "AppSession" ("id", "userId", "expiresAt", "lastSeenAt")
-    VALUES (${sessionId}, ${userId}, ${expiresAt}, CURRENT_TIMESTAMP)
-    ON CONFLICT ("id") DO UPDATE SET "lastSeenAt" = CURRENT_TIMESTAMP, "expiresAt" = COALESCE(EXCLUDED."expiresAt", "AppSession"."expiresAt")
-  `;
   return { userId, sessionId };
 }
 
@@ -61,6 +68,7 @@ export function createAuthErrorResponse(authResult?: AuthResult): NextResponse {
 export function activeCollaboratorConstraint() {
   return {
     acceptedAt: { not: null },
+    revokedAt: null,
     OR: [
       { accessExpiresAt: null },
       { accessExpiresAt: { gt: new Date() } },
