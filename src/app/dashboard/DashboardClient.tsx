@@ -262,11 +262,26 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   const dashboardImageSources = useMemo(() => imageSourcesForDashboard(user, initialDocuments), [initialDocuments, user]);
   const imagesReady = useImagesReady(dashboardImageSources);
   const firstSearchRef=useRef(true);
+  const searchRequestRef=useRef(0);
 
   useEffect(()=>{
     if(firstSearchRef.current){firstSearchRef.current=false;return;}
     const controller=new AbortController();
-    const timer=window.setTimeout(async()=>{setLoadingMore(true);const search=new URLSearchParams({filter});if(query.trim())search.set("q",query.trim());const response=await fetch(`/api/documents?${search}`,{cache:"no-store",signal:controller.signal});const data=await response.json().catch(()=>({}));if(response.ok){setDocuments(data.items||[]);setNextCursor(data.nextCursor||null);}else if(!controller.signal.aborted)setError("Documents could not be filtered.");setLoadingMore(false);},250);
+    const requestId=++searchRequestRef.current;
+    const timer=window.setTimeout(async()=>{
+      setLoadingMore(true);
+      try {
+        const search=new URLSearchParams({filter});if(query.trim())search.set("q",query.trim());
+        const response=await fetch(`/api/documents?${search}`,{cache:"no-store",signal:controller.signal});
+        const data=await response.json().catch(()=>({}));
+        if(controller.signal.aborted)return;
+        if(response.ok){setDocuments(data.items||[]);setNextCursor(data.nextCursor||null);}else setError("Documents could not be filtered.");
+      } catch {
+        if(!controller.signal.aborted)setError("Documents could not be filtered.");
+      } finally {
+        if(searchRequestRef.current===requestId)setLoadingMore(false);
+      }
+    },250);
     return()=>{window.clearTimeout(timer);controller.abort();};
   },[filter,query]);
 
@@ -290,7 +305,7 @@ export default function DashboardClient({ user, documents: initialDocuments, gre
   function createDocument() {
     startCreating(() => router.push("/document"));
   }
-  async function loadMore(){if(!nextCursor||loadingMore)return;setLoadingMore(true);const search=new URLSearchParams({cursor:nextCursor,filter});if(query.trim())search.set("q",query.trim());const response=await fetch(`/api/documents?${search}`,{cache:"no-store"});const data=await response.json().catch(()=>({}));if(response.ok){setDocuments((items)=>[...items,...(data.items||[])]);setNextCursor(data.nextCursor||null);}else setError("More documents could not be loaded.");setLoadingMore(false);}
+  async function loadMore(){if(!nextCursor||loadingMore)return;setLoadingMore(true);try{const search=new URLSearchParams({cursor:nextCursor,filter});if(query.trim())search.set("q",query.trim());const response=await fetch(`/api/documents?${search}`,{cache:"no-store"});const data=await response.json().catch(()=>({}));if(response.ok){setDocuments((items)=>[...items,...(data.items||[])]);setNextCursor(data.nextCursor||null);}else setError("More documents could not be loaded.");}catch{setError("More documents could not be loaded.");}finally{setLoadingMore(false);}}
 
   async function deleteDocument() {
     if (!deleteTarget || deleteInFlightRef.current) return;
